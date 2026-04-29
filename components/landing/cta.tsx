@@ -29,7 +29,7 @@ export function CTA() {
 
         <FadeIn delay={150} duration={700}>
           <p className="mx-auto mt-5 max-w-xl text-lg text-muted-foreground">
-            10 minutos de diagnóstico. 0 reais. Um plano pronto pra você mudar de vida.
+            10 minutos de diagnóstico. Gratuito. Você sai sabendo exatamente o que estudar.
           </p>
         </FadeIn>
 
@@ -55,7 +55,7 @@ export function CTA() {
             </Button>
           </div>
           <p className="mt-6 font-mono text-xs text-muted-foreground">
-            Sem cartão · 7 dias grátis no Pro · Cancele quando quiser
+            Sem cartão · Plano gratuito disponível · Cancele quando quiser
           </p>
         </FadeIn>
 

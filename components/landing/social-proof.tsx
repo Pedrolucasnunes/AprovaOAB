@@ -1,12 +1,16 @@
 import { FadeIn } from "@/components/ui/fade-in"
 
-const schools = ["USP", "PUC-SP", "Mackenzie", "UFMG", "UFRJ", "UnB", "FGV Direito", "UFRGS"]
+const schools = [
+  "Dir. Constitucional", "Dir. Civil", "Dir. Penal", "Processo Civil",
+  "Processo Penal", "Dir. Empresarial", "Ética OAB", "Dir. Tributário",
+  "Dir. Administrativo", "Dir. do Trabalho",
+]
 
 const stats = [
-  { value: "+32 mil", label: "alunos ativos" },
-  { value: "87%",     label: "taxa de aprovação" },
-  { value: "4.9★",    label: "em 2.140 avaliações" },
-  { value: "−47%",    label: "de tempo estudando" },
+  { value: "Beta",   label: "fase de lançamento" },
+  { value: "100%",   label: "questões no padrão FGV" },
+  { value: "Grátis", label: "para começar" },
+  { value: "10+",    label: "matérias cobertas" },
 ]
 
 export function SocialProof() {
@@ -15,7 +19,7 @@ export function SocialProof() {
       <div className="mx-auto max-w-7xl px-4 lg:px-8">
 
         <p className="mb-6 text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          Aprovados em faculdades e escritórios de todo o Brasil
+          Matérias cobertas no Exame da OAB
         </p>
 
         {/* Marquee */}

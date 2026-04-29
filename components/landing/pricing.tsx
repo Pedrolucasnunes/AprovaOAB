@@ -30,8 +30,8 @@ const plans = [
     label: "Pro",
     price: "R$ 49",
     period: "/mês",
-    priceTotal: "7 dias grátis · cancele quando quiser",
-    description: "Para quem quer passar no próximo exame com metade do esforço.",
+    priceTotal: "cancele quando quiser",
+    description: "Para quem quer se preparar com foco e chegar ao exame com confiança.",
     highlight: true,
     badge: "Mais escolhido",
     features: [
@@ -43,7 +43,7 @@ const plans = [
       "Revisão espaçada automática",
     ],
     missing: [],
-    cta: "Começar 7 dias grátis",
+    cta: "Assinar plano Pro",
     href: "/cadastro",
   },
   {
@@ -51,18 +51,18 @@ const plans = [
     label: "Aprovação",
     price: "R$ 89",
     period: "/mês",
-    priceTotal: "garantia ou dinheiro de volta",
-    description: "Para quem quer resultado garantido — ou o dinheiro de volta.",
+    priceTotal: "suporte completo na jornada",
+    description: "Para quem quer o máximo de suporte e acompanhamento personalizado.",
     highlight: false,
-    badge: "Garantia total",
+    badge: "Premium",
     features: [
       "Tudo do Pro",
       "Mentoria ao vivo semanal",
       "Correção de peças práticas",
-      "Garantia: não passou, devolvemos",
+      "Acompanhamento individual",
     ],
     missing: [],
-    cta: "Quero aprovação garantida",
+    cta: "Assinar Aprovação",
     href: "/cadastro",
   },
 ]
@@ -226,7 +226,7 @@ export function Pricing() {
 
         <FadeIn delay={400}>
           <p className="mt-10 text-center font-mono text-xs text-muted-foreground">
-            Todos os planos incluem acesso completo · Cancele quando quiser · Pagamento seguro
+            Comece grátis · Cancele quando quiser · Pagamento seguro
           </p>
         </FadeIn>
       </div>

@@ -58,7 +58,7 @@ export function Hero() {
             <FadeIn delay={0} duration={700}>
               <div className="badge-pill mb-6 gap-2">
                 <span className="h-2 w-2 animate-pulse rounded-full bg-[#065F46]" />
-                IA treinada em 10 anos de provas da OAB
+                Questões no padrão FGV · Plano personalizado por IA
               </div>
             </FadeIn>
 
@@ -75,10 +75,10 @@ export function Hero() {
 
             <FadeIn delay={200} duration={700}>
               <p className="mt-6 max-w-[480px] text-lg leading-relaxed text-muted-foreground">
-                Diagnóstico inteligente em 10 minutos, plano de estudos 100% personalizado
-                e simulados adaptativos que se ajustam ao seu ritmo. Estude{" "}
-                <strong className="text-foreground">metade do tempo</strong> com o{" "}
-                <strong className="text-foreground">dobro da eficiência</strong>.
+                Diagnóstico em 10 minutos, plano de estudos personalizado e simulados
+                no padrão FGV. Descubra{" "}
+                <strong className="text-foreground">onde estão suas lacunas</strong> e saiba{" "}
+                <strong className="text-foreground">exatamente o que priorizar</strong> para passar.
               </p>
             </FadeIn>
 
@@ -104,7 +104,7 @@ export function Hero() {
                 </Button>
               </div>
               <p className="mt-3 font-mono text-xs tracking-wide text-muted-foreground">
-                ✓ Sem cartão &nbsp;·&nbsp; ✓ 7 dias grátis &nbsp;·&nbsp; ✓ Cancele quando quiser
+                ✓ Sem cartão &nbsp;·&nbsp; ✓ Plano gratuito disponível &nbsp;·&nbsp; ✓ Cancele quando quiser
               </p>
             </FadeIn>
           </div>
@@ -181,14 +181,14 @@ export function Hero() {
 
               {/* Floating stat card */}
               <div className="animate-card-float-slow absolute -bottom-6 -left-6 hidden rounded-xl border border-border bg-card p-4 shadow-lg md:block">
-                <p className="font-mono text-xs text-muted-foreground">Taxa de aprovação</p>
+                <p className="font-mono text-xs text-muted-foreground">Produto em</p>
                 <p
                   className="text-3xl font-black text-primary"
                   style={{ fontFamily: "'Fraunces', Georgia, serif" }}
                 >
-                  87%
+                  Beta
                 </p>
-                <p className="font-mono text-xs text-muted-foreground">dos nossos alunos passam</p>
+                <p className="font-mono text-xs text-muted-foreground">fase inicial de lançamento</p>
               </div>
             </div>
           </FadeIn>

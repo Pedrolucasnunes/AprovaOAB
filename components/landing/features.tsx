@@ -20,7 +20,7 @@ const features = [
   {
     icon: BarChart2,
     title: "Simulados reais",
-    description: "Questões idênticas ao padrão FGV, com ranking nacional.",
+    description: "Questões no padrão FGV, com gabarito comentado.",
   },
   {
     icon: FileText,

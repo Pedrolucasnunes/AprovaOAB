@@ -2,45 +2,24 @@ import { FadeIn } from "@/components/ui/fade-in"
 
 const testimonials = [
   {
-    initials: "MC",
-    name: "Marina Costa",
-    role: "Aprovada — XL Exame",
-    text: "Passei no 1º exame depois de 2 reprovações. O diagnóstico mostrou que eu perdia tempo revisando o que já sabia.",
-    highlight: false,
-  },
-  {
-    initials: "RS",
-    name: "Rafael Souza",
-    role: "Aprovado — XL Exame",
-    text: "Trabalho 8h por dia. Com a IA estudei 1h20 por noite e passei. Mudou minha vida profissional.",
+    initials: "EA",
+    name: "Produto em fase inicial",
+    role: "Early Access · Buscando primeiros usuários",
+    text: "Estamos nos primeiros passos. Seja um dos primeiros a usar o aprovaOAB e ajude a moldar o produto com seu feedback.",
     highlight: true,
   },
   {
-    initials: "JA",
-    name: "Juliana Alves",
-    role: "Aprovada — XXXIX Exame",
-    text: "O tutor IA explica melhor que muito professor. Tiro dúvida às 2h da manhã e continuo estudando.",
+    initials: "FG",
+    name: "Baseado em provas reais",
+    role: "Padrão FGV · Exame da OAB",
+    text: "Todas as questões seguem o padrão da banca FGV — a mesma que elabora o Exame da Ordem. Nada inventado, nada genérico.",
     highlight: false,
   },
   {
-    initials: "PL",
-    name: "Pedro Lima",
-    role: "Aprovado — XL Exame",
-    text: "Os simulados são iguais à prova real. Cheguei no dia sem ansiedade porque já tinha treinado o suficiente.",
-    highlight: false,
-  },
-  {
-    initials: "CF",
-    name: "Camila Ferreira",
-    role: "Aprovada — XXXIX Exame",
-    text: "Gastei R$ 3 mil em cursinho e não passei. Aqui paguei R$ 49 e passei em 4 meses. Inacreditável.",
-    highlight: false,
-  },
-  {
-    initials: "AN",
-    name: "Ana Nogueira",
-    role: "Aprovada — XL Exame",
-    text: "Mãe de 2 filhos, 36 anos. Achei que não ia conseguir. O cronograma adaptativo entendeu meu ritmo real.",
+    initials: "GP",
+    name: "Comece sem compromisso",
+    role: "Plano gratuito disponível",
+    text: "O plano gratuito dá acesso ao diagnóstico completo e ao plano de estudos personalizado. Sem cartão para começar.",
     highlight: false,
   },
 ]
@@ -53,13 +32,13 @@ export function Testimonials() {
         {/* Heading */}
         <FadeIn>
           <div className="mx-auto max-w-2xl text-center">
-            <span className="badge-pill mb-4 inline-flex">Depoimentos</span>
+            <span className="badge-pill mb-4 inline-flex">Early Access</span>
             <h2
               className="mt-4 text-4xl font-black leading-tight tracking-tight text-foreground sm:text-5xl"
               style={{ fontFamily: "'Fraunces', Georgia, serif" }}
             >
-              +32 mil alunos.{" "}
-              <em className="not-italic text-primary">Milhares de aprovações.</em>
+              Seja dos primeiros.{" "}
+              <em className="not-italic text-primary">Seu feedback importa.</em>
             </h2>
           </div>
         </FadeIn>

@@ -121,7 +121,17 @@ function LoginPageContent() {
       if (authError.message.toLowerCase().includes("not confirmed")) {
         setUnverifiedEmail(email)
       } else {
-        setError("E-mail ou senha incorretos. Tente novamente.")
+        const checkRes = await fetch("/api/auth/check-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        })
+        const { exists } = await checkRes.json()
+        setError(
+          exists
+            ? "Senha incorreta. Tente novamente ou redefina sua senha."
+            : "Nenhuma conta encontrada com este e-mail. Crie uma conta para continuar."
+        )
       }
       setIsLoading(false)
       return

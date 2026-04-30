@@ -28,7 +28,7 @@ export function CheckoutButton({ plano, className, variant = "default", children
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      router.push("/login?redirect=/#planos")
+      router.push("/cadastro?redirect=/#planos")
       return
     }
 

@@ -2,6 +2,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Check, ArrowRight, Zap } from "lucide-react"
 import { FadeIn } from "@/components/ui/fade-in"
+import { CheckoutButton } from "@/components/checkout-button"
 
 const plans = [
   {
@@ -10,17 +11,18 @@ const plans = [
     price: "R$ 0",
     period: "pra sempre",
     priceTotal: null,
-    description: "Para começar a entender seus pontos fracos sem gastar nada.",
+    description: "Descubra seu nível e entenda exatamente onde melhorar.",
     highlight: false,
     badge: null,
     features: [
-      "Diagnóstico completo por matéria",
-      "Plano de estudos inicial",
-      "20 questões por dia",
+      "Diagnóstico inicial completo",
+      "Plano básico de estudos",
+      "Até 10 questões por dia",
     ],
     missing: [
+      "Questões ilimitadas",
       "Simulados completos",
-      "Tutor IA 24/7",
+      "Tutor IA",
     ],
     cta: "Começar grátis",
     href: "/cadastro",
@@ -28,19 +30,19 @@ const plans = [
   {
     id: "pro",
     label: "Pro",
-    price: "R$ 49",
+    price: "R$ 19",
     period: "/mês",
     priceTotal: "cancele quando quiser",
-    description: "Para quem quer se preparar com foco e chegar ao exame com confiança.",
+    description: "Para quem quer estudar com foco no que realmente cai.",
     highlight: true,
     badge: "Mais escolhido",
     features: [
-      "Tudo do Grátis",
+      "Tudo do plano Grátis",
       "Questões ilimitadas",
       "Simulados completos estilo FGV",
-      "Tutor IA 24/7",
-      "Resumos e mapas mentais",
-      "Revisão espaçada automática",
+      "Plano de estudos dinâmico",
+      "Revisão automática",
+      "Tutor IA (uso limitado diário)",
     ],
     missing: [],
     cta: "Assinar plano Pro",
@@ -49,20 +51,21 @@ const plans = [
   {
     id: "aprovacao",
     label: "Aprovação",
-    price: "R$ 89",
+    price: "R$ 49",
     period: "/mês",
-    priceTotal: "suporte completo na jornada",
-    description: "Para quem quer o máximo de suporte e acompanhamento personalizado.",
+    priceTotal: null,
+    description: "Para quem quer evoluir mais rápido com apoio da IA.",
     highlight: false,
-    badge: "Premium",
+    badge: "Em breve",
     features: [
-      "Tudo do Pro",
-      "Mentoria ao vivo semanal",
-      "Correção de peças práticas",
-      "Acompanhamento individual",
+      "Tudo do plano Pro",
+      "Tutor IA ilimitado",
+      "Explicações mais aprofundadas",
+      "Geração de resumos automáticos",
+      "Questões personalizadas com base nos seus erros",
     ],
     missing: [],
-    cta: "Assinar Aprovação",
+    cta: "Entrar na lista de espera",
     href: "/cadastro",
   },
 ]
@@ -205,19 +208,36 @@ export function Pricing() {
 
                 {/* CTA */}
                 <div className="mt-auto pt-8">
-                  <Button
-                    size="lg"
-                    asChild
-                    className={`w-full gap-2 py-6 text-base font-semibold ${
-                      plan.highlight ? "bg-white text-primary hover:bg-white/90" : ""
-                    }`}
-                    variant={plan.highlight ? "default" : "outline"}
-                  >
-                    <Link href={plan.href}>
+                  {plan.id === "pro" ? (
+                    <CheckoutButton
+                      plano="pro"
+                      className={plan.highlight ? "bg-white text-primary hover:bg-white/90" : ""}
+                      variant={plan.highlight ? "default" : "outline"}
+                    >
                       {plan.cta}
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
-                  </Button>
+                    </CheckoutButton>
+                  ) : plan.id === "aprovacao" ? (
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      disabled
+                      className="w-full gap-2 py-6 text-base font-semibold opacity-60"
+                    >
+                      {plan.cta}
+                    </Button>
+                  ) : (
+                    <Button
+                      size="lg"
+                      asChild
+                      variant="outline"
+                      className="w-full gap-2 py-6 text-base font-semibold"
+                    >
+                      <Link href={plan.href}>
+                        {plan.cta}
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                  )}
                 </div>
               </div>
             </FadeIn>

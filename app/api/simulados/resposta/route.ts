@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireUser } from "@/lib/auth-server"
+import { supabaseAdmin } from "@/lib/supabase-admin"
 
 export async function POST(req: NextRequest) {
   const { user, supabase, error } = await requireUser()
@@ -83,7 +84,32 @@ export async function POST(req: NextRequest) {
 
     console.log(`[resposta] Resposta salva — userId=${userId} questionId=${questionId} acertou=${acertou}`)
   } else {
-    // Treino avulso — salva em question_attempts
+    // Treino avulso — verifica limite diário para plano free
+    const { data: userData } = await supabaseAdmin
+      .from("users")
+      .select("plano")
+      .eq("id", userId)
+      .single()
+
+    if (userData?.plano === "free") {
+      const hoje = new Date()
+      hoje.setUTCHours(0, 0, 0, 0)
+
+      const { count } = await supabase
+        .from("question_attempts")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .gte("created_at", hoje.toISOString())
+
+      if ((count ?? 0) >= 10) {
+        return NextResponse.json(
+          { error: "Você atingiu o limite de 10 questões por dia no plano Grátis.", upgrade: true, limiteDiario: true },
+          { status: 403 }
+        )
+      }
+    }
+
+    // Salva em question_attempts
     const { error: qaError } = await supabase
       .from("question_attempts")
       .insert({

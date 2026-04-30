@@ -11,9 +11,10 @@ import {
 } from "@/components/ui/select"
 import {
   Search, SlidersHorizontal, CheckCircle2, XCircle,
-  Loader2, ChevronLeft, Maximize2, BookOpen, PenLine, RotateCcw,
+  Loader2, ChevronLeft, Maximize2, BookOpen, PenLine, RotateCcw, Lock,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import Link from "next/link"
 
 type Modo = "resolver" | "explorar"
 
@@ -235,6 +236,9 @@ function QuestaoCardExplorar({ questao, resposta, onSelecionar, onVerificar, onR
 
 export default function QuestoesPage() {
   const [userId, setUserId] = useState<string>("")
+  const [plano, setPlano] = useState<string>("free")
+  const [questoesHoje, setQuestoesHoje] = useState<number>(0)
+  const LIMITE_FREE = 10
   const [questoes, setQuestoes] = useState<Questao[]>([])
   const [filtros, setFiltros] = useState<Filtros>({ subjects: [], dificuldades: [], bancas: [] })
   const [pagination, setPagination] = useState<Pagination>({ total: 0, page: 1, limit: 10, totalPages: 0 })
@@ -257,7 +261,24 @@ export default function QuestoesPage() {
   useEffect(() => {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser()
-      if (user) setUserId(user.id)
+      if (user) {
+        setUserId(user.id)
+
+        const hoje = new Date()
+        hoje.setUTCHours(0, 0, 0, 0)
+
+        const [usuarioRes, contagemRes] = await Promise.all([
+          supabase.from("users").select("plano").eq("id", user.id).single(),
+          supabase
+            .from("question_attempts")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", user.id)
+            .gte("created_at", hoje.toISOString()),
+        ])
+
+        setPlano(usuarioRes.data?.plano ?? "free")
+        setQuestoesHoje(contagemRes.count ?? 0)
+      }
       const res = await fetch("/api/questions/filtros")
       const data = await res.json()
       setFiltros(data)
@@ -341,8 +362,19 @@ export default function QuestoesPage() {
     })
     const data = await res.json()
 
+    if (res.status === 403 && data.limiteDiario) {
+      setQuestoesHoje(LIMITE_FREE)
+      setRespostas((prev) => ({
+        ...prev,
+        [questaoId]: { ...(prev[questaoId] ?? emptyResposta), verificando: false },
+      }))
+      return
+    }
+
     const { data: qData } = await supabase
       .from("questions").select("explicacao").eq("id", questaoId).single()
+
+    setQuestoesHoje((prev) => prev + 1)
 
     setRespostas((prev) => ({
       ...prev,
@@ -559,6 +591,28 @@ export default function QuestoesPage() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Banner de limite diário */}
+        {plano === "free" && (
+          <div className={`flex items-center justify-between rounded-lg border px-4 py-3 text-sm ${
+            questoesHoje >= LIMITE_FREE
+              ? "border-destructive/40 bg-destructive/5"
+              : "border-border bg-muted/30"
+          }`}>
+            <span className={questoesHoje >= LIMITE_FREE ? "text-destructive font-medium" : "text-muted-foreground"}>
+              {questoesHoje >= LIMITE_FREE
+                ? "Limite diário atingido — 10/10 questões respondidas hoje"
+                : `${questoesHoje}/${LIMITE_FREE} questões respondidas hoje (plano Grátis)`}
+            </span>
+            {questoesHoje >= LIMITE_FREE && (
+              <Button size="sm" asChild className="ml-4 shrink-0 gap-1.5">
+                <Link href="/#planos">
+                  <Lock className="h-3.5 w-3.5" /> Assinar Pro
+                </Link>
+              </Button>
+            )}
+          </div>
         )}
 
         {/* Conteúdo */}

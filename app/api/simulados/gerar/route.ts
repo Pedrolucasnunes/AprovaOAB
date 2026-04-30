@@ -1,11 +1,26 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireUser } from "@/lib/auth-server"
+import { supabaseAdmin } from "@/lib/supabase-admin"
 
 export async function POST(req: NextRequest) {
   const { user, supabase, error } = await requireUser()
   if (error) return error
 
   const userId = user.id
+
+  const { data: userData } = await supabaseAdmin
+    .from("users")
+    .select("plano")
+    .eq("id", userId)
+    .single()
+
+  if (userData?.plano === "free") {
+    return NextResponse.json(
+      { error: "Simulados completos são exclusivos do plano Pro.", upgrade: true },
+      { status: 403 }
+    )
+  }
+
   console.log(`[gerar] Iniciando simulado para userId=${userId}`)
 
   // 1. Busca pool de questões

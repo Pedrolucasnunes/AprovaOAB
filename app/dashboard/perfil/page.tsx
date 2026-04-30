@@ -8,10 +8,11 @@ import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { User, Mail, Lock, Trophy, BookOpen, Target, Loader2 } from "lucide-react"
+import { User, Mail, Lock, Trophy, BookOpen, Target, Loader2, ExternalLink, ArrowRight } from "lucide-react"
 import { createBrowserClient } from "@supabase/ssr"
 import { toast } from "sonner"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import Link from "next/link"
 
 export default function PerfilPage() {
   const [isEditing, setIsEditing] = useState(false)
@@ -24,6 +25,9 @@ export default function PerfilPage() {
   const [novaSenha, setNovaSenha] = useState("")
   const [confirmarSenha, setConfirmarSenha] = useState("")
   const [stats, setStats] = useState({ simuladosFeitos: 0, questoesResolvidas: 0, taxaAcerto: 0 })
+  const [plano, setPlano] = useState<"free" | "pro" | "aprovacao">("free")
+  const [stripeCustomerId, setStripeCustomerId] = useState<string | null>(null)
+  const [abrindoPortal, setAbrindoPortal] = useState(false)
 
   useEffect(() => {
     async function init() {
@@ -43,9 +47,10 @@ export default function PerfilPage() {
       }))
 
       // ✅ Sem userId na chamada — API obtém do Auth
-      const [dashRes, simuladosRes] = await Promise.all([
+      const [dashRes, simuladosRes, usuarioRes] = await Promise.all([
         fetch("/api/dashboard"),
         supabase.from("simulados").select("id", { count: "exact" }).eq("user_id", user.id).gt("acertos", 0),
+        supabase.from("users").select("plano, stripe_customer_id").eq("id", user.id).single(),
       ])
 
       const dashData = await dashRes.json()
@@ -58,10 +63,30 @@ export default function PerfilPage() {
         })
       }
 
+      setPlano((usuarioRes.data?.plano as "free" | "pro" | "aprovacao") ?? "free")
+      setStripeCustomerId(usuarioRes.data?.stripe_customer_id ?? null)
+
       setLoading(false)
     }
     init()
   }, [])
+
+  const handlePortal = async () => {
+    setAbrindoPortal(true)
+    try {
+      const res = await fetch("/api/stripe/portal", { method: "POST" })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        toast.error("Erro ao acessar o portal. Tente novamente.")
+      }
+    } catch {
+      toast.error("Erro inesperado.")
+    } finally {
+      setAbrindoPortal(false)
+    }
+  }
 
   const getIniciais = (nome: string) =>
     nome.split(" ").slice(0, 2).map(n => n[0]).join("").toUpperCase() || "?"
@@ -224,23 +249,57 @@ export default function PerfilPage() {
               <CardDescription>Detalhes da sua assinatura</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between rounded-lg border border-primary bg-primary/5 p-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg font-semibold text-foreground">Plano Premium</span>
-                    <Badge className="bg-primary">Ativo</Badge>
+              {plano === "free" ? (
+                <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-semibold text-foreground">Plano Grátis</span>
+                      <Badge variant="secondary">Ativo</Badge>
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">Até 10 questões por dia · Sem simulados</p>
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground">Acesso ilimitado a todos os recursos</p>
+                  <Button asChild>
+                    <Link href="/#planos" className="gap-1.5">
+                      Fazer upgrade <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
                 </div>
-                <Button variant="outline">Gerenciar</Button>
-              </div>
-              <div className="mt-4 grid gap-4 sm:grid-cols-3">
-                {[["Ilimitado", "Simulados"], ["528+", "Questões"], ["24/7", "Suporte"]].map(([v, l]) => (
-                  <div key={l} className="rounded-lg border border-border p-4 text-center">
-                    <p className="text-2xl font-bold text-primary">{v}</p>
-                    <p className="text-xs text-muted-foreground">{l}</p>
+              ) : (
+                <div className="flex items-center justify-between rounded-lg border border-primary bg-primary/5 p-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-semibold text-foreground">
+                        {plano === "pro" ? "Plano Pro" : "Plano Aprovação"}
+                      </span>
+                      <Badge className="bg-primary">Ativo</Badge>
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {plano === "pro" ? "Questões ilimitadas · Simulados completos · Tutor IA" : "Tudo do Pro · Tutor IA ilimitado · Resumos automáticos"}
+                    </p>
                   </div>
-                ))}
+                  {stripeCustomerId && (
+                    <Button variant="outline" onClick={handlePortal} disabled={abrindoPortal} className="gap-1.5 shrink-0">
+                      {abrindoPortal ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
+                      Gerenciar
+                    </Button>
+                  )}
+                </div>
+              )}
+              <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                {plano === "free"
+                  ? [["10/dia", "Questões"], ["—", "Simulados"], ["Básico", "Plano de estudos"]].map(([v, l]) => (
+                      <div key={l} className="rounded-lg border border-border p-4 text-center">
+                        <p className="text-2xl font-bold text-muted-foreground">{v}</p>
+                        <p className="text-xs text-muted-foreground">{l}</p>
+                      </div>
+                    ))
+                  : [["Ilimitado", "Questões"], ["Ilimitado", "Simulados"], ["Dinâmico", "Plano de estudos"]].map(([v, l]) => (
+                      <div key={l} className="rounded-lg border border-border p-4 text-center">
+                        <p className="text-2xl font-bold text-primary">{v}</p>
+                        <p className="text-xs text-muted-foreground">{l}</p>
+                      </div>
+                    ))
+                }
               </div>
             </CardContent>
           </Card>

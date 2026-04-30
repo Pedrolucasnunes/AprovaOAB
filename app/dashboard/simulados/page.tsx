@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation"
 import { createBrowserClient } from "@supabase/ssr"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Clock, Target, BarChart2, Loader2, RotateCcw, Trash2, AlertTriangle, ArrowRight, BarChart } from "lucide-react"
+import { Clock, Target, BarChart2, Loader2, RotateCcw, Trash2, AlertTriangle, ArrowRight, BarChart, Lock } from "lucide-react"
 import { toast } from "sonner"
+import Link from "next/link"
 
 interface SimuladoRealizado {
   id: string
@@ -26,6 +27,7 @@ export default function SimuladosPage() {
   const [confirmarExclusao, setConfirmarExclusao] = useState<SimuladoRealizado | null>(null)
   const [loadingHistorico, setLoadingHistorico] = useState(true)
   const [simuladosRealizados, setSimuladosRealizados] = useState<SimuladoRealizado[]>([])
+  const [plano, setPlano] = useState<string>("free")
 
   useEffect(() => {
     async function init() {
@@ -36,14 +38,22 @@ export default function SimuladosPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const { data } = await supabase
-        .from("simulados")
-        .select("id, titulo, created_at, acertos, erros, percentual, numero_questoes")
-        .eq("user_id", user.id)
-        .not("acertos", "is", null)
-        .order("created_at", { ascending: false })
+      const [simuladosRes, usuarioRes] = await Promise.all([
+        supabase
+          .from("simulados")
+          .select("id, titulo, created_at, acertos, erros, percentual, numero_questoes")
+          .eq("user_id", user.id)
+          .not("acertos", "is", null)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("users")
+          .select("plano")
+          .eq("id", user.id)
+          .single(),
+      ])
 
-      setSimuladosRealizados(data ?? [])
+      setSimuladosRealizados(simuladosRes.data ?? [])
+      setPlano(usuarioRes.data?.plano ?? "free")
       setLoadingHistorico(false)
     }
     init()
@@ -64,6 +74,10 @@ export default function SimuladosPage() {
       })
       const data = await res.json()
       if (!res.ok) {
+        if (res.status === 403 && data.upgrade) {
+          router.push("/#planos")
+          return
+        }
         toast.error(data.error ?? "Erro ao gerar simulado")
         return
       }
@@ -188,18 +202,31 @@ export default function SimuladosPage() {
             </div>
           </div>
           <div className="shrink-0 self-center">
-            <Button
-              size="lg"
-              className="gap-2 text-base font-semibold px-6"
-              onClick={() => iniciarSimulado()}
-              disabled={loading}
-            >
-              {loading ? (
-                <><Loader2 className="h-4 w-4 animate-spin" /> Gerando...</>
-              ) : (
-                <>Iniciar simulado <ArrowRight className="h-4 w-4" /></>
-              )}
-            </Button>
+            {plano === "free" ? (
+              <Button
+                size="lg"
+                variant="outline"
+                className="gap-2 text-base font-semibold px-6"
+                asChild
+              >
+                <Link href="/#planos">
+                  <Lock className="h-4 w-4" /> Assinar para simular
+                </Link>
+              </Button>
+            ) : (
+              <Button
+                size="lg"
+                className="gap-2 text-base font-semibold px-6"
+                onClick={() => iniciarSimulado()}
+                disabled={loading}
+              >
+                {loading ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" /> Gerando...</>
+                ) : (
+                  <>Iniciar simulado <ArrowRight className="h-4 w-4" /></>
+                )}
+              </Button>
+            )}
           </div>
         </div>
       </div>

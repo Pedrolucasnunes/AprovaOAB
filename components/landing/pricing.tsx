@@ -31,8 +31,9 @@ const plans = [
     id: "pro",
     label: "Pro",
     price: "R$ 19",
+    originalPrice: "R$ 29",
     period: "/mês",
-    priceTotal: "cancele quando quiser",
+    priceTotal: "acesso antecipado · cancele quando quiser",
     description: "Para quem quer estudar com foco no que realmente cai.",
     highlight: true,
     badge: "Mais escolhido",
@@ -128,8 +129,17 @@ export function Pricing() {
                   {plan.label}
                 </p>
 
+                {/* Preço original riscado */}
+                {"originalPrice" in plan && plan.originalPrice && (
+                  <p className={`mt-3 font-mono text-sm font-medium line-through ${
+                    plan.highlight ? "text-primary-foreground/50" : "text-muted-foreground/60"
+                  }`}>
+                    {plan.originalPrice}/mês
+                  </p>
+                )}
+
                 {/* Preço */}
-                <div className="mt-3 flex items-end gap-1">
+                <div className={`flex items-end gap-1 ${"originalPrice" in plan && plan.originalPrice ? "mt-1" : "mt-3"}`}>
                   <span
                     className="text-4xl font-black tracking-tight"
                     style={{ fontFamily: "'Fraunces', Georgia, serif" }}

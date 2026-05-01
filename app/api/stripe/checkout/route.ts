@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { stripe, STRIPE_PRICES } from "@/lib/stripe"
+import { stripe, STRIPE_PRICES, ensureStripeCustomer } from "@/lib/stripe"
 import { requireUser } from "@/lib/auth-server"
 import { supabaseAdmin } from "@/lib/supabase-admin"
 import { rateLimit } from "@/lib/rate-limit"
@@ -27,20 +27,11 @@ export async function POST(req: NextRequest) {
       .eq("id", user.id)
       .single()
 
-    let customerId = userData?.stripe_customer_id
-
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: userData?.email ?? undefined,
-        metadata: { supabase_user_id: user.id },
-      })
-      customerId = customer.id
-
-      await supabaseAdmin
-        .from("users")
-        .update({ stripe_customer_id: customerId })
-        .eq("id", user.id)
-    }
+    const customerId = await ensureStripeCustomer(
+      user.id,
+      userData?.email,
+      userData?.stripe_customer_id,
+    )
 
     const headerOrigin = req.headers.get("origin")
     const headerHost = req.headers.get("host")

@@ -1,4 +1,5 @@
 import Stripe from "stripe"
+import { supabaseAdmin } from "@/lib/supabase-admin"
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2026-04-22.dahlia",
@@ -10,3 +11,33 @@ export const STRIPE_PRICES = {
 } as const
 
 export type Plano = "free" | "pro" | "aprovacao"
+
+export async function ensureStripeCustomer(
+  userId: string,
+  email: string | null | undefined,
+  savedCustomerId: string | null | undefined,
+): Promise<string> {
+  if (savedCustomerId) {
+    try {
+      const c = await stripe.customers.retrieve(savedCustomerId)
+      if (!c.deleted) return savedCustomerId
+    } catch (err) {
+      const isMissing =
+        err instanceof Stripe.errors.StripeInvalidRequestError &&
+        err.code === "resource_missing"
+      if (!isMissing) throw err
+    }
+  }
+
+  const customer = await stripe.customers.create({
+    email: email ?? undefined,
+    metadata: { supabase_user_id: userId },
+  })
+
+  await supabaseAdmin
+    .from("users")
+    .update({ stripe_customer_id: customer.id })
+    .eq("id", userId)
+
+  return customer.id
+}

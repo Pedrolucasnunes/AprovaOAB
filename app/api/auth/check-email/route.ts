@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 
-export async function POST(req: NextRequest) {
-  const { email } = await req.json()
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-  if (!email) {
+export async function POST(req: NextRequest) {
+  const body = await req.json().catch(() => ({}))
+  const { email } = body
+
+  if (!email || typeof email !== "string" || !EMAIL_REGEX.test(email) || email.length > 254) {
     return NextResponse.json({ exists: false })
   }
 

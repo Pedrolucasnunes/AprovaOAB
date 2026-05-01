@@ -9,9 +9,19 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params
   const body = await req.json()
 
+  const {
+    enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d,
+    resposta_correta, dificuldade, banca, ano, subject_id, topic_id,
+    explicacao, incidencia_prova,
+  } = body
+
   const { error: dbError } = await supabaseAdmin
     .from("questions")
-    .update(body)
+    .update({
+      enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d,
+      resposta_correta, dificuldade, banca, ano, subject_id, topic_id,
+      explicacao, incidencia_prova,
+    })
     .eq("id", id)
 
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 })

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { cookies } from "next/headers"
 import { requireUser } from "@/lib/auth-server"
 import { exchangeCodeForTokens } from "@/lib/services/googleCalendar"
 import { encrypt } from "@/lib/crypto"
@@ -6,11 +7,20 @@ import { encrypt } from "@/lib/crypto"
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const code  = searchParams.get("code")
+  const state = searchParams.get("state")
   const error = searchParams.get("error")
 
   const base = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/calendario`
 
+  const cookieStore = await cookies()
+  const expectedState = cookieStore.get("google_oauth_state")?.value
+  cookieStore.delete("google_oauth_state")
+
   if (error || !code) {
+    return NextResponse.redirect(`${base}?google=error`)
+  }
+
+  if (!state || !expectedState || state !== expectedState) {
     return NextResponse.redirect(`${base}?google=error`)
   }
 

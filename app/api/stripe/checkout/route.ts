@@ -2,8 +2,14 @@ import { NextRequest, NextResponse } from "next/server"
 import { stripe, STRIPE_PRICES } from "@/lib/stripe"
 import { requireUser } from "@/lib/auth-server"
 import { supabaseAdmin } from "@/lib/supabase-admin"
+import { rateLimit } from "@/lib/rate-limit"
 
 export async function POST(req: NextRequest) {
+  const rl = await rateLimit(req, "stripe-checkout", 10, 60)
+  if (!rl.success) {
+    return NextResponse.json({ error: "Muitas requisições. Aguarde alguns segundos." }, { status: 429 })
+  }
+
   const { user, error } = await requireUser()
   if (error) return error
 

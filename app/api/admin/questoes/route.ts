@@ -19,7 +19,12 @@ export async function GET(req: NextRequest) {
       resposta_correta, dificuldade, banca, ano, subject_id, topic_id, explicacao
     `, { count: "exact" })
 
-  if (busca) query = query.ilike("enunciado", `%${busca}%`)
+  if (busca) {
+    if (busca.length > 200) {
+      return NextResponse.json({ error: "Busca muito longa (máx 200 caracteres)" }, { status: 400 })
+    }
+    query = query.ilike("enunciado", `%${busca}%`)
+  }
 
   query = query.range(offset, offset + limit - 1).order("created_at", { ascending: false })
 
@@ -55,6 +60,16 @@ export async function POST(req: NextRequest) {
 
   if (!enunciado || !resposta_correta || !subject_id) {
     return NextResponse.json({ error: "Campos obrigatórios faltando" }, { status: 400 })
+  }
+
+  if (typeof enunciado !== "string" || enunciado.length > 5000) {
+    return NextResponse.json({ error: "Enunciado inválido (máx 5000 caracteres)" }, { status: 400 })
+  }
+
+  for (const [name, val] of Object.entries({ alternativa_a, alternativa_b, alternativa_c, alternativa_d, explicacao, banca })) {
+    if (val != null && (typeof val !== "string" || val.length > 2000)) {
+      return NextResponse.json({ error: `${name} inválido (máx 2000 caracteres)` }, { status: 400 })
+    }
   }
 
   const { data, error: dbError } = await supabaseAdmin

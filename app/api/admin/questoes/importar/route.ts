@@ -13,10 +13,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Nenhuma questão para importar" }, { status: 400 })
   }
 
+  if (questoes.length > 500) {
+    return NextResponse.json({ error: "Máximo de 500 questões por importação" }, { status: 413 })
+  }
+
   const validas = questoes.filter((q: any) =>
     q.enunciado && q.alternativa_a && q.alternativa_b &&
     q.alternativa_c && q.alternativa_d &&
-    q.resposta_correta && q.subject_id
+    q.resposta_correta && q.subject_id &&
+    typeof q.enunciado === "string" && q.enunciado.length <= 5000
   )
 
   if (validas.length === 0) {

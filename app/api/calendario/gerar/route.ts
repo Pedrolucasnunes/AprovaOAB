@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: insertError.message }, { status: 500 })
   }
 
-  console.log(`[calendario/gerar] ${inserted?.length ?? 0} eventos criados para userId=${userId}`)
+  console.log(`[calendario/gerar] ${inserted?.length ?? 0} eventos criados`)
 
   // 11. Sincroniza com Google Calendar (best-effort, não bloqueia a resposta)
   let googleSynced = false

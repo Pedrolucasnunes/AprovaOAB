@@ -23,6 +23,10 @@ export async function GET(req: NextRequest) {
       dificuldade, banca, ano, subject_id, topic_id
     `, { count: "exact" })
 
+  if (busca && busca.length > 200) {
+    return NextResponse.json({ error: "Busca muito longa (máx 200 caracteres)" }, { status: 400 })
+  }
+
   if (subjectId)   query = query.eq("subject_id", subjectId)
   if (topicId)     query = query.eq("topic_id", topicId)
   if (dificuldade) query = query.eq("dificuldade", dificuldade)

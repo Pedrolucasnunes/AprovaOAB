@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireUser } from "@/lib/auth-server"
 import { supabaseAdmin } from "@/lib/supabase-admin"
+import { rateLimit } from "@/lib/rate-limit"
 
 export async function POST(req: NextRequest) {
+  const rl = await rateLimit(req, "simulados-gerar", 10, 60)
+  if (!rl.success) {
+    return NextResponse.json({ error: "Muitas requisições. Aguarde alguns segundos." }, { status: 429 })
+  }
+
   const { user, supabase, error } = await requireUser()
   if (error) return error
 
@@ -20,8 +26,6 @@ export async function POST(req: NextRequest) {
       { status: 403 }
     )
   }
-
-  console.log(`[gerar] Iniciando simulado para userId=${userId}`)
 
   // 1. Busca pool de questões
   const { data: questions, error: qError } = await supabase

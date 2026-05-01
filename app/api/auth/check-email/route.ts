@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from "next/server"
+import { rateLimit } from "@/lib/rate-limit"
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export async function POST(req: NextRequest) {
+  await new Promise((r) => setTimeout(r, 200))
+
+  const { success } = await rateLimit(req, "check-email", 5, 60)
+  if (!success) {
+    return NextResponse.json({ exists: false })
+  }
+
   const body = await req.json().catch(() => ({}))
   const { email } = body
 

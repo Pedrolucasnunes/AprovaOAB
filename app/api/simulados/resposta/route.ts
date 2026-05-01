@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (atError || !attempt) {
-      console.error(`[resposta] Attempt não encontrado para userId=${userId} simuladoId=${simuladoId} questionId=${questionId}`)
+      console.error("[resposta] Attempt não encontrado (ownership mismatch)")
       return NextResponse.json(
         { error: "Questão não pertence a este simulado" },
         { status: 404 }
@@ -82,7 +82,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: rError.message }, { status: 500 })
     }
 
-    console.log(`[resposta] Resposta salva — userId=${userId} questionId=${questionId} acertou=${acertou}`)
   } else {
     // Treino avulso — verifica limite diário para plano free
     const { data: userData } = await supabaseAdmin
@@ -124,7 +123,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: qaError.message }, { status: 500 })
     }
 
-    console.log(`[resposta] Treino salvo — userId=${userId} questionId=${questionId} acertou=${acertou}`)
   }
 
   return NextResponse.json(

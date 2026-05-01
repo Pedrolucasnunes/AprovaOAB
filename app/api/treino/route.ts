@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireUser } from "@/lib/auth-server"
+import { rateLimit } from "@/lib/rate-limit"
 
 export async function POST(req: NextRequest) {
+  const rl = await rateLimit(req, "treino", 30, 60)
+  if (!rl.success) {
+    return NextResponse.json({ error: "Muitas requisições. Aguarde alguns segundos." }, { status: 429 })
+  }
+
   const { user, supabase, error } = await requireUser()
   if (error) return error
 
@@ -18,8 +24,6 @@ export async function POST(req: NextRequest) {
   const totalQuestoes = [10, 20, 30].includes(Number(quantidade)) ? Number(quantidade) : 10
   const qtdRisco = Math.round(totalQuestoes * 0.7)
   const qtdGeral = totalQuestoes - qtdRisco
-
-  console.log(`[treino] userId=${userId} total=${totalQuestoes} risco=${qtdRisco} geral=${qtdGeral}`)
 
   // 1. Questões já acertadas pelo usuário (simulados + treino avulso em paralelo)
   const { data: attemptsData } = await supabase

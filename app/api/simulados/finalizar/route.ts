@@ -20,8 +20,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "simuladoId é obrigatório" }, { status: 400 })
   }
 
-  console.log(`[finalizar] userId=${userId} simuladoId=${simuladoId}`)
-
   // 1. Busca attempts — ✅ filtra por user_id para garantir ownership
   const { data: attempts, error: atError } = await supabase
     .from("simulado_attempts")

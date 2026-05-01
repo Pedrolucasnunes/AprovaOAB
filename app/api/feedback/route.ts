@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireUser } from "@/lib/auth-server"
+import { rateLimit } from "@/lib/rate-limit"
 
 export async function POST(req: NextRequest) {
+  const rl = await rateLimit(req, "feedback", 10, 60)
+  if (!rl.success) {
+    return NextResponse.json({ error: "Muitas requisições. Aguarde alguns segundos." }, { status: 429 })
+  }
+
   const { user, supabase, error } = await requireUser()
   if (error) return error
 
@@ -14,8 +20,16 @@ export async function POST(req: NextRequest) {
 
   const { type, message, page } = body
 
-  if (!type || !message?.trim()) {
+  if (!type || typeof message !== "string" || !message.trim()) {
     return NextResponse.json({ error: "type e message são obrigatórios" }, { status: 400 })
+  }
+
+  if (message.length > 2000) {
+    return NextResponse.json({ error: "Mensagem muito longa (máx 2000 caracteres)" }, { status: 400 })
+  }
+
+  if (page && (typeof page !== "string" || page.length > 200)) {
+    return NextResponse.json({ error: "page inválido" }, { status: 400 })
   }
 
   const VALID_TYPES = ["bug", "sugestao", "elogio"]

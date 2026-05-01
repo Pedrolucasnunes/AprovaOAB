@@ -44,6 +44,11 @@ export async function rateLimit(
   if (!limiter) return { success: true, remaining: requests }
 
   const ip = getClientIp(req)
-  const result = await limiter.limit(ip)
-  return { success: result.success, remaining: result.remaining }
+  try {
+    const result = await limiter.limit(ip)
+    return { success: result.success, remaining: result.remaining }
+  } catch (err) {
+    console.error("[rate-limit] upstash error, failing open:", err)
+    return { success: true, remaining: requests }
+  }
 }

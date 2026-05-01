@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowRight } from "lucide-react"
 import { createBrowserClient } from "@supabase/ssr"
+import { toast } from "sonner"
 
 interface CheckoutButtonProps {
   plano: "pro" | "aprovacao"
@@ -32,16 +33,26 @@ export function CheckoutButton({ plano, className, variant = "default", children
       return
     }
 
-    const res = await fetch("/api/stripe/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ plano }),
-    })
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plano }),
+      })
 
-    const { url } = await res.json()
-    if (url) {
-      window.location.href = url
-    } else {
+      const text = await res.text()
+      const data = text ? JSON.parse(text) : {}
+
+      if (res.ok && data.url) {
+        window.location.href = data.url
+        return
+      }
+
+      toast.error(data.error ?? "Não foi possível iniciar o checkout. Tente novamente em instantes.")
+      setIsLoading(false)
+    } catch (err) {
+      console.error("[checkout] erro:", err)
+      toast.error("Falha de rede ao iniciar o checkout. Verifique sua conexão.")
       setIsLoading(false)
     }
   }

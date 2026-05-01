@@ -4,23 +4,40 @@ import { requireUser } from "@/lib/auth-server"
 import { supabaseAdmin } from "@/lib/supabase-admin"
 
 export async function POST(req: NextRequest) {
-  const { user, error } = await requireUser()
-  if (error) return error
+  try {
+    const { user, error } = await requireUser()
+    if (error) return error
 
-  const { data: userData } = await supabaseAdmin
-    .from("users")
-    .select("stripe_customer_id")
-    .eq("id", user.id)
-    .single()
+    const { data: userData } = await supabaseAdmin
+      .from("users")
+      .select("stripe_customer_id")
+      .eq("id", user.id)
+      .single()
 
-  if (!userData?.stripe_customer_id) {
-    return NextResponse.json({ error: "Sem assinatura ativa" }, { status: 400 })
+    if (!userData?.stripe_customer_id) {
+      return NextResponse.json({ error: "Sem assinatura ativa" }, { status: 400 })
+    }
+
+    const headerOrigin = req.headers.get("origin")
+    const headerHost = req.headers.get("host")
+    const origin =
+      (headerOrigin && headerOrigin !== "null" ? headerOrigin : null) ??
+      (headerHost ? `https://${headerHost}` : null) ??
+      process.env.NEXT_PUBLIC_APP_URL
+
+    if (!origin) {
+      return NextResponse.json({ error: "Origem da requisição inválida" }, { status: 400 })
+    }
+
+    const session = await stripe.billingPortal.sessions.create({
+      customer: userData.stripe_customer_id,
+      return_url: `${origin}/dashboard`,
+    })
+
+    return NextResponse.json({ url: session.url })
+  } catch (err) {
+    console.error("[stripe/portal] erro:", err)
+    const message = err instanceof Error ? err.message : "Erro ao abrir portal"
+    return NextResponse.json({ error: message }, { status: 500 })
   }
-
-  const session = await stripe.billingPortal.sessions.create({
-    customer: userData.stripe_customer_id,
-    return_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
-  })
-
-  return NextResponse.json({ url: session.url })
 }

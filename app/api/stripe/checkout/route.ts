@@ -42,12 +42,23 @@ export async function POST(req: NextRequest) {
         .eq("id", user.id)
     }
 
+    const headerOrigin = req.headers.get("origin")
+    const headerHost = req.headers.get("host")
+    const origin =
+      (headerOrigin && headerOrigin !== "null" ? headerOrigin : null) ??
+      (headerHost ? `https://${headerHost}` : null) ??
+      process.env.NEXT_PUBLIC_APP_URL
+
+    if (!origin) {
+      return NextResponse.json({ error: "Origem da requisição inválida" }, { status: 400 })
+    }
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/assinar/sucesso?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/#planos`,
+      success_url: `${origin}/assinar/sucesso?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/#planos`,
       subscription_data: {
         metadata: { supabase_user_id: user.id },
       },

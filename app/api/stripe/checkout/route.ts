@@ -23,9 +23,18 @@ export async function POST(req: NextRequest) {
 
     const { data: userData } = await supabaseAdmin
       .from("users")
-      .select("stripe_customer_id, email")
+      .select("stripe_customer_id, email, plano")
       .eq("id", user.id)
       .single()
+
+    if (userData?.plano && userData.plano !== "free") {
+      const planoLabel = userData.plano === "pro" ? "Pro" : "Aprovação"
+      const message =
+        userData.plano === plano
+          ? `Você já tem o plano ${planoLabel} ativo. Para cancelar ou alterar a forma de pagamento, acesse "Gerenciar assinatura" no seu perfil.`
+          : `Você já tem o plano ${planoLabel} ativo. Para trocar de plano, acesse "Gerenciar assinatura" no seu perfil.`
+      return NextResponse.json({ error: message }, { status: 400 })
+    }
 
     const customerId = await ensureStripeCustomer(
       user.id,

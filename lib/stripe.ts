@@ -6,8 +6,8 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 })
 
 export const STRIPE_PRICES = {
-  pro: process.env.STRIPE_PRICE_PRO!,
-  aprovacao: process.env.STRIPE_PRICE_APROVACAO!,
+  pro: process.env.STRIPE_PRICE_PRO?.trim() ?? "",
+  aprovacao: process.env.STRIPE_PRICE_APROVACAO?.trim() ?? "",
 } as const
 
 export type Plano = "free" | "pro" | "aprovacao"

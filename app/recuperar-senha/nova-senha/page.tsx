@@ -79,6 +79,7 @@ export default function NovaSenhaPage() {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
                     placeholder="Crie uma senha"
                     required
                     value={password}
@@ -114,6 +115,7 @@ export default function NovaSenhaPage() {
                   <Input
                     id="confirm"
                     type={showConfirm ? "text" : "password"}
+                    autoComplete="new-password"
                     placeholder="Repita a senha"
                     required
                     value={confirm}

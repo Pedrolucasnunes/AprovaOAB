@@ -260,6 +260,7 @@ function LoginPageContent() {
                     id="email"
                     name="email"
                     type="email"
+                    autoComplete="email"
                     placeholder="seu@email.com"
                     required
                     className="bg-input"
@@ -278,6 +279,7 @@ function LoginPageContent() {
                       id="password"
                       name="password"
                       type={showPassword ? "text" : "password"}
+                      autoComplete="current-password"
                       placeholder="Digite sua senha"
                       required
                       className="bg-input pr-10"

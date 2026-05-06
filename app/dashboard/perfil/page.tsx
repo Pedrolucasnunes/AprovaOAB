@@ -209,6 +209,7 @@ export default function PerfilPage() {
                       <Input
                         id="nova-senha"
                         type="password"
+                        autoComplete="new-password"
                         placeholder="Mínimo 8 caracteres"
                         value={novaSenha}
                         onChange={(e) => setNovaSenha(e.target.value)}
@@ -224,6 +225,7 @@ export default function PerfilPage() {
                       <Input
                         id="confirmar-senha"
                         type="password"
+                        autoComplete="new-password"
                         placeholder="Repita a nova senha"
                         value={confirmarSenha}
                         onChange={(e) => setConfirmarSenha(e.target.value)}

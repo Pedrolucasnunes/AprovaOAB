@@ -288,6 +288,7 @@ export default function CadastroPage() {
                   id="email"
                   name="email"
                   type="email"
+                  autoComplete="email"
                   placeholder="seu@email.com"
                   required
                   className="bg-input"
@@ -301,6 +302,7 @@ export default function CadastroPage() {
                     id="password"
                     name="password"
                     type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
                     placeholder="Crie uma senha"
                     required
                     value={password}

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter, usePathname } from "next/navigation"
+import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { createBrowserClient } from "@supabase/ssr"
 import {
@@ -54,7 +54,6 @@ interface UserInfo {
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const router = useRouter()
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -92,8 +91,11 @@ export function AppSidebar() {
   }, [])
 
   async function handleSignOut() {
-    await supabase.auth.signOut()
-    router.push("/login")
+    try {
+      await supabase.auth.signOut()
+    } finally {
+      window.location.href = "/login"
+    }
   }
 
   return (
@@ -137,7 +139,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <SidebarMenuButton className="h-12">
+                <SidebarMenuButton className="h-12 cursor-pointer transition-colors duration-150 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent">
                   <Avatar className="h-8 w-8">
                     <AvatarFallback className="bg-primary text-primary-foreground text-xs">
                       {loadingUser ? "..." : userInfo?.iniciais}

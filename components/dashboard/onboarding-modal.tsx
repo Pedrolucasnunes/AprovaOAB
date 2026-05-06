@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
+import { createBrowserClient } from "@supabase/ssr"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { CalendarDays, CheckCircle2 } from "lucide-react"
@@ -26,14 +27,31 @@ export function OnboardingModal() {
   const [year, setYear] = useState(String(currentYear))
   const [noDate, setNoDate] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [plano, setPlano] = useState<string>("free")
 
   useEffect(() => {
-    if (searchParams.get("onboarding") === "true") {
-      setIsOpen(true)
-    }
+    if (searchParams.get("onboarding") !== "true") return
+    setIsOpen(true)
+
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    )
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return
+      const { data } = await supabase
+        .from("users")
+        .select("plano")
+        .eq("id", user.id)
+        .single()
+      if (data?.plano) setPlano(data.plano)
+    })
   }, [searchParams])
 
-  async function saveAndRedirect(goToSimulado: boolean) {
+  const isFree = plano === "free"
+  const recommendedPath = isFree ? "/dashboard/questoes" : "/dashboard/simulados"
+
+  async function saveAndRedirect(goToRecommended: boolean) {
     setSaving(true)
     const monthIndex = MONTHS.indexOf(month) + 1
     const examDate = noDate || !month
@@ -48,7 +66,7 @@ export function OnboardingModal() {
 
     setSaving(false)
     setIsOpen(false)
-    router.replace(goToSimulado ? "/dashboard/simulados" : "/dashboard")
+    router.replace(goToRecommended ? recommendedPath : "/dashboard")
   }
 
   function handleDismiss() {
@@ -172,8 +190,9 @@ export function OnboardingModal() {
             <div className="space-y-2">
               <h3 className="text-xl font-bold text-foreground">Tudo pronto!</h3>
               <p className="text-sm text-muted-foreground text-pretty">
-                Recomendamos começar com um simulado diagnóstico para mapearmos
-                seus pontos fortes e fracos por disciplina.
+                {isFree
+                  ? "Comece respondendo suas 10 questões diárias — vamos mapear seus pontos fortes e fracos por disciplina conforme você joga."
+                  : "Recomendamos começar com um simulado diagnóstico para mapearmos seus pontos fortes e fracos por disciplina."}
               </p>
             </div>
             <Button
@@ -181,7 +200,11 @@ export function OnboardingModal() {
               onClick={() => saveAndRedirect(true)}
               disabled={saving}
             >
-              {saving ? "Salvando..." : "Fazer diagnóstico agora"}
+              {saving
+                ? "Salvando..."
+                : isFree
+                  ? "Começar com 10 questões"
+                  : "Fazer diagnóstico agora"}
             </Button>
             <Button
               variant="ghost"

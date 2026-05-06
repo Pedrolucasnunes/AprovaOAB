@@ -11,7 +11,8 @@ import {
 } from "@/components/ui/select"
 import {
   Search, SlidersHorizontal, CheckCircle2, XCircle,
-  Loader2, ChevronLeft, Maximize2, BookOpen, PenLine, RotateCcw, Lock,
+  Loader2, ChevronLeft, Maximize2, BookOpen, PenLine, RotateCcw,
+  CalendarDays,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import Link from "next/link"
@@ -593,27 +594,44 @@ export default function QuestoesPage() {
           </Card>
         )}
 
-        {/* Banner de limite diário */}
-        {plano === "free" && (
-          <div className={`flex items-center justify-between rounded-lg border px-4 py-3 text-sm ${
-            questoesHoje >= LIMITE_FREE
-              ? "border-destructive/40 bg-destructive/5"
-              : "border-border bg-muted/30"
-          }`}>
-            <span className={questoesHoje >= LIMITE_FREE ? "text-destructive font-medium" : "text-muted-foreground"}>
-              {questoesHoje >= LIMITE_FREE
-                ? "Limite diário atingido — 10/10 questões respondidas hoje"
-                : `${questoesHoje}/${LIMITE_FREE} questões respondidas hoje (plano Grátis)`}
-            </span>
-            {questoesHoje >= LIMITE_FREE && (
-              <Button size="sm" asChild className="ml-4 shrink-0 gap-1.5">
-                <Link href="/#planos">
-                  <Lock className="h-3.5 w-3.5" /> Assinar Pro
+        {/* Banner de limite diário / próximo passo */}
+        {plano === "free" && questoesHoje >= LIMITE_FREE ? (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                  <CalendarDays className="h-5 w-5 text-primary" />
+                </div>
+                <div className="space-y-1">
+                  <p className="font-semibold text-foreground">
+                    Você completou suas 10 questões de hoje!
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Próximo passo: monte sua agenda da semana baseada no que você acertou e errou.
+                  </p>
+                  <p className="pt-1 text-xs text-muted-foreground">
+                    Quer questões ilimitadas?{" "}
+                    <Link href="/#planos" className="underline underline-offset-2 hover:text-foreground">
+                      Conheça o plano Pro
+                    </Link>
+                  </p>
+                </div>
+              </div>
+              <Button asChild className="shrink-0 gap-1.5">
+                <Link href="/dashboard/calendario">
+                  <CalendarDays className="h-4 w-4" />
+                  Gerar minha agenda
                 </Link>
               </Button>
-            )}
+            </CardContent>
+          </Card>
+        ) : plano === "free" ? (
+          <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm">
+            <span className="text-muted-foreground">
+              {questoesHoje}/{LIMITE_FREE} questões respondidas hoje (plano Grátis)
+            </span>
           </div>
-        )}
+        ) : null}
 
         {/* Conteúdo */}
         {loading ? (

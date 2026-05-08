@@ -25,6 +25,23 @@ export default function RecuperarSenhaPage() {
     setIsLoading(true)
     setError(null)
 
+    try {
+      const throttleRes = await fetch("/api/auth/throttle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reset", email }),
+      })
+
+      if (throttleRes.status === 429) {
+        setIsLoading(false)
+        const { error: throttleError } = await throttleRes.json().catch(() => ({}))
+        setError(throttleError ?? "Muitas tentativas. Aguarde alguns minutos.")
+        return
+      }
+    } catch {
+      // Falha de rede no throttle — segue o fluxo (Supabase tem rate limit próprio)
+    }
+
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
     })

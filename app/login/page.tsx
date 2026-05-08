@@ -93,6 +93,24 @@ function LoginPageContent() {
     setResendSuccess(false)
     setOtp(["", "", "", "", "", ""])
     setOtpError(null)
+
+    try {
+      const throttleRes = await fetch("/api/auth/throttle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "resend", email: unverifiedEmail }),
+      })
+
+      if (throttleRes.status === 429) {
+        const { error: throttleError } = await throttleRes.json().catch(() => ({}))
+        setOtpError(throttleError ?? "Muitas tentativas. Aguarde alguns minutos.")
+        setResendLoading(false)
+        return
+      }
+    } catch {
+      // Falha de rede no throttle — segue o fluxo (Supabase tem rate limit próprio)
+    }
+
     const { error: resendError } = await supabase.auth.resend({
       type: "signup",
       email: unverifiedEmail,
@@ -112,55 +130,39 @@ function LoginPageContent() {
     const email = formData.get("email") as string
     const password = formData.get("password") as string
 
-    const { data: signInData, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
     })
 
-    if (authError) {
-      if (authError.message.toLowerCase().includes("not confirmed")) {
-        setUnverifiedEmail(email)
-      } else {
-        const checkRes = await fetch("/api/auth/check-email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        })
-        const { exists } = await checkRes.json()
-        setError(
-          exists
-            ? "Senha incorreta. Tente novamente ou redefina sua senha."
-            : "Nenhuma conta encontrada com este e-mail. Crie uma conta para continuar."
-        )
-      }
+    const json = await res.json()
+
+    if (json.requiresVerification) {
+      setUnverifiedEmail(json.email ?? email)
       setIsLoading(false)
       return
     }
 
-    if (!signInData.user?.email_confirmed_at) {
-      await supabase.auth.signOut()
-      setUnverifiedEmail(email)
+    if (!res.ok) {
+      setError(json.error ?? "Erro ao fazer login.")
       setIsLoading(false)
       return
     }
 
-    const res = await fetch("/api/admin/check")
-    const { isAdmin } = await res.json()
-
-    if (isAdmin) {
-      router.push("/admin")
+    if (json.isAdmin) {
+      window.location.href = "/admin"
       return
     }
 
     const params = new URLSearchParams(window.location.search)
     const redirect = params.get("redirect")
     if (redirect) {
-      router.push(redirect)
+      window.location.href = redirect
       return
     }
 
-    const needsOnboarding = !signInData.user?.user_metadata?.onboarding_completed
-    router.push(needsOnboarding ? "/dashboard?onboarding=true" : "/dashboard")
+    window.location.href = json.needsOnboarding ? "/dashboard?onboarding=true" : "/dashboard"
   }
 
   return (

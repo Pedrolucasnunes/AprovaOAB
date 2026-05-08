@@ -54,25 +54,21 @@ export default function CadastroPage() {
 
     await supabase.auth.signOut()
 
-    const { error: authError } = await supabase.auth.signUp({
-      email,
-      password: senha,
-      options: { data: { full_name: nome } },
+    const res = await fetch("/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password: senha, name: nome }),
     })
 
+    const json = await res.json()
     setIsLoading(false)
 
-    if (authError) {
-      if (authError.message.includes("already registered")) {
-        setError("Este e-mail já está cadastrado. Faça login.")
-      } else {
-        setError(authError.message)
-      }
+    if (!res.ok) {
+      setError(json.error ?? "Não foi possível criar a conta.")
       return
     }
 
     setEmailCadastro(email)
-    await supabase.auth.signOut()
     setStep("verify")
   }
 
@@ -131,6 +127,23 @@ export default function CadastroPage() {
   const handleResend = async () => {
     setError(null)
     setOtp(["", "", "", "", "", ""])
+
+    try {
+      const throttleRes = await fetch("/api/auth/throttle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "resend", email: emailCadastro }),
+      })
+
+      if (throttleRes.status === 429) {
+        const { error: throttleError } = await throttleRes.json().catch(() => ({}))
+        setError(throttleError ?? "Muitas tentativas. Aguarde alguns minutos.")
+        return
+      }
+    } catch {
+      // Falha de rede no throttle — segue o fluxo (Supabase tem rate limit próprio)
+    }
+
     const { error: resendError } = await supabase.auth.resend({
       type: "signup",
       email: emailCadastro,

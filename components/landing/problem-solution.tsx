@@ -72,7 +72,7 @@ export function ProblemSolution() {
                   {[
                     { value: "10min", label: "diagnóstico" },
                     { value: "30s",   label: "plano gerado" },
-                    { value: "auto",  label: "adaptativo" },
+                    { value: "70%",   label: "foco no que erra" },
                   ].map((stat) => (
                     <div key={stat.label} className="rounded-xl bg-muted p-4 text-center">
                       <p

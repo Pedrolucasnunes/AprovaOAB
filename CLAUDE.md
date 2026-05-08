@@ -79,7 +79,7 @@ Planos live:
 ### Treino inteligente — algoritmo
 
 Não óbvio sem ler o código (`app/api/treino/route.ts`):
-- **70%** das questões vêm das top 3 matérias com menor taxa de acerto (tabela `desempenho_materia`)
+- **70%** das questões vêm das top 3 matérias com menor taxa de acerto (view `desempenho_materia` — agregada dinamicamente de `question_attempts` + `simulado_respostas`)
 - **30%** são questões gerais
 - Exclui questões já acertadas anteriormente (simulados + treino avulso)
 - Quantidades aceitas: 10, 20 ou 30 (padrão: 10)
@@ -104,17 +104,17 @@ Onboarding (3 passos: welcome → data da prova OAB → concluído):
 - `POST /api/user/onboarding` seta `user_metadata.onboarding_completed = true` e `exam_date`
 - Enquanto `onboarding_completed` for falsy, `/dashboard` abre o modal automaticamente
 
-### Tabelas do banco (não óbvias pelo código)
+### Tabelas e views do banco (não óbvias pelo código)
 
-| Tabela | Campos-chave | Propósito |
-|---|---|---|
-| `users` | `plano`, `role`, `stripe_customer_id`, `stripe_subscription_id` | Perfil e assinatura |
-| `user_metadata` (Auth) | `full_name`, `onboarding_completed`, `exam_date` | Metadata no Supabase Auth |
-| `desempenho_materia` | `user_id`, `subject_id`, `acertos`, `total` | Base do treino inteligente e dashboard |
-| `question_attempts` | `user_id`, `created_at` | Base do limite diário de 10 questões (free) |
-| `simulado_respostas` | vinculada a `simulados` | Respostas de simulados completos |
-| `calendar_events` | `is_auto`, `google_event_id` | `is_auto=true` = gerado pela agenda inteligente |
-| `google_calendar_tokens` | `access_token`, `refresh_token`, `expires_at` | Tokens criptografados AES-256-GCM |
+| Nome | Tipo | Campos-chave | Propósito |
+|---|---|---|---|
+| `users` | tabela | `plano`, `role`, `stripe_customer_id`, `stripe_subscription_id` | Perfil e assinatura |
+| `user_metadata` (Auth) | tabela | `full_name`, `onboarding_completed`, `exam_date` | Metadata no Supabase Auth |
+| `desempenho_materia` | **view** com `GROUP BY` | `user_id`, `subject_id`, `acertos`, `total` | Base do treino inteligente e dashboard. Calculada dinamicamente — não aceita INSERT/UPDATE/DELETE direto |
+| `question_attempts` | tabela | `user_id`, `created_at` | Base do limite diário de 10 questões (free) |
+| `simulado_respostas` | tabela | vinculada a `simulado_attempts` via `attempt_id` | Respostas de simulados completos |
+| `calendar_events` | tabela | `is_auto`, `google_event_id` | `is_auto=true` = gerado pela agenda inteligente |
+| `google_calendar_tokens` | tabela | `access_token`, `refresh_token`, `expires_at` | Tokens criptografados AES-256-GCM |
 
 ### Sistema admin
 

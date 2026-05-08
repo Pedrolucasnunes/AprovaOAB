@@ -276,7 +276,7 @@ export default function PerfilPage() {
                       <Badge className="bg-primary">Ativo</Badge>
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {plano === "pro" ? "Questões ilimitadas · Simulados completos · Tutor IA" : "Tudo do Pro · Tutor IA ilimitado · Resumos automáticos"}
+                      {plano === "pro" ? "Questões ilimitadas · Simulados completos" : "Tudo do Pro · Suporte prioritário"}
                     </p>
                   </div>
                   {stripeCustomerId && (

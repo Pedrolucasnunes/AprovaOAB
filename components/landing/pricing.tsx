@@ -22,7 +22,7 @@ const plans = [
     missing: [
       "Questões ilimitadas",
       "Simulados completos",
-      "Tutor IA",
+      "Questões personalizadas com base nos seus erros",
     ],
     cta: "Começar grátis",
     href: "/cadastro",

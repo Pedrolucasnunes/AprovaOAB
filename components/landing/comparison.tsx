@@ -3,7 +3,6 @@ import { FadeIn } from "@/components/ui/fade-in"
 const rows = [
   { label: "Plano personalizado com IA",        pro: "✓",      traditional: "✕" },
   { label: "Simulado adaptativo em tempo real",  pro: "✓",      traditional: "✕" },
-  { label: "Tutor IA disponível",               pro: "✓",      traditional: "Horário comercial" },
   { label: "Atualização das provas da FGV",      pro: "Em 48h", traditional: "Próximo semestre" },
   { label: "Preço mensal",                       pro: "R$ 19",  traditional: "R$ 200+" },
 ]

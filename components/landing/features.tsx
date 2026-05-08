@@ -1,4 +1,4 @@
-import { PieChart, CalendarDays, MessageSquare, BarChart2, FileText, RefreshCw } from "lucide-react"
+import { PieChart, CalendarDays, BarChart2, FileText, RefreshCw } from "lucide-react"
 import { FadeIn } from "@/components/ui/fade-in"
 
 const features = [
@@ -11,11 +11,6 @@ const features = [
     icon: CalendarDays,
     title: "Cronograma inteligente",
     description: "Plano semanal ajustado ao seu tempo real de estudo.",
-  },
-  {
-    icon: MessageSquare,
-    title: "Tutor IA 24/7",
-    description: "Tire dúvidas em linguagem simples, com base na doutrina.",
   },
   {
     icon: BarChart2,

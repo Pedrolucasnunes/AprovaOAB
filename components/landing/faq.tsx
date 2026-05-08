@@ -4,6 +4,9 @@ import { useState } from "react"
 import { Plus, Minus } from "lucide-react"
 import { FadeIn } from "@/components/ui/fade-in"
 
+// TODO: antes de ativar o plano Aprovação no Stripe, definir critério objetivo de
+// "cumprimento do cronograma" para a garantia de reembolso. Sem isso, qualquer
+// disputa de refund vira contra a empresa.
 const faqs = [
   {
     q: "Preciso de cartão pra começar?",
@@ -12,7 +15,7 @@ const faqs = [
   },
   {
     q: "A IA substitui um cursinho?",
-    a: "Sim — e com mais personalização. 87% dos nossos alunos passam, muitos nunca fizeram cursinho tradicional.",
+    a: "Não substitui — complementa. A diferença é que aqui você estuda só o que precisa, baseado nas suas próprias lacunas, com questões no padrão FGV atualizadas. Em vez de assistir 200h de aula gravada, você resolve, erra, e revisa exatamente onde tem dificuldade.",
     defaultOpen: false,
   },
   {
@@ -22,7 +25,7 @@ const faqs = [
   },
   {
     q: "E se eu não passar?",
-    a: "No plano Aprovação, se você cumprir o cronograma e não passar, devolvemos 100% do valor pago.",
+    a: "O plano Aprovação está em desenvolvimento e terá uma garantia de aprovação com critérios objetivos. Os detalhes serão publicados no momento do lançamento desse plano.",
     defaultOpen: false,
   },
   {

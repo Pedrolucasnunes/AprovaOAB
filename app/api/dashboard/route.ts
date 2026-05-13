@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
   const diagnosticoCompleto = (diagnosticAttemptsCount ?? 0) >= 5
   const questoesHoje = questoesHojeCount ?? 0
   const plano: "free" | "pro" | "aprovacao" = userPlanoRow?.plano ?? "free"
+  const examDate: string | null = (user.user_metadata?.exam_date as string | null) ?? null
 
   // 1. Resumo geral via desempenho_materia
   const { data: resumo, error: resumoError } = await supabase
@@ -299,5 +300,6 @@ export async function GET(req: NextRequest) {
     diagnosticoCompleto,
     questoesHoje,
     plano,
+    examDate,
   }, { status: 200 })
 }

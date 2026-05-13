@@ -20,14 +20,14 @@ export function StatsHeader() {
   const [noData,    setNoData]    = useState(false)
 
   useEffect(() => {
-    // Carrega data da prova do localStorage
-    const saved = localStorage.getItem("oab_exam_date")
-    if (saved) setExamDate(saved)
+    // Limpa lixo antigo da fonte legada (localStorage). Source of truth agora é Supabase.
+    localStorage.removeItem("oab_exam_date")
 
-    // Carrega desempenho por matéria
     fetch("/api/dashboard")
       .then((r) => r.json())
       .then((data) => {
+        if (data.examDate) setExamDate(data.examDate)
+
         const subjects = (data.desempenhoPorMateria ?? []) as { taxa_acerto: number }[]
         if (subjects.length === 0) { setNoData(true); return }
         setStats({
@@ -39,9 +39,12 @@ export function StatsHeader() {
       .catch(() => {})
   }, [])
 
-  const daysLeft = examDate
-    ? Math.ceil((new Date(examDate).getTime() - Date.now()) / 86_400_000)
-    : null
+  const daysLeft = (() => {
+    if (!examDate) return null
+    // Onboarding salva YYYY-MM; edição inline salva YYYY-MM-DD. Assume dia 15 se for só mês.
+    const isoDate = /^\d{4}-\d{2}$/.test(examDate) ? `${examDate}-15` : examDate
+    return Math.ceil((new Date(isoDate).getTime() - Date.now()) / 86_400_000)
+  })()
 
   const daysColor =
     daysLeft === null  ? "text-muted-foreground"
@@ -49,15 +52,23 @@ export function StatsHeader() {
     : daysLeft <= 90   ? "text-yellow-500"
     : "text-primary"
 
-  function saveDate() {
+  async function saveDate() {
     if (!tempDate) return
-    setExamDate(tempDate)
-    localStorage.setItem("oab_exam_date", tempDate)
-    setEditing(false)
+    const res = await fetch("/api/user/exam-date", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ exam_date: tempDate }),
+    })
+    if (res.ok) {
+      setExamDate(tempDate)
+      setEditing(false)
+    }
   }
 
   function startEdit() {
-    setTempDate(examDate)
+    // Normaliza YYYY-MM (onboarding) pra YYYY-MM-DD que o input type=date aceita.
+    const seed = /^\d{4}-\d{2}$/.test(examDate) ? `${examDate}-15` : examDate
+    setTempDate(seed)
     setEditing(true)
   }
 

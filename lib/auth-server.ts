@@ -1,14 +1,15 @@
 import { createServerClient } from "@supabase/ssr"
+import type { User } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "./supabase-admin"
 
 type AdminAuthResult =
-  | { user: { id: string }; error: null }
+  | { user: User; error: null }
   | { user: null; error: NextResponse }
 
 type UserAuthResult =
-  | { user: { id: string }; supabase: ReturnType<typeof createServerClient>; error: null }
+  | { user: User; supabase: ReturnType<typeof createServerClient>; error: null }
   | { user: null; supabase: null; error: NextResponse }
 
 async function buildServerClient() {
@@ -48,7 +49,7 @@ export async function requireUser(): Promise<UserAuthResult> {
     return { user: null, supabase: null, error: NextResponse.json({ error: "Conta bloqueada. Entre em contato com o suporte." }, { status: 403 }) }
   }
 
-  return { user: { id: user.id }, supabase, error: null }
+  return { user, supabase, error: null }
 }
 
 /** Verifica sessão ativa + exige role="admin". */

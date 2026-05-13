@@ -20,10 +20,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Body inválido" }, { status: 400 })
   }
 
-  const { quantidade } = body
-  const totalQuestoes = [10, 20, 30].includes(Number(quantidade)) ? Number(quantidade) : 10
+  const { quantidade, materia } = body
+  const totalQuestoes = [5, 10, 20, 30].includes(Number(quantidade)) ? Number(quantidade) : 10
   const qtdRisco = Math.round(totalQuestoes * 0.7)
   const qtdGeral = totalQuestoes - qtdRisco
+  const materiaFiltrada = typeof materia === "string" && materia.length > 0 ? materia : null
 
   // 1. Questões já acertadas pelo usuário (simulados + treino avulso em paralelo)
   const { data: attemptsData } = await supabase
@@ -55,6 +56,47 @@ export async function POST(req: NextRequest) {
       ...(treinoAcertouResult.data ?? []).map((r) => r.question_id),
     ]),
   ]
+
+  // 1.5. Modo focado — uma matéria específica (vindo do mini-diagnóstico)
+  if (materiaFiltrada) {
+    let queryFocada = supabase
+      .from("questions")
+      .select("id, enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d, subject_id, topic_id")
+      .eq("subject_id", materiaFiltrada)
+      .limit(totalQuestoes * 5)
+
+    if (idsJaAcertou.length > 0) {
+      queryFocada = queryFocada.not("id", "in", `(${idsJaAcertou.join(",")})`)
+    }
+
+    const { data: focadasData } = await queryFocada
+    const questoesFocadas = (focadasData ?? [])
+      .sort(() => Math.random() - 0.5)
+      .slice(0, totalQuestoes)
+
+    const { data: subjectFocada } = await supabase
+      .from("subjects")
+      .select("id, name")
+      .eq("id", materiaFiltrada)
+      .single()
+
+    const subjectName = subjectFocada?.name ?? "Geral"
+    const questoesComMateria = questoesFocadas.map((q) => ({
+      ...q,
+      subject_name: subjectName,
+    }))
+
+    console.log(`[treino] modo focado: ${questoesFocadas.length} questões de ${subjectName}`)
+
+    return NextResponse.json({
+      distribuicao: {
+        total: questoesFocadas.length,
+        risco: questoesFocadas.length,
+        geral: 0,
+      },
+      questoes: questoesComMateria,
+    }, { status: 200 })
+  }
 
   // 2. Matérias em risco
   const { data: materiasRisco } = await supabase

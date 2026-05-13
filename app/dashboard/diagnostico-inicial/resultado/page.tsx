@@ -146,7 +146,13 @@ export default function ResultadoPage() {
         {/* CTA principal */}
         <div className="mt-6">
           <Button asChild className="w-full" size="lg">
-            <Link href={focoSubjectId ? `/dashboard/treino?materia=${focoSubjectId}` : "/dashboard/treino"}>
+            <Link
+              href={
+                focoSubjectId
+                  ? `/dashboard/treino?quantidade=5&materia=${focoSubjectId}`
+                  : "/dashboard/treino?quantidade=5"
+              }
+            >
               Começar hoje
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>

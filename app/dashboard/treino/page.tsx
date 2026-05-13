@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -15,16 +16,20 @@ import {
   AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import {
-  Dumbbell, Target, Lightbulb, Play, TrendingUp,
-  ChevronLeft, ChevronRight, CheckCircle2, XCircle, Loader2
+  Dumbbell, Target, Lightbulb, Play, TrendingUp, Sparkles,
+  ChevronLeft, ChevronRight, CheckCircle2, XCircle, Loader2, X
 } from "lucide-react"
 import { createBrowserClient } from "@supabase/ssr"
 
 const treinoOptions = [
+  { value: "5",  label: "5",  description: "Sessão focada (5-8 min)" },
   { value: "10", label: "10", description: "Treino rápido (15-20 min)" },
   { value: "20", label: "20", description: "Treino médio (30-40 min)" },
   { value: "30", label: "30", description: "Treino completo (45-60 min)" },
 ]
+
+const QUANTIDADES_VALIDAS = ["5", "10", "20", "30"]
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 interface MateriasRisco {
   subject_id: string
@@ -62,10 +67,31 @@ interface ResumoTreino {
 }
 
 export default function TreinoPage() {
-  const [quantidadeQuestoes, setQuantidadeQuestoes] = useState("10")
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    }>
+      <TreinoPageInner />
+    </Suspense>
+  )
+}
+
+function TreinoPageInner() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+
+  const qParam = searchParams.get("quantidade")
+  const materiaParam = searchParams.get("materia")
+
+  const initialQuantidade = qParam && QUANTIDADES_VALIDAS.includes(qParam) ? qParam : "10"
+
+  const [quantidadeQuestoes, setQuantidadeQuestoes] = useState(initialQuantidade)
   const [materiasRisco, setMateriasRisco] = useState<MateriasRisco[]>([])
   const [progresso, setProgresso] = useState<Progresso | null>(null)
   const [loadingDados, setLoadingDados] = useState(true)
+  const [materiaFiltrada, setMateriaFiltrada] = useState<{ id: string; nome: string } | null>(null)
 
   const [treinoAtivo, setTreinoAtivo] = useState<TreinoAtivo | null>(null)
   const [iniciando, setIniciando] = useState(false)
@@ -78,7 +104,6 @@ export default function TreinoPage() {
 
   useEffect(() => {
     async function init() {
-      // ✅ Verifica autenticação — mas não precisa do userId aqui
       const supabase = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -86,7 +111,6 @@ export default function TreinoPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      // ✅ Sem userId na chamada — API obtém do Auth
       const res = await fetch("/api/dashboard")
       const data = await res.json()
 
@@ -95,25 +119,56 @@ export default function TreinoPage() {
         setProgresso(data.resumo ?? null)
       }
 
+      // Resolver matéria filtrada via query param
+      if (materiaParam && UUID_REGEX.test(materiaParam)) {
+        const fromRisco = (data?.materiasRisco ?? []).find((m: MateriasRisco) => m.subject_id === materiaParam)
+        if (fromRisco) {
+          setMateriaFiltrada({ id: fromRisco.subject_id, nome: fromRisco.nome })
+        } else {
+          const { data: subjectRow } = await supabase
+            .from("subjects")
+            .select("id, name")
+            .eq("id", materiaParam)
+            .single()
+          if (subjectRow) {
+            setMateriaFiltrada({ id: subjectRow.id, nome: subjectRow.name })
+          }
+        }
+      }
+
       setLoadingDados(false)
     }
     init()
-  }, [])
+  }, [materiaParam])
+
+  function limparFiltroMateria() {
+    setMateriaFiltrada(null)
+    router.replace("/dashboard/treino")
+  }
 
   const iniciarTreino = async () => {
     setIniciando(true)
 
-    // ✅ Sem userId no body — API obtém do Auth
     const res = await fetch("/api/treino", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ quantidade: Number(quantidadeQuestoes) }),
+      body: JSON.stringify({
+        quantidade: Number(quantidadeQuestoes),
+        ...(materiaFiltrada && { materia: materiaFiltrada.id }),
+      }),
     })
 
     const data = await res.json()
     setIniciando(false)
 
     if (!res.ok) { alert(data.error); return }
+
+    if (!data.questoes || data.questoes.length === 0) {
+      alert(materiaFiltrada
+        ? `Não encontramos questões disponíveis em ${materiaFiltrada.nome} — você pode ter acertado todas. Tente o modo padrão.`
+        : "Não encontramos questões disponíveis. Tente outra configuração.")
+      return
+    }
 
     setTreinoAtivo(data)
     setCurrentQuestion(0)
@@ -433,7 +488,27 @@ export default function TreinoPage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          {pioresmaterias.length > 0 && (
+          {materiaFiltrada && (
+            <Alert className="border-primary/50 bg-primary/5">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <AlertTitle className="text-primary flex items-center justify-between">
+                <span>Treino guiado: {materiaFiltrada.nome}</span>
+                <button
+                  type="button"
+                  onClick={limparFiltroMateria}
+                  className="text-xs font-normal text-muted-foreground hover:text-foreground inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <X className="h-3 w-3" />
+                  Modo padrão
+                </button>
+              </AlertTitle>
+              <AlertDescription className="text-muted-foreground">
+                Sessão focada vinda do seu diagnóstico inicial — todas as questões serão de {materiaFiltrada.nome}.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {!materiaFiltrada && pioresmaterias.length > 0 && (
             <Alert className="border-warning/50 bg-warning/5">
               <Lightbulb className="h-4 w-4 text-warning" />
               <AlertTitle className="text-warning">Recomendação inteligente</AlertTitle>
@@ -454,10 +529,12 @@ export default function TreinoPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Dumbbell className="h-5 w-5 text-primary" />
-                Iniciar novo treino
+                {materiaFiltrada ? `Sessão focada: ${materiaFiltrada.nome}` : "Iniciar novo treino"}
               </CardTitle>
               <CardDescription>
-                70% das questões serão de matérias com baixo desempenho, 30% de questões gerais para manter o ritmo
+                {materiaFiltrada
+                  ? "Todas as questões serão da matéria selecionada, evitando o que você já acertou."
+                  : "70% das questões serão de matérias com baixo desempenho, 30% de questões gerais para manter o ritmo"}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -468,7 +545,7 @@ export default function TreinoPage() {
                 <RadioGroup
                   value={quantidadeQuestoes}
                   onValueChange={setQuantidadeQuestoes}
-                  className="grid gap-3 sm:grid-cols-3"
+                  className="grid gap-3 grid-cols-2 sm:grid-cols-4"
                 >
                   {treinoOptions.map((option) => (
                     <div key={option.value}>
@@ -478,7 +555,7 @@ export default function TreinoPage() {
                         className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-border p-4 transition-all peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 hover:bg-secondary"
                       >
                         <span className="text-2xl font-bold text-foreground">{option.label}</span>
-                        <span className="text-xs text-muted-foreground">{option.description}</span>
+                        <span className="text-xs text-muted-foreground text-center">{option.description}</span>
                       </Label>
                     </div>
                   ))}
@@ -487,26 +564,39 @@ export default function TreinoPage() {
 
               <div className="rounded-lg border border-border bg-secondary/30 p-4">
                 <h4 className="mb-3 text-sm font-medium text-foreground">Distribuição do treino</h4>
-                <div className="space-y-2">
+                {materiaFiltrada ? (
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Matérias em risco (70%)</span>
+                    <span className="text-muted-foreground">Foco em {materiaFiltrada.nome}</span>
                     <span className="font-medium text-foreground">
-                      {Math.round(parseInt(quantidadeQuestoes) * 0.7)} questões
+                      {parseInt(quantidadeQuestoes)} questões
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Questões gerais (30%)</span>
-                    <span className="font-medium text-foreground">
-                      {Math.round(parseInt(quantidadeQuestoes) * 0.3)} questões
-                    </span>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Matérias em risco (70%)</span>
+                      <span className="font-medium text-foreground">
+                        {Math.round(parseInt(quantidadeQuestoes) * 0.7)} questões
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Questões gerais (30%)</span>
+                      <span className="font-medium text-foreground">
+                        {Math.round(parseInt(quantidadeQuestoes) * 0.3)} questões
+                      </span>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               <Button className="w-full" size="lg" onClick={iniciarTreino} disabled={iniciando}>
                 {iniciando
                   ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Preparando treino...</>
-                  : <><Play className="mr-2 h-5 w-5" /> Iniciar treino com {quantidadeQuestoes} questões</>
+                  : <><Play className="mr-2 h-5 w-5" />
+                      {materiaFiltrada
+                        ? `Iniciar sessão focada de ${quantidadeQuestoes} questões`
+                        : `Iniciar treino com ${quantidadeQuestoes} questões`}
+                    </>
                 }
               </Button>
             </CardContent>

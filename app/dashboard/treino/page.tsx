@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import {
   Dumbbell, Target, Lightbulb, Play, TrendingUp, Sparkles,
-  ChevronLeft, ChevronRight, CheckCircle2, XCircle, Loader2, X
+  ChevronLeft, ChevronRight, CheckCircle2, XCircle, Loader2, X, AlertTriangle
 } from "lucide-react"
 import { createBrowserClient } from "@supabase/ssr"
 
@@ -93,6 +93,8 @@ function TreinoPageInner() {
   const [progresso, setProgresso] = useState<Progresso | null>(null)
   const [loadingDados, setLoadingDados] = useState(true)
   const [materiaFiltrada, setMateriaFiltrada] = useState<{ id: string; nome: string } | null>(null)
+  const [questoesHoje, setQuestoesHoje] = useState(0)
+  const [plano, setPlano] = useState<"free" | "pro" | "aprovacao">("free")
 
   const [treinoAtivo, setTreinoAtivo] = useState<TreinoAtivo | null>(null)
   const [iniciando, setIniciando] = useState(false)
@@ -118,6 +120,8 @@ function TreinoPageInner() {
       if (res.ok) {
         setMateriasRisco(data.materiasRisco ?? [])
         setProgresso(data.resumo ?? null)
+        setQuestoesHoje(data.questoesHoje ?? 0)
+        setPlano(data.plano ?? "free")
       }
 
       // Resolver matéria filtrada via query param
@@ -489,16 +493,16 @@ function TreinoPageInner() {
                 <div className="flex-1">
                   <p className="font-semibold text-foreground">Próximo passo</p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Volte amanhã pra &quot;Revisão + 5 questões mistas&quot; do seu plano.
+                    Gere seu plano completo de estudos no calendário pra organizar a semana.
                   </p>
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-2">
                 <Button asChild className="flex-1">
-                  <Link href="/dashboard">Voltar pro dashboard</Link>
+                  <Link href="/dashboard/calendario">Gerar meu plano de estudos</Link>
                 </Button>
                 <Button asChild variant="outline" className="flex-1">
-                  <Link href="/dashboard/treino?quantidade=5">Fazer mais 5 hoje (extra)</Link>
+                  <Link href="/dashboard">Voltar pro dashboard</Link>
                 </Button>
               </div>
               <Button asChild variant="ghost" size="sm" className="w-full">
@@ -586,82 +590,117 @@ function TreinoPageInner() {
             </Alert>
           )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Dumbbell className="h-5 w-5 text-primary" />
-                {materiaFiltrada ? `Sessão focada: ${materiaFiltrada.nome}` : "Iniciar novo treino"}
-              </CardTitle>
-              <CardDescription>
-                {materiaFiltrada
-                  ? "Todas as questões serão da matéria selecionada, evitando o que você já acertou."
-                  : "70% das questões serão de matérias com baixo desempenho, 30% de questões gerais para manter o ritmo"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div>
-                <Label className="mb-3 block text-sm font-medium">
-                  Quantas questões você quer resolver?
-                </Label>
-                <RadioGroup
-                  value={quantidadeQuestoes}
-                  onValueChange={setQuantidadeQuestoes}
-                  className="grid gap-3 grid-cols-2 sm:grid-cols-4"
-                >
-                  {treinoOptions.map((option) => (
-                    <div key={option.value}>
-                      <RadioGroupItem value={option.value} id={`treino-${option.value}`} className="peer sr-only" />
-                      <Label
-                        htmlFor={`treino-${option.value}`}
-                        className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-border p-4 transition-all peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 hover:bg-secondary"
-                      >
-                        <span className="text-2xl font-bold text-foreground">{option.label}</span>
-                        <span className="text-xs text-muted-foreground text-center">{option.description}</span>
-                      </Label>
+          {(() => {
+            const limiteBatido = plano === "free" && questoesHoje >= 10
+            if (limiteBatido) {
+              return (
+                <Card>
+                  <CardContent className="p-6 text-center space-y-4">
+                    <div className="flex justify-center">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10">
+                        <AlertTriangle className="h-6 w-6 text-amber-500" />
+                      </div>
                     </div>
-                  ))}
-                </RadioGroup>
-              </div>
-
-              <div className="rounded-lg border border-border bg-secondary/30 p-4">
-                <h4 className="mb-3 text-sm font-medium text-foreground">Distribuição do treino</h4>
-                {materiaFiltrada ? (
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Foco em {materiaFiltrada.nome}</span>
-                    <span className="font-medium text-foreground">
-                      {parseInt(quantidadeQuestoes)} questões
-                    </span>
+                    <div>
+                      <h3 className="text-lg font-bold text-foreground">
+                        Limite diário atingido
+                      </h3>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        Você completou suas 10 questões de hoje no plano Grátis.
+                        Volte amanhã pra continuar o plano — ou veja seu calendário agora.
+                      </p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                      <Button asChild className="flex-1">
+                        <Link href="/dashboard/calendario">Ver meu calendário</Link>
+                      </Button>
+                      <Button asChild variant="outline" className="flex-1">
+                        <Link href="/#planos">Conhecer o Pro</Link>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            }
+            return (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Dumbbell className="h-5 w-5 text-primary" />
+                    {materiaFiltrada ? `Sessão focada: ${materiaFiltrada.nome}` : "Iniciar novo treino"}
+                  </CardTitle>
+                  <CardDescription>
+                    {materiaFiltrada
+                      ? "Todas as questões serão da matéria selecionada, evitando o que você já acertou."
+                      : "70% das questões serão de matérias com baixo desempenho, 30% de questões gerais para manter o ritmo"}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div>
+                    <Label className="mb-3 block text-sm font-medium">
+                      Quantas questões você quer resolver?
+                    </Label>
+                    <RadioGroup
+                      value={quantidadeQuestoes}
+                      onValueChange={setQuantidadeQuestoes}
+                      className="grid gap-3 grid-cols-2 sm:grid-cols-4"
+                    >
+                      {treinoOptions.map((option) => (
+                        <div key={option.value}>
+                          <RadioGroupItem value={option.value} id={`treino-${option.value}`} className="peer sr-only" />
+                          <Label
+                            htmlFor={`treino-${option.value}`}
+                            className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-border p-4 transition-all peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 hover:bg-secondary"
+                          >
+                            <span className="text-2xl font-bold text-foreground">{option.label}</span>
+                            <span className="text-xs text-muted-foreground text-center">{option.description}</span>
+                          </Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
                   </div>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Matérias em risco (70%)</span>
-                      <span className="font-medium text-foreground">
-                        {Math.round(parseInt(quantidadeQuestoes) * 0.7)} questões
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Questões gerais (30%)</span>
-                      <span className="font-medium text-foreground">
-                        {Math.round(parseInt(quantidadeQuestoes) * 0.3)} questões
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
 
-              <Button className="w-full" size="lg" onClick={iniciarTreino} disabled={iniciando}>
-                {iniciando
-                  ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Preparando treino...</>
-                  : <><Play className="mr-2 h-5 w-5" />
-                      {materiaFiltrada
-                        ? `Iniciar sessão focada de ${quantidadeQuestoes} questões`
-                        : `Iniciar treino com ${quantidadeQuestoes} questões`}
-                    </>
-                }
-              </Button>
-            </CardContent>
-          </Card>
+                  <div className="rounded-lg border border-border bg-secondary/30 p-4">
+                    <h4 className="mb-3 text-sm font-medium text-foreground">Distribuição do treino</h4>
+                    {materiaFiltrada ? (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Foco em {materiaFiltrada.nome}</span>
+                        <span className="font-medium text-foreground">
+                          {parseInt(quantidadeQuestoes)} questões
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Matérias em risco (70%)</span>
+                          <span className="font-medium text-foreground">
+                            {Math.round(parseInt(quantidadeQuestoes) * 0.7)} questões
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Questões gerais (30%)</span>
+                          <span className="font-medium text-foreground">
+                            {Math.round(parseInt(quantidadeQuestoes) * 0.3)} questões
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <Button className="w-full" size="lg" onClick={iniciarTreino} disabled={iniciando}>
+                    {iniciando
+                      ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Preparando treino...</>
+                      : <><Play className="mr-2 h-5 w-5" />
+                          {materiaFiltrada
+                            ? `Iniciar sessão focada de ${quantidadeQuestoes} questões`
+                            : `Iniciar treino com ${quantidadeQuestoes} questões`}
+                        </>
+                    }
+                  </Button>
+                </CardContent>
+              </Card>
+            )
+          })()}
 
           <Card>
             <CardHeader>

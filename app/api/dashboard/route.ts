@@ -7,10 +7,15 @@ export async function GET(req: NextRequest) {
 
   const userId = user.id
 
-  // 0. Estado do onboarding/diagnóstico
+  // 0. Estado do onboarding/diagnóstico + limite diário
+  const inicioDoDia = new Date()
+  inicioDoDia.setUTCHours(0, 0, 0, 0)
+
   const [
     { data: userRow },
     { count: diagnosticAttemptsCount },
+    { count: questoesHojeCount },
+    { data: userPlanoRow },
   ] = await Promise.all([
     supabase.from("users").select("onboarding_data").eq("id", userId).single(),
     supabase
@@ -18,10 +23,19 @@ export async function GET(req: NextRequest) {
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
       .eq("is_diagnostic", true),
+    supabase
+      .from("question_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("is_diagnostic", false)
+      .gte("created_at", inicioDoDia.toISOString()),
+    supabase.from("users").select("plano").eq("id", userId).single(),
   ])
 
   const onboardingCompleto = !!userRow?.onboarding_data
   const diagnosticoCompleto = (diagnosticAttemptsCount ?? 0) >= 5
+  const questoesHoje = questoesHojeCount ?? 0
+  const plano: "free" | "pro" | "aprovacao" = userPlanoRow?.plano ?? "free"
 
   // 1. Resumo geral via desempenho_materia
   const { data: resumo, error: resumoError } = await supabase
@@ -283,5 +297,7 @@ export async function GET(req: NextRequest) {
     actionCards,
     onboardingCompleto,
     diagnosticoCompleto,
+    questoesHoje,
+    plano,
   }, { status: 200 })
 }

@@ -93,6 +93,13 @@ interface DashboardData {
   }
   onboardingCompleto?: boolean
   diagnosticoCompleto?: boolean
+  questoesHoje?: number
+  plano?: "free" | "pro" | "aprovacao"
+}
+
+interface FocoDiagnostico {
+  id: string
+  nome: string
 }
 
 function getSaudacao(): string {
@@ -108,6 +115,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [userName, setUserName] = useState<string>("")
+  const [foco, setFoco] = useState<FocoDiagnostico | null>(null)
 
   useEffect(() => {
     async function fetchDashboard() {
@@ -132,6 +140,13 @@ export default function DashboardPage() {
         }
 
         setData(json)
+
+        if (json.diagnosticoCompleto) {
+          fetch("/api/diagnostico/resultado")
+            .then((r) => r.json())
+            .then((d) => { if (d.completed && d.foco) setFoco(d.foco) })
+            .catch(() => {})
+        }
       } catch (err) {
         toast.error("Erro inesperado ao carregar dados")
         setError("Erro inesperado ao carregar dados")
@@ -190,35 +205,54 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Diagnóstico completo (cenário A) ── */}
-      {isNewUser && data?.onboardingCompleto && data?.diagnosticoCompleto && (
-        <div className="rounded-xl border border-primary/30 bg-primary/5 p-5 space-y-4">
-          <div className="flex items-start gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/15">
-              <Sparkles className="h-4 w-4 text-primary" />
-            </div>
-            <div className="flex-1">
-              <p className="font-semibold">
-                {userName ? `${getSaudacao()}, ${userName}. ` : ""}Sua análise inicial está pronta.
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Identificamos seus primeiros padrões a partir do diagnóstico. Comece o plano de hoje pra aprofundar a leitura.
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Button asChild size="sm">
-                  <Link href="/dashboard/treino">
-                    Começar plano de hoje <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" size="sm">
-                  <Link href="/dashboard/diagnostico-inicial/resultado">
-                    Ver análise completa
-                  </Link>
-                </Button>
+      {isNewUser && data?.onboardingCompleto && data?.diagnosticoCompleto && (() => {
+        const limiteBatido = data.plano === "free" && (data.questoesHoje ?? 0) >= 10
+        const treinoHref = foco
+          ? `/dashboard/treino?quantidade=5&materia=${foco.id}`
+          : "/dashboard/treino?quantidade=5"
+        return (
+          <div className="rounded-xl border border-primary/30 bg-primary/5 p-5 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/15">
+                <Sparkles className="h-4 w-4 text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold">
+                  {userName ? `${getSaudacao()}, ${userName}. ` : ""}
+                  {limiteBatido
+                    ? "Você completou suas questões de hoje."
+                    : "Sua análise inicial está pronta."}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {limiteBatido
+                    ? "Veja seu calendário pra continuar o plano de estudos."
+                    : "Identificamos seus primeiros padrões a partir do diagnóstico. Comece o treino do dia."}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {limiteBatido ? (
+                    <Button asChild size="sm">
+                      <Link href="/dashboard/calendario">
+                        Ver meu calendário <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                      </Link>
+                    </Button>
+                  ) : (
+                    <Button asChild size="sm">
+                      <Link href={treinoHref}>
+                        Começar treino do dia <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                      </Link>
+                    </Button>
+                  )}
+                  <Button asChild variant="outline" size="sm">
+                    <Link href="/dashboard/diagnostico-inicial/resultado">
+                      Ver análise completa
+                    </Link>
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* ── Onboarding feito, diagnóstico pendente (cenário B) ── */}
       {isNewUser && data?.onboardingCompleto && !data?.diagnosticoCompleto && (

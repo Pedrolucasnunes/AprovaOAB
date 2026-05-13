@@ -98,6 +98,7 @@ export async function POST(req: NextRequest) {
         .from("question_attempts")
         .select("id", { count: "exact", head: true })
         .eq("user_id", userId)
+        .eq("is_diagnostic", false)
         .gte("created_at", hoje.toISOString())
 
       if ((count ?? 0) >= 10) {

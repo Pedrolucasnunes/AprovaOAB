@@ -7,6 +7,22 @@ export async function GET(req: NextRequest) {
 
   const userId = user.id
 
+  // 0. Estado do onboarding/diagnóstico
+  const [
+    { data: userRow },
+    { count: diagnosticAttemptsCount },
+  ] = await Promise.all([
+    supabase.from("users").select("onboarding_data").eq("id", userId).single(),
+    supabase
+      .from("question_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("is_diagnostic", true),
+  ])
+
+  const onboardingCompleto = !!userRow?.onboarding_data
+  const diagnosticoCompleto = (diagnosticAttemptsCount ?? 0) >= 5
+
   // 1. Resumo geral via desempenho_materia
   const { data: resumo, error: resumoError } = await supabase
     .from("desempenho_materia")
@@ -265,5 +281,7 @@ export async function GET(req: NextRequest) {
     desempenhoPorMateria,
     evolucao,
     actionCards,
+    onboardingCompleto,
+    diagnosticoCompleto,
   }, { status: 200 })
 }

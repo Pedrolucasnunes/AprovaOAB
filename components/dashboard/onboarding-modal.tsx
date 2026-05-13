@@ -5,9 +5,11 @@ import { useSearchParams, useRouter } from "next/navigation"
 import { createBrowserClient } from "@supabase/ssr"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { CalendarDays, CheckCircle2 } from "lucide-react"
+import { CalendarDays, Sparkles, Target, BookOpen, Clock } from "lucide-react"
 
-type Step = "welcome" | "exam-date" | "done"
+type Step = "welcome" | "nivel" | "dificuldades" | "exam-date" | "tempo" | "diagnostico-cta"
+type Nivel = "iniciante" | "intermediario" | "avancado"
+type Tempo = "1h" | "2-3h" | "4h+"
 
 const MONTHS = [
   "Janeiro", "Fevereiro", "Março", "Abril",
@@ -18,16 +20,38 @@ const MONTHS = [
 const currentYear = new Date().getFullYear()
 const YEARS = Array.from({ length: 3 }, (_, i) => currentYear + i)
 
+const NIVEIS: { value: Nivel; label: string; desc: string }[] = [
+  { value: "iniciante", label: "Estou começando agora", desc: "Primeiros meses de estudo." },
+  { value: "intermediario", label: "Já estudo há alguns meses", desc: "Estou em ritmo, mas com lacunas." },
+  { value: "avancado", label: "Já fiz a OAB antes", desc: "Quero focar nos pontos fracos." },
+]
+
+const TEMPOS: { value: Tempo; label: string; desc: string }[] = [
+  { value: "1h", label: "Tenho 1h por dia", desc: "Estudo concentrado, pouco tempo." },
+  { value: "2-3h", label: "Tenho 2-3h por dia", desc: "Rotina equilibrada." },
+  { value: "4h+", label: "4h+ ou estudo full-time", desc: "Foco total na aprovação." },
+]
+
+interface Subject {
+  id: string
+  name: string
+}
+
 export function OnboardingModal() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [step, setStep] = useState<Step>("welcome")
+
+  const [nivel, setNivel] = useState<Nivel | null>(null)
+  const [dificuldades, setDificuldades] = useState<string[]>([])
   const [month, setMonth] = useState("")
   const [year, setYear] = useState(String(currentYear))
   const [noDate, setNoDate] = useState(false)
+  const [tempo, setTempo] = useState<Tempo | null>(null)
+
+  const [subjects, setSubjects] = useState<Subject[]>([])
   const [saving, setSaving] = useState(false)
-  const [plano, setPlano] = useState<string>("free")
 
   useEffect(() => {
     if (searchParams.get("onboarding") !== "true") return
@@ -37,36 +61,59 @@ export function OnboardingModal() {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     )
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) return
-      const { data } = await supabase
-        .from("users")
-        .select("plano")
-        .eq("id", user.id)
-        .single()
-      if (data?.plano) setPlano(data.plano)
-    })
+    supabase
+      .from("subjects")
+      .select("id, name")
+      .order("name")
+      .then(({ data }) => {
+        if (data) setSubjects(data)
+      })
   }, [searchParams])
 
-  const isFree = plano === "free"
-  const recommendedPath = isFree ? "/dashboard/questoes" : "/dashboard/simulados"
+  function toggleDificuldade(id: string) {
+    setDificuldades((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id)
+      if (prev.length >= 4) return prev
+      return [...prev, id]
+    })
+  }
 
-  async function saveAndRedirect(goToRecommended: boolean) {
-    setSaving(true)
+  function buildPayload() {
     const monthIndex = MONTHS.indexOf(month) + 1
     const examDate = noDate || !month
       ? null
       : `${year}-${String(monthIndex).padStart(2, "0")}`
 
+    return {
+      exam_date: examDate,
+      nivel,
+      dificuldades,
+      tempo_diario: tempo,
+    }
+  }
+
+  async function persist() {
     await fetch("/api/user/onboarding", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ exam_date: examDate }),
+      body: JSON.stringify(buildPayload()),
     })
+  }
 
+  async function startDiagnostico() {
+    setSaving(true)
+    await persist()
     setSaving(false)
     setIsOpen(false)
-    router.replace(goToRecommended ? recommendedPath : "/dashboard")
+    router.replace("/dashboard/diagnostico-inicial")
+  }
+
+  async function skipDiagnostico() {
+    setSaving(true)
+    await persist()
+    setSaving(false)
+    setIsOpen(false)
+    router.replace("/dashboard")
   }
 
   function handleDismiss() {
@@ -86,23 +133,24 @@ export function OnboardingModal() {
 
         {step === "welcome" && (
           <div className="flex flex-col items-center text-center gap-5">
-            <img
-              src="/Sem fundo.png"
-              alt="AprovaOAB"
-              className="h-16 w-16 object-contain"
-            />
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+              <Sparkles className="h-7 w-7 text-primary" />
+            </div>
             <div className="space-y-2">
               <h2 className="text-2xl font-bold text-foreground">
-                Bem-vindo ao AprovaOAB!
+                Vamos criar seu diagnóstico
               </h2>
               <p className="text-sm text-muted-foreground text-pretty">
-                Vamos personalizar sua experiência com 2 perguntas rápidas para
-                que você estude de forma inteligente e maximize suas chances de
-                aprovação.
+                Em 4 minutos vamos identificar:
               </p>
+              <ul className="text-sm text-foreground text-left space-y-1 mx-auto inline-block">
+                <li>• suas matérias críticas</li>
+                <li>• seus padrões de erro</li>
+                <li>• por onde começar a estudar</li>
+              </ul>
             </div>
-            <Button className="w-full" onClick={() => setStep("exam-date")}>
-              Começar
+            <Button className="w-full" onClick={() => setStep("nivel")}>
+              Começar diagnóstico
             </Button>
             <button
               onClick={handleDismiss}
@@ -113,6 +161,106 @@ export function OnboardingModal() {
           </div>
         )}
 
+        {step === "nivel" && (
+          <div className="flex flex-col gap-5">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary">
+                <Target className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground">Em que ponto você está?</h3>
+                <p className="text-xs text-muted-foreground">Isso ajuda a calibrar a primeira leitura.</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              {NIVEIS.map((n) => (
+                <button
+                  key={n.value}
+                  type="button"
+                  onClick={() => setNivel(n.value)}
+                  className={`text-left rounded-lg border p-3 transition-colors cursor-pointer ${
+                    nivel === n.value
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/40"
+                  }`}
+                >
+                  <p className="text-sm font-medium text-foreground">{n.label}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{n.desc}</p>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <Button variant="outline" className="flex-1" onClick={() => setStep("welcome")}>
+                Voltar
+              </Button>
+              <Button
+                className="flex-1"
+                disabled={!nivel}
+                onClick={() => setStep("dificuldades")}
+              >
+                Continuar
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {step === "dificuldades" && (
+          <div className="flex flex-col gap-5">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary">
+                <BookOpen className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground">Onde você sente mais dificuldade?</h3>
+                <p className="text-xs text-muted-foreground">Escolha de 1 a 4 matérias.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 max-h-72 overflow-y-auto pr-1">
+              {subjects.map((s) => {
+                const selected = dificuldades.includes(s.id)
+                const disabled = !selected && dificuldades.length >= 4
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => toggleDificuldade(s.id)}
+                    disabled={disabled}
+                    className={`text-left rounded-lg border px-3 py-2 transition-colors cursor-pointer ${
+                      selected
+                        ? "border-primary bg-primary/5 text-foreground"
+                        : disabled
+                          ? "border-border opacity-40 cursor-not-allowed"
+                          : "border-border hover:border-primary/40 text-foreground"
+                    }`}
+                  >
+                    <p className="text-xs font-medium">{s.name}</p>
+                  </button>
+                )
+              })}
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Selecionadas: {dificuldades.length}/4
+            </p>
+
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setStep("nivel")}>
+                Voltar
+              </Button>
+              <Button
+                className="flex-1"
+                disabled={dificuldades.length === 0}
+                onClick={() => setStep("exam-date")}
+              >
+                Continuar
+              </Button>
+            </div>
+          </div>
+        )}
+
         {step === "exam-date" && (
           <div className="flex flex-col gap-5">
             <div className="flex items-center gap-3">
@@ -120,12 +268,8 @@ export function OnboardingModal() {
                 <CalendarDays className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h3 className="font-semibold text-foreground">
-                  Quando é sua prova da OAB?
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  Usaremos isso para priorizar seu plano de estudos.
-                </p>
+                <h3 className="font-semibold text-foreground">Quando é sua prova da OAB?</h3>
+                <p className="text-xs text-muted-foreground">Usaremos pra priorizar seu plano.</p>
               </div>
             </div>
 
@@ -164,17 +308,13 @@ export function OnboardingModal() {
             </label>
 
             <div className="flex gap-2 pt-1">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => setStep("welcome")}
-              >
+              <Button variant="outline" className="flex-1" onClick={() => setStep("dificuldades")}>
                 Voltar
               </Button>
               <Button
                 className="flex-1"
                 disabled={!noDate && !month}
-                onClick={() => setStep("done")}
+                onClick={() => setStep("tempo")}
               >
                 Continuar
               </Button>
@@ -182,37 +322,76 @@ export function OnboardingModal() {
           </div>
         )}
 
-        {step === "done" && (
+        {step === "tempo" && (
+          <div className="flex flex-col gap-5">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary">
+                <Clock className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground">Quanto tempo você tem por dia?</h3>
+                <p className="text-xs text-muted-foreground">Pra calibrar o ritmo do plano.</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              {TEMPOS.map((t) => (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => setTempo(t.value)}
+                  className={`text-left rounded-lg border p-3 transition-colors cursor-pointer ${
+                    tempo === t.value
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/40"
+                  }`}
+                >
+                  <p className="text-sm font-medium text-foreground">{t.label}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{t.desc}</p>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <Button variant="outline" className="flex-1" onClick={() => setStep("exam-date")}>
+                Voltar
+              </Button>
+              <Button
+                className="flex-1"
+                disabled={!tempo}
+                onClick={() => setStep("diagnostico-cta")}
+              >
+                Continuar
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {step === "diagnostico-cta" && (
           <div className="flex flex-col items-center text-center gap-5">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
-              <CheckCircle2 className="h-8 w-8 text-primary" />
+              <Sparkles className="h-7 w-7 text-primary" />
             </div>
             <div className="space-y-2">
-              <h3 className="text-xl font-bold text-foreground">Tudo pronto!</h3>
+              <h3 className="text-xl font-bold text-foreground">Tudo pronto</h3>
               <p className="text-sm text-muted-foreground text-pretty">
-                {isFree
-                  ? "Comece respondendo suas 10 questões diárias — vamos mapear seus pontos fortes e fracos por disciplina conforme você joga."
-                  : "Recomendamos começar com um simulado diagnóstico para mapearmos seus pontos fortes e fracos por disciplina."}
+                Agora vamos identificar seus primeiros padrões. Responda 5 questões rápidas pra começar.
               </p>
             </div>
             <Button
               className="w-full"
-              onClick={() => saveAndRedirect(true)}
+              onClick={startDiagnostico}
               disabled={saving}
             >
-              {saving
-                ? "Salvando..."
-                : isFree
-                  ? "Começar com 10 questões"
-                  : "Fazer diagnóstico agora"}
+              {saving ? "Salvando..." : "Fazer mini-diagnóstico agora"}
             </Button>
             <Button
               variant="ghost"
               className="w-full"
-              onClick={() => saveAndRedirect(false)}
+              onClick={skipDiagnostico}
               disabled={saving}
             >
-              Explorar a plataforma primeiro
+              Mais tarde — ir pro dashboard
             </Button>
           </div>
         )}

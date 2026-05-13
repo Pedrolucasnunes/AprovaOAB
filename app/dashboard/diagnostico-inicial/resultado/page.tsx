@@ -134,7 +134,7 @@ export default function ResultadoPage() {
           <div className="space-y-3">
             {(data.plano ?? []).map((dia, i) => (
               <div key={i} className="flex items-start gap-3">
-                <span className="flex h-7 w-16 shrink-0 items-center justify-center rounded-md bg-muted text-xs font-mono font-semibold text-foreground">
+                <span className="flex h-7 min-w-[5rem] shrink-0 items-center justify-center rounded-md bg-muted px-2 text-xs font-mono font-semibold text-foreground">
                   {dia.label}
                 </span>
                 <p className="text-sm leading-relaxed text-foreground pt-1">{dia.atividade}</p>

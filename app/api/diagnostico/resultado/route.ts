@@ -204,7 +204,7 @@ export async function GET() {
       subject_id: null,
     },
     {
-      label: "Depois de amanhã",
+      label: "+2 dias",
       atividade: segundaFraca
         ? `5 questões de ${segundaFraca.nome}`
         : "5 questões mistas",

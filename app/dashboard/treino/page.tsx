@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
+import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -132,8 +133,12 @@ function TreinoPageInner() {
             .single()
           if (subjectRow) {
             setMateriaFiltrada({ id: subjectRow.id, nome: subjectRow.name })
+          } else {
+            setMateriaFiltrada(null)
           }
         }
+      } else {
+        setMateriaFiltrada(null)
       }
 
       setLoadingDados(false)
@@ -212,6 +217,8 @@ function TreinoPageInner() {
     setAnswers({})
     setRespostas({})
     setCurrentQuestion(0)
+    setMateriaFiltrada(null)
+    router.replace("/dashboard/treino")
 
     fetch("/api/dashboard")
       .then(r => r.json())
@@ -401,11 +408,19 @@ function TreinoPageInner() {
 
   // ─── RESUMO FINAL ─────────────────────────────────────────────
   if (resumoFinal) {
+    const veioDoDiagnostico = materiaFiltrada !== null
+
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Treino concluído!</h1>
-          <p className="text-muted-foreground">Veja o resultado desta sessão</p>
+          <h1 className="text-2xl font-bold text-foreground">
+            {veioDoDiagnostico ? "Dia 1 do seu plano concluído" : "Treino concluído!"}
+          </h1>
+          <p className="text-muted-foreground">
+            {veioDoDiagnostico
+              ? `Você terminou as 5 questões focadas de ${materiaFiltrada.nome}. Amanhã: revisão + 5 questões mistas.`
+              : "Veja o resultado desta sessão"}
+          </p>
         </div>
 
         <Card>
@@ -464,14 +479,60 @@ function TreinoPageInner() {
           </Card>
         )}
 
-        <div className="flex gap-3">
-          <Button className="flex-1" onClick={encerrarTreino}>
-            <Play className="mr-2 h-4 w-4" /> Novo treino
-          </Button>
-          <Button variant="outline" asChild>
-            <a href="/dashboard/desempenho">Ver desempenho completo</a>
-          </Button>
-        </div>
+        {veioDoDiagnostico ? (
+          <>
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-5 space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/15">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-foreground">Próximo passo</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Volte amanhã pra &quot;Revisão + 5 questões mistas&quot; do seu plano.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button asChild className="flex-1">
+                  <Link href="/dashboard">Voltar pro dashboard</Link>
+                </Button>
+                <Button asChild variant="outline" className="flex-1">
+                  <Link href="/dashboard/treino?quantidade=5">Fazer mais 5 hoje (extra)</Link>
+                </Button>
+              </div>
+              <Button asChild variant="ghost" size="sm" className="w-full">
+                <Link href="/dashboard/diagnostico-inicial/resultado">
+                  Ver minha análise inicial
+                </Link>
+              </Button>
+            </div>
+
+            <div className="rounded-xl border border-dashed border-border bg-muted/30 p-5 text-center">
+              <p className="text-sm font-semibold text-foreground">
+                Plano completo de 4 semanas?
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Ajuste automático e revisão dinâmica vêm com o Pro.
+              </p>
+              <Link
+                href="/#planos"
+                className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+              >
+                Conhecer o Pro
+              </Link>
+            </div>
+          </>
+        ) : (
+          <div className="flex gap-3">
+            <Button className="flex-1" onClick={encerrarTreino}>
+              <Play className="mr-2 h-4 w-4" /> Novo treino
+            </Button>
+            <Button variant="outline" asChild>
+              <a href="/dashboard/desempenho">Ver desempenho completo</a>
+            </Button>
+          </div>
+        )}
       </div>
     )
   }

@@ -95,6 +95,7 @@ interface DashboardData {
   diagnosticoCompleto?: boolean
   questoesHoje?: number
   plano?: "free" | "pro" | "aprovacao"
+  subscriptionStatus?: "active" | "past_due" | "canceled"
 }
 
 interface FocoDiagnostico {
@@ -203,6 +204,24 @@ export default function DashboardPage() {
           </Link>
         </Button>
       </div>
+
+      {/* ── Cobrança em atraso (Stripe past_due) ── */}
+      {data?.subscriptionStatus === "past_due" && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-semibold text-foreground">Sua última cobrança falhou</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Atualize seu cartão pra não perder o acesso ao seu plano. Tentaremos cobrar novamente nos próximos dias.
+            </p>
+            <Button asChild size="sm" variant="outline" className="mt-3">
+              <Link href="/dashboard/perfil">
+                Gerenciar assinatura <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* ── Diagnóstico completo (cenário A) ── */}
       {isNewUser && data?.onboardingCompleto && data?.diagnosticoCompleto && (() => {

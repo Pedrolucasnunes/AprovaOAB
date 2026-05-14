@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import * as Sentry from "@sentry/nextjs"
 import { stripe, STRIPE_PRICES, ensureStripeCustomer } from "@/lib/stripe"
 import { requireUser } from "@/lib/auth-server"
 import { supabaseAdmin } from "@/lib/supabase-admin"
@@ -66,6 +67,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ url: session.url })
   } catch (err) {
+    Sentry.captureException(err, { tags: { area: "stripe-checkout" } })
     console.error("[stripe/checkout] erro:", err)
     const message = err instanceof Error ? err.message : "Erro ao iniciar checkout"
     return NextResponse.json({ error: message }, { status: 500 })

@@ -12,6 +12,12 @@ export const STRIPE_PRICES = {
 
 export type Plano = "free" | "pro" | "aprovacao"
 
+export function planoFromPriceId(priceId: string): "pro" | "aprovacao" | null {
+  if (priceId === STRIPE_PRICES.pro) return "pro"
+  if (priceId === STRIPE_PRICES.aprovacao) return "aprovacao"
+  return null
+}
+
 export async function ensureStripeCustomer(
   userId: string,
   email: string | null | undefined,

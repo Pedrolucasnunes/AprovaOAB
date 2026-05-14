@@ -299,7 +299,7 @@ function TreinoPageInner() {
           <span className="rounded-full bg-destructive/10 px-3 py-1 text-destructive">
             {treinoAtivo.distribuicao.risco} matérias em risco
           </span>
-          <span className="rounded-full bg-secondary px-3 py-1">
+          <span className="rounded-full bg-secondary/15 text-secondary px-3 py-1">
             {treinoAtivo.distribuicao.geral} gerais
           </span>
         </div>

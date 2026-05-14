@@ -164,7 +164,7 @@ export function OnboardingModal() {
         {step === "nivel" && (
           <div className="flex flex-col gap-5">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
                 <Target className="h-5 w-5 text-primary" />
               </div>
               <div>
@@ -209,7 +209,7 @@ export function OnboardingModal() {
         {step === "dificuldades" && (
           <div className="flex flex-col gap-5">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
                 <BookOpen className="h-5 w-5 text-primary" />
               </div>
               <div>
@@ -264,7 +264,7 @@ export function OnboardingModal() {
         {step === "exam-date" && (
           <div className="flex flex-col gap-5">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
                 <CalendarDays className="h-5 w-5 text-primary" />
               </div>
               <div>
@@ -325,7 +325,7 @@ export function OnboardingModal() {
         {step === "tempo" && (
           <div className="flex flex-col gap-5">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
                 <Clock className="h-5 w-5 text-primary" />
               </div>
               <div>

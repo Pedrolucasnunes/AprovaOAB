@@ -59,14 +59,14 @@ export function ProblemSolution() {
                   className="mt-4 text-3xl font-black leading-tight tracking-tight text-foreground"
                   style={{ fontFamily: "'Fraunces', Georgia, serif" }}
                 >
-                  IA que monta o plano{" "}
-                  <em className="not-italic text-primary">certo pra você</em>.
+                  Cronograma feito{" "}
+                  <em className="not-italic text-primary">pelos seus erros</em>.
                 </h3>
                 <p className="mt-4 leading-relaxed text-muted-foreground">
-                  Fazemos um diagnóstico de 10 minutos, identificamos exatamente seus pontos
+                  Fazemos um diagnóstico rápido, identificamos exatamente seus pontos
                   fracos e montamos um cronograma que cobre{" "}
                   <strong className="text-foreground">só o que importa</strong> — com simulados
-                  adaptativos que ficam mais difíceis conforme você evolui.
+                  completos no padrão FGV e treino focado no que você mais erra.
                 </p>
                 <div className="mt-6 grid grid-cols-3 gap-3">
                   {[

@@ -1,11 +1,11 @@
-import { PieChart, CalendarDays, BarChart2, FileText, RefreshCw } from "lucide-react"
+import { PieChart, CalendarDays, BarChart2, Target, RefreshCw } from "lucide-react"
 import { FadeIn } from "@/components/ui/fade-in"
 
 const features = [
   {
     icon: PieChart,
-    title: "Diagnóstico adaptativo",
-    description: "IA ajusta as questões conforme você acerta ou erra.",
+    title: "Diagnóstico inicial",
+    description: "5 questões pra identificar suas lacunas e calibrar seu treino.",
   },
   {
     icon: CalendarDays,
@@ -18,9 +18,9 @@ const features = [
     description: "Questões no padrão FGV, com gabarito comentado.",
   },
   {
-    icon: FileText,
-    title: "Resumos gerados por IA",
-    description: "Mapas mentais do que você errou — prontos em segundos.",
+    icon: Target,
+    title: "Análise por matéria",
+    description: "Veja exatamente onde você acerta e onde precisa focar mais.",
   },
   {
     icon: RefreshCw,

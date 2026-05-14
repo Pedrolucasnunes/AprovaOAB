@@ -70,7 +70,6 @@ Planos live:
 | Questões (treino avulso) | 10/dia | Ilimitado | Ilimitado |
 | Treino inteligente | ✅ | ✅ | ✅ |
 | Simulados completos (80 questões) | ❌ | ✅ | ✅ |
-| Tutor IA | ❌ | Limitado | Ilimitado |
 
 **Onde o gate está no código:**
 - Limite diário free: verificado em `app/api/simulados/resposta/route.ts` (não em `/api/questions`). Conta registros em `question_attempts` de hoje (UTC). Retorna `{ error, limiteDiario: true }` com status 403 ao atingir 10.

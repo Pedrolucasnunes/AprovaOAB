@@ -54,7 +54,7 @@ const plans = [
     price: "R$ 49",
     period: "/mês",
     priceTotal: null,
-    description: "Para quem quer evoluir mais rápido com apoio da IA.",
+    description: "Para quem quer recursos extras e suporte prioritário.",
     highlight: false,
     badge: "Em breve",
     features: [

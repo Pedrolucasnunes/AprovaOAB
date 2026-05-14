@@ -3,9 +3,9 @@ import { FadeIn } from "@/components/ui/fade-in"
 const steps = [
   {
     step: "1",
-    title: "Diagnóstico em 10 minutos",
+    title: "Diagnóstico rápido",
     description:
-      "Você responde 25 questões adaptativas. A IA descobre seu nível em cada matéria da OAB.",
+      "Você responde 5 questões iniciais. Identificamos seu nível em cada matéria da OAB.",
   },
   {
     step: "2",
@@ -15,9 +15,9 @@ const steps = [
   },
   {
     step: "3",
-    title: "Simulados adaptativos",
+    title: "Simulados no padrão FGV",
     description:
-      "Cada simulado ajusta a dificuldade em tempo real. Você treina só o que ainda é fraco — e chega pronto.",
+      "Simulados completos de 80 questões no formato real da prova. Treine no padrão e chegue pronto.",
   },
 ]
 
@@ -38,7 +38,7 @@ export function HowItWorks() {
               <em className="not-italic text-primary">3 passos</em>.
             </h2>
             <p className="mt-4 text-muted-foreground">
-              Sem jargão, sem firula. Você entra, responde e a IA faz o resto.
+              Sem jargão, sem firula. Você entra, responde e seu plano é montado.
             </p>
           </div>
         </FadeIn>

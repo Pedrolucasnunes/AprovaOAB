@@ -26,11 +26,9 @@ const FEATURES_POR_PLANO: Record<Plano, string[]> = {
     "Questões ilimitadas",
     "Simulados completos da OAB (80 questões)",
     "Calendário inteligente de estudos",
-    "Tutor IA",
   ],
   aprovacao: [
     "Tudo do plano Pro",
-    "Tutor IA ilimitado",
     "Análise avançada de desempenho",
     "Suporte prioritário",
   ],

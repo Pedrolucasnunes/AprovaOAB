@@ -58,7 +58,7 @@ export function Hero() {
             <FadeIn delay={0} duration={700}>
               <div className="badge-pill mb-6 gap-2">
                 <span className="h-2 w-2 animate-pulse rounded-full bg-[#065F46]" />
-                Questões no padrão FGV · Plano personalizado por IA
+                Questões no padrão FGV · Plano feito pelos seus erros
               </div>
             </FadeIn>
 
@@ -69,7 +69,7 @@ export function Hero() {
               >
                 Aprove na{" "}
                 <em className="not-italic text-primary">1ª fase da OAB</em>
-                {" "}com a IA estudando por você.
+                {" "}estudando só o que você precisa.
               </h1>
             </FadeIn>
 

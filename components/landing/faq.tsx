@@ -14,8 +14,8 @@ const faqs = [
     defaultOpen: true,
   },
   {
-    q: "A IA substitui um cursinho?",
-    a: "Não substitui — complementa. A diferença é que aqui você estuda só o que precisa, baseado nas suas próprias lacunas, com questões no padrão FGV atualizadas. Em vez de assistir 200h de aula gravada, você resolve, erra, e revisa exatamente onde tem dificuldade.",
+    q: "O AprovaOAB substitui um cursinho?",
+    a: "Não substitui — complementa. A diferença é que aqui você estuda só o que precisa, baseado nas suas próprias lacunas, com questões no padrão FGV. Em vez de assistir 200h de aula gravada, você resolve, erra, e revisa exatamente onde tem dificuldade.",
     defaultOpen: false,
   },
   {

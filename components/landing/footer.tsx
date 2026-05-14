@@ -21,7 +21,7 @@ export function Footer() {
               </span>
             </Link>
             <p className="mt-4 max-w-xs text-sm text-muted-foreground">
-              A IA que estuda por você. Feita por advogados e engenheiros no Brasil.
+              Estude com foco no que cai. Feito por advogados e engenheiros no Brasil.
             </p>
           </div>
 

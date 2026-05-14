@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     supabase.from("users").select("plano").eq("id", userId).single(),
   ])
 
-  const onboardingCompleto = !!userRow?.onboarding_data
+  const onboardingCompleto = user.user_metadata?.onboarding_completed === true
   const diagnosticoCompleto = (diagnosticAttemptsCount ?? 0) >= 5
   const questoesHoje = questoesHojeCount ?? 0
   const plano: "free" | "pro" | "aprovacao" = userPlanoRow?.plano ?? "free"

@@ -95,6 +95,8 @@ function TreinoPageInner() {
   const [materiaFiltrada, setMateriaFiltrada] = useState<{ id: string; nome: string } | null>(null)
   const [questoesHoje, setQuestoesHoje] = useState(0)
   const [plano, setPlano] = useState<"free" | "pro" | "aprovacao">("free")
+  const [onboardingCompleto, setOnboardingCompleto] = useState(false)
+  const [diagnosticoCompleto, setDiagnosticoCompleto] = useState(false)
 
   const [treinoAtivo, setTreinoAtivo] = useState<TreinoAtivo | null>(null)
   const [iniciando, setIniciando] = useState(false)
@@ -122,6 +124,8 @@ function TreinoPageInner() {
         setProgresso(data.resumo ?? null)
         setQuestoesHoje(data.questoesHoje ?? 0)
         setPlano(data.plano ?? "free")
+        setOnboardingCompleto(data.onboardingCompleto ?? false)
+        setDiagnosticoCompleto(data.diagnosticoCompleto ?? false)
       }
 
       // Resolver matéria filtrada via query param
@@ -591,7 +595,38 @@ function TreinoPageInner() {
           )}
 
           {(() => {
+            const diagnosticoPendente = onboardingCompleto && !diagnosticoCompleto
             const limiteBatido = plano === "free" && questoesHoje >= 10
+
+            if (diagnosticoPendente) {
+              return (
+                <Card>
+                  <CardContent className="p-6 text-center space-y-4">
+                    <div className="flex justify-center">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                        <Sparkles className="h-6 w-6 text-primary" />
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-foreground">
+                        Comece pelo diagnóstico
+                      </h3>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        O treino estratégico foca nas suas matérias mais fracas — mas
+                        pra isso, precisamos saber quais são. Faça o mini-diagnóstico
+                        (5 questões, ~4 min) e o sistema te direciona daqui.
+                      </p>
+                    </div>
+                    <Button asChild className="w-full sm:w-auto">
+                      <Link href="/dashboard/diagnostico-inicial">
+                        Fazer mini-diagnóstico
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              )
+            }
+
             if (limiteBatido) {
               return (
                 <Card>

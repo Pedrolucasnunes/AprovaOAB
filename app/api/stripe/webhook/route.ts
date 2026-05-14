@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import * as Sentry from "@sentry/nextjs"
 import { stripe, planoFromPriceId } from "@/lib/stripe"
 import { supabaseAdmin } from "@/lib/supabase-admin"
+import { sendWelcomeProEmail } from "@/lib/email"
+import { logWarning } from "@/lib/logger"
 import Stripe from "stripe"
 
 export async function POST(req: NextRequest) {
@@ -65,6 +67,20 @@ export async function POST(req: NextRequest) {
             subscription_status: "active",
           })
           .eq("stripe_customer_id", customerId)
+
+        // Email de boas-vindas (best-effort, não bloqueia webhook)
+        const email = session.customer_details?.email
+        const fullName = session.customer_details?.name
+        const firstName = fullName ? fullName.split(" ")[0] : null
+        if (email) {
+          await sendWelcomeProEmail({ toEmail: email, firstName, plano })
+        } else {
+          logWarning("checkout sem customer_details.email, pulando email de boas-vindas", {
+            area: "stripe-webhook",
+            customerId,
+            event_id: event.id,
+          })
+        }
         break
       }
 

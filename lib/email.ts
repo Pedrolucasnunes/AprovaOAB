@@ -1,0 +1,84 @@
+import { Resend } from "resend"
+import { logError, logWarning } from "@/lib/logger"
+
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
+const FROM = "AprovaOAB <oi@aprovaoab.app.br>"
+
+const FEATURES_POR_PLANO: Record<"pro" | "aprovacao", string[]> = {
+  pro: [
+    "Questões ilimitadas",
+    "Simulados completos da OAB (80 questões)",
+    "Calendário inteligente de estudos",
+  ],
+  aprovacao: [
+    "Tudo do plano Pro",
+    "Análise avançada de desempenho",
+    "Suporte prioritário",
+  ],
+}
+
+export async function sendWelcomeProEmail(opts: {
+  toEmail: string
+  firstName: string | null
+  plano: "pro" | "aprovacao"
+}): Promise<void> {
+  if (!resend) {
+    logWarning("RESEND_API_KEY não configurada, pulando email", {
+      area: "email",
+      plano: opts.plano,
+    })
+    return
+  }
+
+  const planoLabel = opts.plano === "pro" ? "Pro" : "Aprovação"
+  const greeting = opts.firstName ? `Olá, ${opts.firstName}!` : "Olá!"
+  const features = FEATURES_POR_PLANO[opts.plano]
+  const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://www.aprovaoab.app.br"}/dashboard`
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: opts.toEmail,
+      subject: `Bem-vindo ao plano ${planoLabel} do AprovaOAB`,
+      html: buildWelcomeHtml({ greeting, planoLabel, features, dashboardUrl }),
+    })
+  } catch (err) {
+    logError(err, { area: "email", phase: "send-welcome-pro", plano: opts.plano })
+    // Não propaga — webhook não deve falhar por causa de email
+  }
+}
+
+function buildWelcomeHtml(o: {
+  greeting: string
+  planoLabel: string
+  features: string[]
+  dashboardUrl: string
+}): string {
+  const featuresHtml = o.features
+    .map((f) => `<li style="margin: 8px 0; color: #1f2937; padding-left: 24px; position: relative;"><span style="position: absolute; left: 0; color: #10b981; font-weight: bold;">✓</span> ${f}</li>`)
+    .join("")
+
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Bem-vindo ao ${o.planoLabel}</title></head>
+<body style="margin: 0; padding: 32px 16px; background-color: #f9fafb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <div style="max-width: 560px; margin: 0 auto; background-color: white; border-radius: 12px; padding: 40px 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+    <h1 style="margin: 0 0 8px 0; color: #10b981; font-size: 28px; font-weight: 700;">Bem-vindo ao plano ${o.planoLabel}!</h1>
+    <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 16px;">${o.greeting}</p>
+    <p style="margin: 0 0 16px 0; color: #1f2937; font-size: 15px; line-height: 1.6;">
+      Seu pagamento foi confirmado e seu acesso completo já está ativo. Você acabou de desbloquear:
+    </p>
+    <ul style="margin: 0 0 32px 0; padding: 0; list-style: none;">
+      ${featuresHtml}
+    </ul>
+    <a href="${o.dashboardUrl}" style="display: inline-block; padding: 12px 24px; background-color: #10b981; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px;">
+      Ir pro meu painel
+    </a>
+    <p style="margin: 32px 0 0 0; color: #9ca3af; font-size: 13px; line-height: 1.5;">
+      Bons estudos!<br>
+      Time AprovaOAB
+    </p>
+  </div>
+</body>
+</html>`
+}

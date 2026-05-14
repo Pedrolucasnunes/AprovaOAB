@@ -37,6 +37,7 @@ export default function DiagnosticoInicialPage() {
   const [submitting, setSubmitting] = useState(false)
 
   const startedAtRef = useRef<number>(0)
+  const submittingRef = useRef(false)
 
   useEffect(() => {
     fetch("/api/diagnostico/gerar")
@@ -64,7 +65,8 @@ export default function DiagnosticoInicialPage() {
   }
 
   async function confirmar() {
-    if (!selecionada || submitting || feedback) return
+    if (submittingRef.current || !selecionada || feedback) return
+    submittingRef.current = true
     setSubmitting(true)
     const timeSpent = Math.round(performance.now() - startedAtRef.current)
     const q = questions[idx]
@@ -83,7 +85,6 @@ export default function DiagnosticoInicialPage() {
       })
       const json = await res.json()
       if (!res.ok) {
-        setSubmitting(false)
         return
       }
       setFeedback({
@@ -92,6 +93,7 @@ export default function DiagnosticoInicialPage() {
         explicacao: json.explicacao,
       })
     } finally {
+      submittingRef.current = false
       setSubmitting(false)
     }
   }

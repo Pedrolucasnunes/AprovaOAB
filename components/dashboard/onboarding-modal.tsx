@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { createBrowserClient } from "@supabase/ssr"
+import { toast } from "sonner"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { CalendarDays, Sparkles, Target, BookOpen, Clock } from "lucide-react"
@@ -92,42 +93,62 @@ export function OnboardingModal() {
     }
   }
 
-  async function persist() {
-    await fetch("/api/user/onboarding", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(buildPayload()),
-    })
+  async function persist(): Promise<boolean> {
+    try {
+      const res = await fetch("/api/user/onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(buildPayload()),
+      })
+      return res.ok
+    } catch {
+      return false
+    }
   }
 
   async function startDiagnostico() {
     setSaving(true)
-    await persist()
+    const ok = await persist()
     setSaving(false)
+    if (!ok) {
+      toast.error("Não foi possível salvar. Tente de novo.")
+      return
+    }
     setIsOpen(false)
     router.replace("/dashboard/diagnostico-inicial")
   }
 
   async function skipDiagnostico() {
     setSaving(true)
-    await persist()
+    const ok = await persist()
     setSaving(false)
+    if (!ok) {
+      toast.error("Não foi possível salvar. Tente de novo.")
+      return
+    }
     setIsOpen(false)
     router.replace("/dashboard")
   }
 
-  function handleDismiss() {
-    setIsOpen(false)
-    router.replace("/dashboard")
-    fetch("/api/user/onboarding", {
+  async function handleDismiss() {
+    setSaving(true)
+    const res = await fetch("/api/user/onboarding", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ exam_date: null }),
-    }).catch(() => {})
+    }).catch(() => null)
+    setSaving(false)
+
+    if (!res || !res.ok) {
+      toast.error("Não foi possível salvar. Tente de novo.")
+      return
+    }
+    setIsOpen(false)
+    router.replace("/dashboard")
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleDismiss() }}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open && !saving) handleDismiss() }}>
       <DialogContent className="max-w-md" showCloseButton={false}>
         <DialogTitle className="sr-only">Onboarding</DialogTitle>
 

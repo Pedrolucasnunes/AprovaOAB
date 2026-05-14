@@ -34,6 +34,25 @@ export async function POST(req: NextRequest) {
   const respostaCorreta = String(question.resposta_correta).toUpperCase().trim()
   const acertou = resposta === respostaCorreta
 
+  // Idempotency leve: duplo-click ou retry de rede dentro de 5s retorna o mesmo resultado.
+  const fiveSecondsAgo = new Date(Date.now() - 5000).toISOString()
+  const { data: existing } = await supabase
+    .from("question_attempts")
+    .select("acertou")
+    .eq("user_id", user.id)
+    .eq("question_id", question_id)
+    .gte("created_at", fiveSecondsAgo)
+    .limit(1)
+    .maybeSingle()
+
+  if (existing) {
+    return NextResponse.json({
+      correta: respostaCorreta,
+      acertou: existing.acertou,
+      explicacao: question.explicacao ?? null,
+    })
+  }
+
   const { error: insertError } = await supabase
     .from("question_attempts")
     .insert({

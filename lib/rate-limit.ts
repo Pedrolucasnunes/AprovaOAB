@@ -2,6 +2,7 @@ import { Ratelimit } from "@upstash/ratelimit"
 import { Redis } from "@upstash/redis"
 import { NextRequest } from "next/server"
 import { createHash } from "node:crypto"
+import { logWarning } from "@/lib/logger"
 
 const redis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
   ? Redis.fromEnv()
@@ -56,7 +57,11 @@ export async function rateLimit(
     const result = await limiter.limit(key)
     return { success: result.success, remaining: result.remaining }
   } catch (err) {
-    console.error("[rate-limit] upstash error, failing open:", err)
+    logWarning("upstash unavailable, failing open", {
+      area: "rate-limit",
+      prefix,
+      err: err instanceof Error ? err.message : String(err),
+    })
     return { success: true, remaining: requests }
   }
 }

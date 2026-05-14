@@ -6,6 +6,7 @@ import {
   createGoogleEvent,
   deleteGoogleEvent,
 } from "@/lib/services/googleCalendar"
+import { logError } from "@/lib/logger"
 
 export async function POST(req: NextRequest) {
   const { user, supabase, error } = await requireUser()
@@ -125,11 +126,9 @@ export async function POST(req: NextRequest) {
     .select()
 
   if (insertError) {
-    console.error("[calendario/gerar] Erro ao inserir:", insertError.message)
+    logError(insertError, { area: "calendario-gerar", userId, phase: "insert-events" })
     return NextResponse.json({ error: insertError.message }, { status: 500 })
   }
-
-  console.log(`[calendario/gerar] ${inserted?.length ?? 0} eventos criados`)
 
   // 11. Sincroniza com Google Calendar (best-effort, não bloqueia a resposta)
   let googleSynced = false
@@ -154,7 +153,7 @@ export async function POST(req: NextRequest) {
       )
       googleSynced = true
     } catch (e) {
-      console.error("[calendario/gerar] Erro ao sincronizar Google Calendar:", e)
+      logError(e, { area: "calendario-gerar", userId, phase: "google-sync" })
     }
   }
 

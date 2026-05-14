@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { requireUser } from "@/lib/auth-server"
+import { logError } from "@/lib/logger"
 
 const schema = z.object({
   question_id: z.string().uuid(),
@@ -66,6 +67,7 @@ export async function POST(req: NextRequest) {
     })
 
   if (insertError) {
+    logError(insertError, { area: "diagnostico-responder", userId: user.id, question_id })
     return NextResponse.json({ error: insertError.message }, { status: 500 })
   }
 

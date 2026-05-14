@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { encrypt, decrypt } from "@/lib/crypto"
+import { logError } from "@/lib/logger"
 
 const GOOGLE_AUTH_URL   = "https://accounts.google.com/o/oauth2/v2/auth"
 const GOOGLE_TOKEN_URL  = "https://oauth2.googleapis.com/token"
@@ -69,7 +70,10 @@ export async function getValidAccessToken(
   const isExpiringSoon = expiresAt.getTime() - Date.now() < 5 * 60 * 1000
 
   if (!isExpiringSoon) {
-    return decrypt(data.access_token).catch(() => null)
+    return decrypt(data.access_token).catch((err) => {
+      logError(err, { area: "google-calendar", userId, phase: "decrypt-access" })
+      return null
+    })
   }
 
   try {
@@ -84,7 +88,8 @@ export async function getValidAccessToken(
       })
       .eq("user_id", userId)
     return refreshed.access_token
-  } catch {
+  } catch (err) {
+    logError(err, { area: "google-calendar", userId, phase: "refresh-token" })
     return null
   }
 }
@@ -123,7 +128,13 @@ export async function createGoogleEvent(
     }),
   })
 
-  if (!res.ok) return null
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => "")
+    logError(new Error(`Google Calendar create event ${res.status}`), {
+      area: "google-calendar", phase: "create-event", status: res.status, body: errorText.slice(0, 200),
+    })
+    return null
+  }
   const data = await res.json()
   return data.id ?? null
 }

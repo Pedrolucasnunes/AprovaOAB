@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireUser } from "@/lib/auth-server"
+import { logError } from "@/lib/logger"
 
 export async function GET(
   _req: NextRequest,
@@ -34,7 +35,7 @@ export async function GET(
     .eq("user_id", user.id)
 
   if (dbError) {
-    console.error("[questoes] Erro:", dbError.message)
+    logError(dbError, { area: "simulados-questoes", userId: user.id, simuladoId })
     return NextResponse.json({ error: dbError.message }, { status: 500 })
   }
 

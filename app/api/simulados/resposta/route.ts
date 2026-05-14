@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { requireUser } from "@/lib/auth-server"
 import { supabaseAdmin } from "@/lib/supabase-admin"
 import { checkDailyLimit } from "@/lib/check-daily-limit"
+import { logError } from "@/lib/logger"
 
 const DURACAO_SIMULADO_MS = 5 * 60 * 60 * 1000 // 5 horas
 
@@ -61,7 +62,9 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (atError || !attempt) {
-      console.error("[resposta] Attempt não encontrado (ownership mismatch)")
+      logError(atError ?? new Error("Attempt não encontrado"), {
+        area: "simulados-resposta", userId, simuladoId, questionId, phase: "ownership-check",
+      })
       return NextResponse.json(
         { error: "Questão não pertence a este simulado" },
         { status: 404 }
@@ -106,7 +109,7 @@ export async function POST(req: NextRequest) {
       )
 
     if (rError) {
-      console.error("[resposta] Erro ao salvar resposta:", rError.message)
+      logError(rError, { area: "simulados-resposta", userId, simuladoId, questionId, phase: "upsert-resposta" })
       return NextResponse.json({ error: rError.message }, { status: 500 })
     }
 
@@ -139,7 +142,7 @@ export async function POST(req: NextRequest) {
       })
 
     if (qaError) {
-      console.error("[resposta] Erro ao salvar treino:", qaError.message)
+      logError(qaError, { area: "simulados-resposta", userId, questionId, phase: "insert-treino" })
       return NextResponse.json({ error: qaError.message }, { status: 500 })
     }
 

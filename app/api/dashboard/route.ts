@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireUser } from "@/lib/auth-server"
 import { inicioDoDiaBR, hojeStringBR, diaDaSemanaBR } from "@/lib/check-daily-limit"
+import { logError } from "@/lib/logger"
 
 export async function GET(req: NextRequest) {
   const { user, supabase, error } = await requireUser()
@@ -47,7 +48,7 @@ export async function GET(req: NextRequest) {
     .eq("user_id", userId)
 
   if (resumoError) {
-    console.error("[dashboard] Erro resumo:", resumoError.message)
+    logError(resumoError, { area: "dashboard", userId, phase: "resumo" })
     return NextResponse.json({ error: resumoError.message }, { status: 500 })
   }
 
@@ -77,7 +78,7 @@ export async function GET(req: NextRequest) {
   ])
 
   if (simError && simError.code !== "PGRST116") {
-    console.error("[dashboard] Erro último simulado:", simError.message)
+    logError(simError, { area: "dashboard", userId, phase: "ultimo-simulado" })
   }
 
   // 3. Nomes das matérias
@@ -98,7 +99,7 @@ export async function GET(req: NextRequest) {
     .limit(5)
 
   if (riscoError) {
-    console.error("[dashboard] Erro matérias risco:", riscoError.message)
+    logError(riscoError, { area: "dashboard", userId, phase: "materias-risco" })
   }
 
   const materiasRisco = (materiasRiscoRaw ?? []).map((m) => ({
@@ -283,7 +284,7 @@ export async function GET(req: NextRequest) {
     .limit(20)
 
   if (historicoError) {
-    console.error("[dashboard] Erro histórico:", historicoError.message)
+    logError(historicoError, { area: "dashboard", userId, phase: "historico" })
   }
 
   const evolucao = (historicoSimulados ?? []).map((s) => ({
@@ -304,5 +305,8 @@ export async function GET(req: NextRequest) {
     plano,
     subscriptionStatus,
     examDate,
-  }, { status: 200 })
+  }, {
+    status: 200,
+    headers: { "Cache-Control": "private, max-age=60, stale-while-revalidate=120" },
+  })
 }

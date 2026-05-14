@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { requireUser } from "@/lib/auth-server"
 import { rateLimit } from "@/lib/rate-limit"
 import { checkDailyLimit } from "@/lib/check-daily-limit"
+import { logError } from "@/lib/logger"
 
 export async function POST(req: NextRequest) {
   const rl = await rateLimit(req, "treino", 30, 60)
@@ -151,7 +152,7 @@ export async function POST(req: NextRequest) {
     const { data, error: riscoError } = await query
 
     if (riscoError) {
-      console.error("[treino] Erro questões risco:", riscoError.message)
+      logError(riscoError, { area: "treino", userId, phase: "fetch-risco" })
     }
 
     questoesRisco = (data ?? []).sort(() => Math.random() - 0.5).slice(0, qtdRisco)
@@ -172,7 +173,7 @@ export async function POST(req: NextRequest) {
   const { data: questoesGeral, error: geralError } = await queryGeral
 
   if (geralError) {
-    console.error("[treino] Erro questões gerais:", geralError.message)
+    logError(geralError, { area: "treino", userId, phase: "fetch-geral" })
   }
 
   const questoesGeralSelecionadas = (questoesGeral ?? [])

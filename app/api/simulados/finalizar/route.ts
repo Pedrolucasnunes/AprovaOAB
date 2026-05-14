@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireUser } from "@/lib/auth-server"
+import { logError } from "@/lib/logger"
 
 export async function POST(req: NextRequest) {
   const { user, supabase, error } = await requireUser()
@@ -28,7 +29,9 @@ export async function POST(req: NextRequest) {
     .eq("user_id", userId)
 
   if (atError || !attempts || attempts.length === 0) {
-    console.error("[finalizar] Simulado não encontrado ou sem questões:", atError?.message)
+    logError(atError ?? new Error("Sem attempts"), {
+      area: "simulados-finalizar", userId, simuladoId, phase: "fetch-attempts",
+    })
     return NextResponse.json(
       { error: "Simulado não encontrado ou sem questões" },
       { status: 404 }
@@ -44,7 +47,9 @@ export async function POST(req: NextRequest) {
     .in("attempt_id", attemptIds)
 
   if (rError || !respostas) {
-    console.error("[finalizar] Erro ao buscar respostas:", rError?.message)
+    logError(rError ?? new Error("Falha respostas"), {
+      area: "simulados-finalizar", userId, simuladoId, phase: "fetch-respostas",
+    })
     return NextResponse.json({ error: "Erro ao buscar respostas" }, { status: 500 })
   }
 
@@ -61,7 +66,9 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (simFetchError || !simData) {
-    console.error("[finalizar] Simulado não encontrado:", simFetchError?.message)
+    logError(simFetchError ?? new Error("Simulado não encontrado"), {
+      area: "simulados-finalizar", userId, simuladoId, phase: "fetch-simulado",
+    })
     return NextResponse.json({ error: "Simulado não encontrado" }, { status: 404 })
   }
 
@@ -84,7 +91,7 @@ export async function POST(req: NextRequest) {
     .eq("user_id", userId)
 
   if (uError) {
-    console.error("[finalizar] Erro ao atualizar simulado:", uError.message)
+    logError(uError, { area: "simulados-finalizar", userId, simuladoId, phase: "update-simulado" })
     return NextResponse.json({ error: uError.message }, { status: 500 })
   }
 

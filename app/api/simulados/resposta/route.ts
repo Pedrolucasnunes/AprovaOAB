@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireUser } from "@/lib/auth-server"
 import { supabaseAdmin } from "@/lib/supabase-admin"
+import { checkDailyLimit } from "@/lib/check-daily-limit"
+
+const DURACAO_SIMULADO_MS = 5 * 60 * 60 * 1000 // 5 horas
 
 export async function POST(req: NextRequest) {
   const { user, supabase, error } = await requireUser()
@@ -65,6 +68,31 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Server-side timeout: rejeita respostas após 5h do started_at
+    const { data: simulado } = await supabase
+      .from("simulados")
+      .select("started_at, percentual")
+      .eq("id", simuladoId)
+      .eq("user_id", userId)
+      .single()
+
+    if (simulado?.percentual !== null && simulado?.percentual !== undefined) {
+      return NextResponse.json(
+        { error: "Simulado já finalizado", finalizado: true },
+        { status: 409 }
+      )
+    }
+
+    if (simulado?.started_at) {
+      const elapsed = Date.now() - new Date(simulado.started_at).getTime()
+      if (elapsed > DURACAO_SIMULADO_MS) {
+        return NextResponse.json(
+          { error: "Tempo do simulado esgotado", expired: true },
+          { status: 409 }
+        )
+      }
+    }
+
     const { error: rError } = await supabase
       .from("simulado_respostas")
       .upsert(
@@ -90,23 +118,14 @@ export async function POST(req: NextRequest) {
       .eq("id", userId)
       .single()
 
-    if (userData?.plano === "free") {
-      const hoje = new Date()
-      hoje.setUTCHours(0, 0, 0, 0)
+    const plano = (userData?.plano ?? "free") as "free" | "pro" | "aprovacao"
+    const limit = await checkDailyLimit(supabase, userId, plano)
 
-      const { count } = await supabase
-        .from("question_attempts")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .eq("is_diagnostic", false)
-        .gte("created_at", hoje.toISOString())
-
-      if ((count ?? 0) >= 10) {
-        return NextResponse.json(
-          { error: "Você atingiu o limite de 10 questões por dia no plano Grátis.", upgrade: true, limiteDiario: true },
-          { status: 403 }
-        )
-      }
+    if (limit.exceeded) {
+      return NextResponse.json(
+        { error: "Você atingiu o limite de 10 questões por dia no plano Grátis.", upgrade: true, limiteDiario: true },
+        { status: 403 }
+      )
     }
 
     // Salva em question_attempts

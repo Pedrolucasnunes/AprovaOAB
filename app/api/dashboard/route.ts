@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireUser } from "@/lib/auth-server"
+import { inicioDoDiaBR, hojeStringBR, diaDaSemanaBR } from "@/lib/check-daily-limit"
 
 export async function GET(req: NextRequest) {
   const { user, supabase, error } = await requireUser()
@@ -7,9 +8,8 @@ export async function GET(req: NextRequest) {
 
   const userId = user.id
 
-  // 0. Estado do onboarding/diagnóstico + limite diário
-  const inicioDoDia = new Date()
-  inicioDoDia.setUTCHours(0, 0, 0, 0)
+  // 0. Estado do onboarding/diagnóstico + limite diário (fuso BR — América/São_Paulo)
+  const inicioDoDia = inicioDoDiaBR()
 
   const [
     { data: userRow },
@@ -163,10 +163,10 @@ export async function GET(req: NextRequest) {
     ? parseFloat(((totalAcertosFinalizados / totalQuestoesFinalizados) * 100).toFixed(2))
     : 0
 
-  // 6. Action cards — dados em paralelo
+  // 6. Action cards — dados em paralelo (fuso BR)
   const todayDate   = new Date()
-  const todayStr    = todayDate.toISOString().split("T")[0]
-  const todayDow    = todayDate.getDay()
+  const todayStr    = hojeStringBR()
+  const todayDow    = diaDaSemanaBR()
 
   const [
     { data: todaySlot },

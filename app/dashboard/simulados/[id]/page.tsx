@@ -79,6 +79,7 @@ export default function SimuladoPage({ params }: { params: Promise<{ id: string 
   const [resultado, setResultado] = useState<Resultado | null>(null)
 
   const avisosDisparados = useRef<Set<number>>(new Set())
+  const timeRemainingRef = useRef(5 * 60 * 60)
 
   useEffect(() => {
     async function init() {
@@ -104,19 +105,69 @@ export default function SimuladoPage({ params }: { params: Promise<{ id: string 
         return
       }
 
-      const res = await fetch(`/api/simulados/${simuladoId}/questoes`)
-      const data = await res.json()
+      // Busca tempo restante do servidor + carrega questões em paralelo
+      const [tempoRes, questoesRes] = await Promise.all([
+        fetch(`/api/simulados/${simuladoId}`, { cache: "no-store" }),
+        fetch(`/api/simulados/${simuladoId}/questoes`),
+      ])
 
-      if (!res.ok) {
-        toast.error(data.error ?? "Erro ao carregar questões")
+      const tempoData = await tempoRes.json()
+      const questoesData = await questoesRes.json()
+
+      if (!tempoRes.ok) {
+        toast.error(tempoData.error ?? "Erro ao iniciar simulado")
+        router.push("/dashboard/simulados")
         return
       }
 
-      setQuestoes(data.questions)
+      if (tempoData.finalizado) {
+        toast.info("Este simulado já foi finalizado. Veja o gabarito.")
+        router.push(`/dashboard/simulados/${simuladoId}?gabarito=true`)
+        return
+      }
+
+      if (!questoesRes.ok) {
+        toast.error(questoesData.error ?? "Erro ao carregar questões")
+        return
+      }
+
+      const tempo = tempoData.tempo_restante_segundos ?? 5 * 60 * 60
+      setTimeRemaining(tempo)
+      timeRemainingRef.current = tempo
+      setQuestoes(questoesData.questions)
       setLoadingQuestoes(false)
+
+      if (tempoData.expired) {
+        setShowTimeUpDialog(true)
+      }
     }
     init()
   }, [simuladoId, modoGabarito])
+
+  // Re-sincroniza tempo com servidor a cada 30s pra evitar drift
+  useEffect(() => {
+    if (resultado || modoGabarito || loadingQuestoes) return
+
+    const sync = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/simulados/${simuladoId}`, { cache: "no-store" })
+        if (!res.ok) return
+        const data = await res.json()
+        if (typeof data.tempo_restante_segundos === "number") {
+          const serverTime = data.tempo_restante_segundos
+          // Ajusta só se drift > 3s (evita "pulos" visuais a cada 30s)
+          if (Math.abs(serverTime - timeRemainingRef.current) > 3) {
+            setTimeRemaining(serverTime)
+            timeRemainingRef.current = serverTime
+          }
+        }
+      } catch {
+        // silent — o decremento client-side continua
+      }
+    }, 30000)
+
+    return () => clearInterval(sync)
+  }, [simuladoId, resultado, modoGabarito, loadingQuestoes])
 
   useEffect(() => {
     if (resultado) return
@@ -124,6 +175,7 @@ export default function SimuladoPage({ params }: { params: Promise<{ id: string 
     const timer = setInterval(() => {
       setTimeRemaining((prev) => {
         const next = prev - 1
+        timeRemainingRef.current = next
 
         AVISOS.forEach(({ tempo, msg }) => {
           if (next === tempo && !avisosDisparados.current.has(tempo)) {
@@ -164,6 +216,18 @@ export default function SimuladoPage({ params }: { params: Promise<{ id: string 
 
       if (!res.ok) {
         const data = await res.json()
+        if (data.expired) {
+          toast.error("Tempo do simulado esgotado")
+          setShowTimeUpDialog(true)
+          setTimeRemaining(0)
+          timeRemainingRef.current = 0
+          return
+        }
+        if (data.finalizado) {
+          toast.info("Simulado já finalizado")
+          router.push(`/dashboard/simulados/${simuladoId}?gabarito=true`)
+          return
+        }
         console.error("[handleAnswer] Erro:", data.error)
         toast.error("Erro ao salvar resposta")
         return
@@ -453,7 +517,7 @@ export default function SimuladoPage({ params }: { params: Promise<{ id: string 
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showTimeUpDialog} onOpenChange={setShowTimeUpDialog}>
+      <Dialog open={showTimeUpDialog} onOpenChange={() => {}}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-orange-400">
@@ -462,12 +526,11 @@ export default function SimuladoPage({ params }: { params: Promise<{ id: string 
             <DialogDescription asChild>
               <div className="space-y-2 text-sm text-muted-foreground">
                 <p>O tempo de 5 horas chegou ao fim. Você respondeu <strong className="text-foreground">{answeredCount}</strong> de <strong className="text-foreground">{totalQuestions}</strong> questões.</p>
-                <p>Você ainda pode continuar respondendo ou finalizar para ver seu resultado.</p>
+                <p>Suas respostas já foram salvas. Clique abaixo para ver o resultado.</p>
               </div>
             </DialogDescription>
           </DialogHeader>
           <div className="flex gap-3 mt-2">
-            <Button variant="outline" onClick={() => setShowTimeUpDialog(false)} className="flex-1">Continuar mesmo assim</Button>
             <Button onClick={finalizarSimulado} disabled={finalizando} className="flex-1">
               {finalizando ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Finalizando...</> : <><CheckCircle2 className="mr-2 h-4 w-4" /> Ver resultado</>}
             </Button>

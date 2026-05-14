@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireUser } from "@/lib/auth-server"
 import { rateLimit } from "@/lib/rate-limit"
+import { checkDailyLimit } from "@/lib/check-daily-limit"
 
 export async function POST(req: NextRequest) {
   const rl = await rateLimit(req, "treino", 30, 60)
@@ -23,9 +24,26 @@ export async function POST(req: NextRequest) {
   const { quantidade, materia } = body
   const totalQuestoes = [5, 10, 20, 30].includes(Number(quantidade)) ? Number(quantidade) : 10
   const materiaFiltrada = typeof materia === "string" && materia.length > 0 ? materia : null
-  const sessaoFocada = totalQuestoes === 5 && !materiaFiltrada
-  const qtdRisco = sessaoFocada ? totalQuestoes : Math.round(totalQuestoes * 0.7)
-  const qtdGeral = totalQuestoes - qtdRisco
+  let sessaoFocada = totalQuestoes === 5 && !materiaFiltrada
+  let qtdRisco = sessaoFocada ? totalQuestoes : Math.round(totalQuestoes * 0.7)
+  let qtdGeral = totalQuestoes - qtdRisco
+
+  // Check limite diário para plano free antes de buscar questões
+  const { data: userPlanoRow } = await supabase
+    .from("users")
+    .select("plano")
+    .eq("id", userId)
+    .single()
+
+  const plano = (userPlanoRow?.plano ?? "free") as "free" | "pro" | "aprovacao"
+  const limit = await checkDailyLimit(supabase, userId, plano)
+
+  if (limit.exceeded) {
+    return NextResponse.json(
+      { error: "Você já completou suas 10 questões de hoje.", limiteDiario: true, upgrade: true },
+      { status: 403 }
+    )
+  }
 
   // 1. Questões já acertadas pelo usuário (simulados + treino avulso em paralelo)
   const { data: attemptsData } = await supabase
@@ -108,6 +126,13 @@ export async function POST(req: NextRequest) {
     .limit(3)
 
   const subjectIdsRisco = (materiasRisco ?? []).map((m) => m.subject_id)
+
+  // Fallback: sessão focada sem matérias em risco → vira distribuição padrão (100% gerais pra 5q)
+  if (sessaoFocada && subjectIdsRisco.length === 0) {
+    sessaoFocada = false
+    qtdRisco = 0
+    qtdGeral = totalQuestoes
+  }
 
   // 3. Questões das matérias em risco (70%)
   let questoesRisco: any[] = []

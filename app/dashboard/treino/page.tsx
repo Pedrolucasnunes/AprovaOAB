@@ -667,7 +667,9 @@ function TreinoPageInner() {
                   <CardDescription>
                     {materiaFiltrada
                       ? "Todas as questões serão da matéria selecionada, evitando o que você já acertou."
-                      : "70% das questões serão de matérias com baixo desempenho, 30% de questões gerais para manter o ritmo"}
+                      : quantidadeQuestoes === "5"
+                        ? "Sessão focada: 5 questões priorizando suas matérias com baixo desempenho."
+                        : "70% das questões serão de matérias com baixo desempenho, 30% de questões gerais para manter o ritmo"}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -704,6 +706,11 @@ function TreinoPageInner() {
                           {parseInt(quantidadeQuestoes)} questões
                         </span>
                       </div>
+                    ) : quantidadeQuestoes === "5" ? (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Matérias em risco (100%)</span>
+                        <span className="font-medium text-foreground">5 questões</span>
+                      </div>
                     ) : (
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-sm">
@@ -715,7 +722,7 @@ function TreinoPageInner() {
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">Questões gerais (30%)</span>
                           <span className="font-medium text-foreground">
-                            {Math.round(parseInt(quantidadeQuestoes) * 0.3)} questões
+                            {parseInt(quantidadeQuestoes) - Math.round(parseInt(quantidadeQuestoes) * 0.7)} questões
                           </span>
                         </div>
                       </div>

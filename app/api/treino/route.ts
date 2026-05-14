@@ -22,9 +22,10 @@ export async function POST(req: NextRequest) {
 
   const { quantidade, materia } = body
   const totalQuestoes = [5, 10, 20, 30].includes(Number(quantidade)) ? Number(quantidade) : 10
-  const qtdRisco = Math.round(totalQuestoes * 0.7)
-  const qtdGeral = totalQuestoes - qtdRisco
   const materiaFiltrada = typeof materia === "string" && materia.length > 0 ? materia : null
+  const sessaoFocada = totalQuestoes === 5 && !materiaFiltrada
+  const qtdRisco = sessaoFocada ? totalQuestoes : Math.round(totalQuestoes * 0.7)
+  const qtdGeral = totalQuestoes - qtdRisco
 
   // 1. Questões já acertadas pelo usuário (simulados + treino avulso em paralelo)
   const { data: attemptsData } = await supabase

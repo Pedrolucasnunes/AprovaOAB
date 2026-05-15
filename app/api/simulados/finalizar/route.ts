@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   // 1. Busca attempts — ✅ filtra por user_id para garantir ownership
   const { data: attempts, error: atError } = await supabase
     .from("simulado_attempts")
-    .select("id, question_id")
+    .select("id, question_id, ordem")
     .eq("simulado_id", simuladoId)
     .eq("user_id", userId)
 
@@ -39,6 +39,9 @@ export async function POST(req: NextRequest) {
   }
 
   const attemptIds = attempts.map((a) => a.id)
+  const ordemMap = new Map<string, number>(
+    attempts.map((a) => [a.id as string, (a.ordem as number | null) ?? 0])
+  )
 
   // 2. Busca respostas
   const { data: respostas, error: rError } = await supabase
@@ -56,6 +59,11 @@ export async function POST(req: NextRequest) {
   if (respostas.length === 0) {
     return NextResponse.json({ error: "Nenhuma questão respondida" }, { status: 400 })
   }
+
+  // Ordena pela ordem da prova (blocos por disciplina)
+  respostas.sort(
+    (a, b) => (ordemMap.get(a.attempt_id) ?? 0) - (ordemMap.get(b.attempt_id) ?? 0)
+  )
 
   // 3. Busca numero_questoes do simulado (total oficial da prova, ex: 80)
   const { data: simData, error: simFetchError } = await supabase

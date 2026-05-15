@@ -33,6 +33,7 @@ export async function GET(
     `)
     .eq("simulado_id", simuladoId)
     .eq("user_id", user.id)
+    .order("ordem", { nullsFirst: false })
 
   if (dbError) {
     logError(dbError, { area: "simulados-questoes", userId: user.id, simuladoId })

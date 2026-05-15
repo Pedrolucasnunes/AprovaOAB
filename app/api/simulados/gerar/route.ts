@@ -120,8 +120,9 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Embaralha a ordem final pra não agrupar as questões por matéria
-    const questaoIds = shuffle([...idsSelecionados])
+    // Ordem = blocos por disciplina, na sequência do BLUEPRINT_OAB (ordem da prova da OAB).
+    // As questões dentro de cada bloco já vêm embaralhadas; só os blocos ficam fixos.
+    const questaoIds = [...idsSelecionados]
 
     const { data: simulado, error: sError } = await supabase
       .from("simulados")
@@ -146,10 +147,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: sError?.message }, { status: 500 })
     }
 
-    const attempts = questaoIds.map((id) => ({
+    const attempts = questaoIds.map((id, index) => ({
       user_id: userId,
       simulado_id: simulado.id,
       question_id: id,
+      ordem: index,
     }))
 
     const { error: aError } = await supabase

@@ -25,7 +25,7 @@ export async function GET(
   // Busca attempts
   const { data: attempts } = await supabase
     .from("simulado_attempts")
-    .select("id, question_id")
+    .select("id, question_id, ordem")
     .eq("simulado_id", simuladoId)
     .eq("user_id", user.id)
 
@@ -34,6 +34,9 @@ export async function GET(
   }
 
   const attemptIds = attempts.map((a) => a.id)
+  const ordemMap = new Map<string, number>(
+    attempts.map((a) => [a.id as string, (a.ordem as number | null) ?? 0])
+  )
 
   // Busca respostas
   const { data: respostas } = await supabase
@@ -44,6 +47,11 @@ export async function GET(
   if (!respostas || respostas.length === 0) {
     return NextResponse.json({ error: "Nenhuma resposta encontrada" }, { status: 404 })
   }
+
+  // Ordena pela ordem da prova (blocos por disciplina)
+  respostas.sort(
+    (a, b) => (ordemMap.get(a.attempt_id) ?? 0) - (ordemMap.get(b.attempt_id) ?? 0)
+  )
 
   const questionIds = respostas.map((r) => r.question_id)
 

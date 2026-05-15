@@ -115,7 +115,6 @@ export default function SimuladosPage() {
   const melhorPercentual = simuladosRealizados.length > 0
     ? Math.max(...simuladosRealizados.map((s) => s.percentual))
     : null
-  const proximoNumero = simuladosRealizados.length + 1
   const metaAprovacao = 50
 
   return (
@@ -175,7 +174,7 @@ export default function SimuladosPage() {
               Simulado completo · 1ª fase OAB
             </div>
             <h2 className="text-2xl font-extrabold text-foreground mb-2">
-              Simulado completo {proximoNumero}
+              Simule a prova da OAB
             </h2>
             <p className="text-sm text-muted-foreground max-w-lg">
               Réplica fiel da estrutura oficial: 80 questões em 5 horas, com peso por disciplina igual ao exame. Use para medir seu nível real e calibrar a estratégia.

@@ -304,7 +304,7 @@ export default function SimuladosPage() {
                     >
                       {refazendoId === s.id
                         ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        : <><RotateCcw className="mr-1 h-3 w-3" />Refazer focado</>
+                        : <><RotateCcw className="mr-1 h-3 w-3" />Refazer simulado</>
                       }
                     </Button>
                   </div>

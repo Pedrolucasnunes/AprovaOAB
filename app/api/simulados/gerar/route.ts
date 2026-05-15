@@ -58,6 +58,11 @@ export async function POST(req: NextRequest) {
         numero_questoes: 80,
         titulo: "Simulado OAB",
         tipo: "oab_completo",
+        // Explícito: simulado fresco tem nota NULL (= não finalizado).
+        // Sobrepõe qualquer DEFAULT no banco — ver migration 20260515.
+        acertos: null,
+        erros: null,
+        percentual: null,
       })
       .select("id")
       .single()

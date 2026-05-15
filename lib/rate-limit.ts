@@ -8,6 +8,8 @@ const redis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_RE
   ? Redis.fromEnv()
   : null
 
+const isProd = process.env.NODE_ENV === "production"
+
 const limiters = new Map<string, Ratelimit>()
 
 function getLimiter(prefix: string, requests: number, windowSeconds: number): Ratelimit | null {
@@ -38,8 +40,8 @@ export function hashEmail(email: string): string {
 
 /**
  * Aplica rate limit por IP (e opcionalmente por uma chave extra, ex: hash de email).
- * Em ambientes sem Upstash configurado, retorna `success: true` (fail-open) — necessário
- * para dev local sem credenciais.
+ * Dev local sem Upstash: fail-open. Prod sem Upstash ou com erro de conexão: fail-closed,
+ * pra evitar bruteforce de login durante outage do Upstash.
  */
 export async function rateLimit(
   req: NextRequest,
@@ -49,7 +51,16 @@ export async function rateLimit(
   keyExtra?: string,
 ): Promise<{ success: boolean; remaining: number }> {
   const limiter = getLimiter(prefix, requests, windowSeconds)
-  if (!limiter) return { success: true, remaining: requests }
+  if (!limiter) {
+    if (isProd) {
+      logWarning("rate-limit não configurado em prod, falhando fechado", {
+        area: "rate-limit",
+        prefix,
+      })
+      return { success: false, remaining: 0 }
+    }
+    return { success: true, remaining: requests }
+  }
 
   const ip = getClientIp(req)
   const key = keyExtra ? `${ip}:${keyExtra}` : ip
@@ -57,11 +68,14 @@ export async function rateLimit(
     const result = await limiter.limit(key)
     return { success: result.success, remaining: result.remaining }
   } catch (err) {
-    logWarning("upstash unavailable, failing open", {
-      area: "rate-limit",
-      prefix,
-      err: err instanceof Error ? err.message : String(err),
-    })
-    return { success: true, remaining: requests }
+    logWarning(
+      isProd ? "upstash unavailable, failing closed" : "upstash unavailable, failing open",
+      {
+        area: "rate-limit",
+        prefix,
+        err: err instanceof Error ? err.message : String(err),
+      },
+    )
+    return { success: !isProd, remaining: isProd ? 0 : requests }
   }
 }

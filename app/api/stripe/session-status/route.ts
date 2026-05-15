@@ -34,10 +34,10 @@ export async function GET(req: NextRequest) {
       throw err
     }
 
-    // Proteção: só pode ver status da própria session
+    // Proteção: só pode ver status da própria session.
+    // Fail-closed — se o usuário não tem customer_id ainda (nunca pagou), rejeita.
     if (
-      userData?.stripe_customer_id &&
-      session.customer &&
+      !userData?.stripe_customer_id ||
       session.customer !== userData.stripe_customer_id
     ) {
       return NextResponse.json({ error: "Sessão não pertence ao usuário" }, { status: 403 })

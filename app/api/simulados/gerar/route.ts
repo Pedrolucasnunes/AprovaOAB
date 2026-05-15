@@ -57,11 +57,18 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Mapa nome → id das matérias, pra resolver o blueprint
-    const { data: subjects, error: subjError } = await supabase
-      .from("subjects")
-      .select("id, name")
+    // Em paralelo: mapa de matérias + questões que o usuário já viu em simulados anteriores.
+    const [subjectsRes, vistasRes] = await Promise.all([
+      supabase.from("subjects").select("id, name"),
+      supabase
+        .from("simulado_attempts")
+        .select("question_id")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(1000),
+    ])
 
+    const { data: subjects, error: subjError } = subjectsRes
     if (subjError || !subjects) {
       logError(subjError ?? new Error("Falha ao buscar subjects"), {
         area: "simulados-gerar", userId, phase: "fetch-subjects",
@@ -70,6 +77,16 @@ export async function POST(req: NextRequest) {
     }
 
     const nomeParaId = Object.fromEntries(subjects.map((s) => [s.name, s.id]))
+
+    // Questões já vistas — pra priorizar inéditas. Se a query falhar, degrada pro sorteio normal.
+    if (vistasRes.error) {
+      logWarning("falha ao buscar questões vistas, gerando sem priorização", {
+        area: "simulados-gerar", userId,
+      })
+    }
+    const vistas = new Set<string>(
+      ((vistasRes.data ?? []) as { question_id: string }[]).map((v) => v.question_id)
+    )
 
     // Para cada disciplina do blueprint: busca todos os ids e sorteia a cota.
     // Buscar a lista completa (máx ~224, abaixo do teto de 1000) garante sorteio sem viés.
@@ -92,7 +109,10 @@ export async function POST(req: NextRequest) {
           return []
         }
         const ids = ((data ?? []) as { id: string }[]).map((q) => q.id)
-        return shuffle(ids).slice(0, cota)
+        // Inéditas primeiro; só usa questões já vistas se faltar inédita na disciplina
+        const ineditas = shuffle(ids.filter((id) => !vistas.has(id)))
+        const repetidas = shuffle(ids.filter((id) => vistas.has(id)))
+        return [...ineditas, ...repetidas].slice(0, cota)
       })
     )
 

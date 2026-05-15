@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { createBrowserClient } from "@supabase/ssr"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Clock, Target, BarChart2, Loader2, RotateCcw, Trash2, AlertTriangle, ArrowRight, BarChart, Lock } from "lucide-react"
+import { Clock, Target, BarChart2, Loader2, Trash2, AlertTriangle, ArrowRight, BarChart, Lock } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 
@@ -22,7 +22,6 @@ interface SimuladoRealizado {
 export default function SimuladosPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [refazendoId, setRefazendoId] = useState<string | null>(null)
   const [deletandoId, setDeletandoId] = useState<string | null>(null)
   const [confirmarExclusao, setConfirmarExclusao] = useState<SimuladoRealizado | null>(null)
   const [loadingHistorico, setLoadingHistorico] = useState(true)
@@ -59,12 +58,8 @@ export default function SimuladosPage() {
     init()
   }, [])
 
-  const iniciarSimulado = async (refazendoSimuladoId?: string) => {
-    if (refazendoSimuladoId) {
-      setRefazendoId(refazendoSimuladoId)
-    } else {
-      setLoading(true)
-    }
+  const iniciarSimulado = async () => {
+    setLoading(true)
 
     try {
       const res = await fetch("/api/simulados/gerar", {
@@ -86,7 +81,6 @@ export default function SimuladosPage() {
       toast.error("Erro inesperado ao gerar simulado")
     } finally {
       setLoading(false)
-      setRefazendoId(null)
     }
   }
 
@@ -286,7 +280,7 @@ export default function SimuladosPage() {
                     )}
                   </div>
 
-                  <div className="flex flex-col gap-2 shrink-0">
+                  <div className="shrink-0">
                     <Button
                       variant="outline"
                       size="sm"
@@ -294,18 +288,6 @@ export default function SimuladosPage() {
                       onClick={() => router.push(`/dashboard/simulados/${s.id}?gabarito=true`)}
                     >
                       Ver análise
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs"
-                      onClick={() => iniciarSimulado(s.id)}
-                      disabled={refazendoId === s.id}
-                    >
-                      {refazendoId === s.id
-                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        : <><RotateCcw className="mr-1 h-3 w-3" />Refazer simulado</>
-                      }
                     </Button>
                   </div>
 

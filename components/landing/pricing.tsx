@@ -253,7 +253,7 @@ export function Pricing() {
 
         <FadeIn delay={400}>
           <p className="mt-10 text-center font-mono text-xs text-muted-foreground">
-            Comece grátis · Cancele quando quiser · Pagamento seguro
+            Comece grátis · Cancele quando quiser · Cartão ou PIX · Pagamento seguro
           </p>
         </FadeIn>
       </div>

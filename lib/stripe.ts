@@ -10,6 +10,15 @@ export const STRIPE_PRICES = {
   aprovacao: process.env.STRIPE_PRICE_APROVACAO?.trim() ?? "",
 } as const
 
+// Teto do mandato PIX Automático por plano (em centavos, BRL). Deliberadamente
+// acima do preço atual: o teto é fixado na adesão e não muda para assinantes
+// existentes sem re-autorização, então reajustes futuros (ex.: fim da promo do
+// Pro R$19 → R$29) não devem quebrar o mandato.
+export const STRIPE_PIX_MANDATE_AMOUNTS = {
+  pro: 4900, // teto R$ 49 (preço atual R$ 19 promocional)
+  aprovacao: 9900, // teto R$ 99 (preço atual R$ 49)
+} as const
+
 export type Plano = "free" | "pro" | "aprovacao"
 
 export function planoFromPriceId(priceId: string): "pro" | "aprovacao" | null {

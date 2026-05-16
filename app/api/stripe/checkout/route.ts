@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import * as Sentry from "@sentry/nextjs"
-import { stripe, STRIPE_PRICES, ensureStripeCustomer } from "@/lib/stripe"
+import { stripe, STRIPE_PRICES, STRIPE_PIX_MANDATE_AMOUNTS, ensureStripeCustomer } from "@/lib/stripe"
 import { requireUser } from "@/lib/auth-server"
 import { supabaseAdmin } from "@/lib/supabase-admin"
 import { rateLimit } from "@/lib/rate-limit"
@@ -54,9 +54,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Origem da requisição inválida" }, { status: 400 })
     }
 
+    const planoKey = plano as keyof typeof STRIPE_PIX_MANDATE_AMOUNTS
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: "subscription",
+      payment_method_types: ["card", "pix"],
+      payment_method_options: {
+        pix: {
+          mandate_options: {
+            amount: STRIPE_PIX_MANDATE_AMOUNTS[planoKey],
+            amount_type: "maximum",
+            currency: "brl",
+            payment_schedule: "monthly",
+            reference: planoKey === "pro" ? "AprovaOAB Pro" : "AprovaOAB Aprovação",
+          },
+        },
+      },
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${origin}/assinar/sucesso?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/#planos`,

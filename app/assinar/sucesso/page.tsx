@@ -209,7 +209,7 @@ function SuccessContent() {
               Estamos processando seu pagamento
             </CardTitle>
             <CardDescription className="text-muted-foreground">
-              Seu pagamento foi recebido. Em alguns minutos seu plano deve estar ativo. Recarregue esta página ou vá pro dashboard.
+              Seu pagamento foi recebido. Pagamentos via PIX podem levar alguns minutos para confirmar. Recarregue esta página ou vá pro dashboard — seu plano será ativado automaticamente.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">

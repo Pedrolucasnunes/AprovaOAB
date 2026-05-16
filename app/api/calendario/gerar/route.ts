@@ -6,9 +6,15 @@ import {
   createGoogleEvent,
   deleteGoogleEvent,
 } from "@/lib/services/googleCalendar"
+import { rateLimit } from "@/lib/rate-limit"
 import { logError } from "@/lib/logger"
 
 export async function POST(req: NextRequest) {
+  const rl = await rateLimit(req, "calendario-gerar", 10, 60)
+  if (!rl.success) {
+    return NextResponse.json({ error: "Muitas requisições. Aguarde alguns segundos." }, { status: 429 })
+  }
+
   const { user, supabase, error } = await requireUser()
   if (error) return error
 

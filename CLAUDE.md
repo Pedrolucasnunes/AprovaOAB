@@ -85,10 +85,10 @@ Não óbvio sem ler o código (`app/api/treino/route.ts`):
 
 ### Agenda inteligente — comportamento
 
-`POST /api/calendario/gerar` apaga todos eventos `is_auto = true` da semana atual e recria do zero. Estrutura fixa:
-- **Quarta-feira**: simulado completo (240 min)
-- **Domingo**: treino disciplina crítica + revisão geral
-- **Demais dias**: alternância ponderada por desempenho (60% matérias críticas, 30% médias, 10% boas)
+`POST /api/calendario/gerar` apaga todos eventos `is_auto = true` da semana atual e recria do zero. A alocação respeita a disponibilidade do usuário (`user_availability`) — lógica em `lib/services/agenda.ts` (`gerarEventos`):
+- **Simulado completo** (240 min): no dia disponível com o maior bloco contíguo livre. Sem disponibilidade configurada → quarta-feira.
+- **Revisão geral** + treino de disciplina crítica: no último dia disponível da semana. Sem disponibilidade → domingo.
+- **Demais dias**: 2 sessões/dia com alternância ponderada por desempenho (60% matérias críticas, 30% médias, 10% boas)
 
 Sincroniza com Google Calendar se o usuário tiver conectado — operação best-effort (falha silenciosa, não bloqueia a geração).
 

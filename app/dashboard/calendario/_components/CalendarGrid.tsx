@@ -10,6 +10,7 @@ import {
   RECOMMENDED_QUESTIONS,
   parsePerformancePct,
   perfStyle,
+  fmtLocalDate,
 } from "./EventDetailModal"
 import type { DayAvailability } from "./AvailabilityPanel"
 export type { DayAvailability }
@@ -181,7 +182,7 @@ function EventBlock({
 
   const isPast = (() => {
     const now      = new Date()
-    const todayStr = now.toISOString().split("T")[0]
+    const todayStr = fmtLocalDate(now)
     if (event.date < todayStr) return true
     if (event.date === todayStr) {
       const [h, m] = event.time.split(":").map(Number)

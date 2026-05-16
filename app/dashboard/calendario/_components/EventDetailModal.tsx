@@ -6,12 +6,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import Link from "next/link"
 import { Badge }    from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
+import { Button } from "@/components/ui/button"
 import {
   BookOpen, FileText, RotateCcw, Trophy,
-  Clock, Target, Sparkles, CalendarDays,
+  Clock, Target, Sparkles, CalendarDays, ArrowRight,
 } from "lucide-react"
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -68,6 +70,12 @@ export function perfStyle(pct: number | null) {
 const WEEKDAYS_PT = ["domingo","segunda-feira","terça-feira","quarta-feira","quinta-feira","sexta-feira","sábado"]
 const MONTHS_PT   = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"]
 
+/** Formata uma Date como YYYY-MM-DD no fuso LOCAL (não usa toISOString → não vaza p/ UTC). */
+export function fmtLocalDate(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
 function fmtDate(dateStr: string) {
   const [y, m, d] = dateStr.split("-").map(Number)
   const dt = new Date(y, m - 1, d)
@@ -92,6 +100,10 @@ export function EventDetailModal({
   const perf    = perfStyle(pct)
   const recQtd  = RECOMMENDED_QUESTIONS[event.type] ?? 20
   const dur     = EVENT_DURATION_MIN[event.type] ?? 60
+
+  const isSimulado = event.type === "simulado" || event.type === "prova"
+  const ctaHref    = isSimulado ? "/dashboard/simulados" : "/dashboard/treino"
+  const ctaLabel   = isSimulado ? "Ir para o simulado" : "Ir para o treino"
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -190,6 +202,14 @@ export function EventDetailModal({
               {event.reason}
             </p>
           )}
+
+          {/* ── CTA ───────────────────────────────────────── */}
+          <Button asChild className="w-full gap-2">
+            <Link href={ctaHref} onClick={onClose}>
+              {ctaLabel}
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

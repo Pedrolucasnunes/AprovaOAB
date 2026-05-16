@@ -15,6 +15,7 @@ import { StatsHeader }                       from "./_components/StatsHeader"
 import { CalendarGrid }                      from "./_components/CalendarGrid"
 import { EventDetailModal }                  from "./_components/EventDetailModal"
 import { AvailabilityPanel }                 from "./_components/AvailabilityPanel"
+import { fmtLocalDate }                      from "./_components/EventDetailModal"
 import type { CalendarEvent }                from "./_components/EventDetailModal"
 import type { DayAvailability }              from "./_components/AvailabilityPanel"
 
@@ -47,11 +48,11 @@ function parseDateStr(dateStr: string) {
 
 function addDays(dateStr: string, days: number): string {
   const { y, m, d } = parseDateStr(dateStr)
-  return new Date(y, m - 1, d + days).toISOString().split("T")[0]
+  return fmtLocalDate(new Date(y, m - 1, d + days))
 }
 
 function todayStr(): string {
-  return new Date().toISOString().split("T")[0]
+  return fmtLocalDate(new Date())
 }
 
 function getMondayOf(d: Date): Date {
@@ -66,7 +67,7 @@ function weekStartFor(offsetWeeks: number): string {
   const dow = d.getDay()                       // 0=Dom … 6=Sáb
   const toMonday = dow === 0 ? -6 : 1 - dow   // quantos dias voltar até segunda
   d.setDate(d.getDate() + toMonday + offsetWeeks * 7)
-  return d.toISOString().split("T")[0]
+  return fmtLocalDate(d)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -117,7 +118,7 @@ function MobileList({
                   const cfg  = TYPE_CONFIG[e.type] ?? TYPE_CONFIG.study
                   const Icon = cfg.icon
                   const now  = new Date()
-                  const todayStr = now.toISOString().split("T")[0]
+                  const todayStr = fmtLocalDate(now)
                   const [eh, em] = e.time.split(":").map(Number)
                   const isPast = e.date < todayStr || (
                     e.date === todayStr && (eh * 60 + em) < now.getHours() * 60 + now.getMinutes()
@@ -672,9 +673,9 @@ export default function CalendarioPage() {
               </p>
               <div className="space-y-1.5">
                 {[
-                  { icon: BookOpen,  color: "text-primary",    label: "Seg · Ter · Qui · Sex · Sáb", desc: "2 sessões/dia — Treino (90 min, 20 questões) + Revisão (60 min, 10 questões)" },
-                  { icon: FileText,  color: "text-blue-500",   label: "Quarta-feira",                desc: "Simulado completo OAB — 240 min · 80 questões · avalia todas as matérias" },
-                  { icon: RotateCcw, color: "text-yellow-500", label: "Domingo",                    desc: "Revisão semanal — consolidação de tudo que foi estudado na semana" },
+                  { icon: BookOpen,  color: "text-primary",    label: "Dias de treino",   desc: "2 sessões/dia — Treino (90 min, 20 questões) + Revisão (60 min, 10 questões)" },
+                  { icon: FileText,  color: "text-blue-500",   label: "Simulado completo", desc: "240 min · 80 questões — alocado no dia com o maior bloco de tempo livre" },
+                  { icon: RotateCcw, color: "text-yellow-500", label: "Revisão geral",     desc: "Consolidação da semana — no último dia disponível da sua agenda" },
                 ].map(({ icon: Icon, color, label, desc }) => (
                   <div key={label} className="flex items-start gap-3 rounded-lg border border-border/60 px-3 py-2.5">
                     <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${color}`} />

@@ -35,12 +35,17 @@ export async function GET(req: NextRequest) {
       encrypt(tokens.access_token),
       encrypt(tokens.refresh_token),
     ])
-    await supabase.from("google_calendar_tokens").upsert({
-      user_id:       user.id,
-      access_token:  encryptedAccess,
-      refresh_token: encryptedRefresh,
-      expires_at:    new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
-    })
+    // onConflict explícito em user_id: reconectar o Google atualiza a linha existente
+    // em vez de inserir duplicata (getValidAccessToken lê com .single()).
+    await supabase.from("google_calendar_tokens").upsert(
+      {
+        user_id:       user.id,
+        access_token:  encryptedAccess,
+        refresh_token: encryptedRefresh,
+        expires_at:    new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
+      },
+      { onConflict: "user_id" }
+    )
     return NextResponse.redirect(`${base}?google=success`)
   } catch {
     return NextResponse.redirect(`${base}?google=error`)

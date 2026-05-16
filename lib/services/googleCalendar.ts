@@ -101,18 +101,39 @@ const EVENT_DURATION: Record<string, number> = {
   prova:    180,
 }
 
+/**
+ * Soma minutos a uma data/hora local, tratando virada de dia/mês.
+ * Trabalha sobre componentes — nunca passa por toISOString, para não embutir UTC.
+ */
+function addMinutesToDateTime(
+  date: string,
+  time: string,
+  mins: number
+): { date: string; time: string } {
+  const [y, mo, d] = date.split("-").map(Number)
+  const [h, mi]    = time.split(":").map(Number)
+  const total      = h * 60 + mi + mins
+  const extraDays  = Math.floor(total / 1440)
+  const dayMin     = ((total % 1440) + 1440) % 1440
+
+  const end = new Date(y, mo - 1, d + extraDays)
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return {
+    date: `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}`,
+    time: `${pad(Math.floor(dayMin / 60))}:${pad(dayMin % 60)}`,
+  }
+}
+
 export async function createGoogleEvent(
   accessToken: string,
   event: { title: string; date: string; time: string; type: string; description?: string | null }
 ): Promise<string | null> {
-  const [y, mo, d] = event.date.split("-").map(Number)
-  const [h, mi]    = event.time.split(":").map(Number)
-  const durationMs = (EVENT_DURATION[event.type] ?? 90) * 60_000
-
-  const start = new Date(y, mo - 1, d, h, mi)
-  const end   = new Date(start.getTime() + durationMs)
-
-  const toIso = (dt: Date) => dt.toISOString()
+  // dateTime sem offset (sem "Z") + timeZone → o Google interpreta como horário local de SP.
+  // Usar toISOString() aqui embutiria o fuso do servidor (UTC na Vercel) e adiantaria 3h.
+  const startTime = event.time.slice(0, 5)
+  const startStr  = `${event.date}T${startTime}:00`
+  const end       = addMinutesToDateTime(event.date, startTime, EVENT_DURATION[event.type] ?? 90)
+  const endStr    = `${end.date}T${end.time}:00`
 
   const res = await fetch(GOOGLE_EVENTS_URL, {
     method:  "POST",
@@ -123,8 +144,8 @@ export async function createGoogleEvent(
     body: JSON.stringify({
       summary:     event.title,
       description: event.description ?? undefined,
-      start: { dateTime: toIso(start), timeZone: "America/Sao_Paulo" },
-      end:   { dateTime: toIso(end),   timeZone: "America/Sao_Paulo" },
+      start: { dateTime: startStr, timeZone: "America/Sao_Paulo" },
+      end:   { dateTime: endStr,   timeZone: "America/Sao_Paulo" },
     }),
   })
 

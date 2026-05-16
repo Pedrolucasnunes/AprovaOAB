@@ -154,6 +154,49 @@ export function gerarEventos(
 
   const events: AgendaEvent[] = []
 
+  // ── Pré-cálculo da disponibilidade por dia ──────────────────────
+  // Para cada índice 0–6 (0 = segunda), descobre o maior bloco contíguo livre.
+  const toMin = (t: string): number => {
+    const [h, m] = t.split(":").map(Number)
+    return h * 60 + m
+  }
+
+  const dayInfo = Array.from({ length: 7 }, (_, day) => {
+    const date  = dateStr(day)
+    const dow   = getDayOfWeek(date)
+    const slots = availability.filter((a) => a.day_of_week === dow)
+    let longest = 0
+    let longestStart = ""
+    for (const s of slots) {
+      const dur = toMin(s.end_time) - toMin(s.start_time)
+      if (dur > longest) {
+        longest      = dur
+        longestStart = s.start_time.slice(0, 5)
+      }
+    }
+    return { day, longest, longestStart, hasAvail: slots.length > 0 }
+  })
+
+  const hasConfig     = availability.length > 0
+  const availableDays = dayInfo.filter((d) => d.hasAvail)
+
+  // Dia do simulado: dia disponível com o maior bloco contíguo livre.
+  // Desempate pela proximidade da quarta. Sem disponibilidade → quarta (índice 2).
+  const simuladoDay = !hasConfig
+    ? 2
+    : [...availableDays].sort(
+        (a, b) => b.longest - a.longest || Math.abs(a.day - 2) - Math.abs(b.day - 2)
+      )[0]?.day ?? 2
+
+  // Revisão geral: último dia disponível que não seja o do simulado.
+  // Sem disponibilidade → domingo (índice 6). Sem outro dia livre → -1 (sem revisão geral).
+  const revisaoDay = !hasConfig
+    ? 6
+    : (() => {
+        const outros = availableDays.filter((d) => d.day !== simuladoDay).map((d) => d.day)
+        return outros.length ? Math.max(...outros) : -1
+      })()
+
   for (let day = 0; day < 7; day++) {
     const date = dateStr(day)
     const { session1, session2, hasAvail } = resolveSessionTimes(date)
@@ -161,14 +204,14 @@ export function gerarEventos(
     // Pula dias sem disponibilidade configurada (só quando o usuário definiu horários)
     if (!hasAvail && availability.length > 0) continue
 
-    // ── Dia 4 (index 3): Simulado completo ──────────────────────────
-    if (day === 3) {
+    // ── Simulado completo (dia de maior bloco livre) ─────────────────
+    if (day === simuladoDay) {
       events.push({
         user_id: userId,
         title:   "Simulado Completo OAB",
         type:    "simulado",
         date,
-        time:    session1,
+        time:    hasConfig ? (dayInfo[day].longestStart || session1) : session1,
         is_auto: true,
         subject: null,
         reason:  "Simulado semanal para medir seu progresso e simular as condições reais da prova.",
@@ -176,8 +219,8 @@ export function gerarEventos(
       continue
     }
 
-    // ── Dia 7 (index 6): Treino + Revisão Geral ──────────────────────
-    if (day === 6) {
+    // ── Treino + Revisão Geral (último dia disponível da semana) ─────
+    if (day === revisaoDay) {
       const d = pickCritical() ?? pickMedium()
       if (d) {
         events.push({

@@ -29,6 +29,9 @@ export async function GET(
         alternativa_d,
         subject_id,
         topic_id
+      ),
+      simulado_respostas (
+        resposta_usuario
       )
     `)
     .eq("simulado_id", simuladoId)
@@ -58,6 +61,9 @@ export async function GET(
       ...row.questions,
       subject_name: subjectMap[row.questions?.subject_id] ?? "Desconhecida",
       topic_name: "",
+      // Resposta já salva (recupera o progresso ao reabrir o simulado).
+      // simulado_respostas é relação 1-1 (UNIQUE em attempt_id) → objeto, não array.
+      resposta_usuario: row.simulado_respostas?.resposta_usuario ?? null,
     }))
     .filter((q: any) => q.id)
 

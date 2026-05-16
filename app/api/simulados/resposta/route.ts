@@ -148,8 +148,12 @@ export async function POST(req: NextRequest) {
 
   }
 
+  // No simulado, NÃO devolve acertou/resposta_correta — senão o usuário veria o gabarito
+  // em tempo de prova (DevTools) e poderia corrigir a resposta. O treino mostra na hora.
   return NextResponse.json(
-    { acertou, resposta_correta: question.resposta_correta },
+    simuladoId
+      ? { ok: true }
+      : { acertou, resposta_correta: question.resposta_correta },
     { status: 200 }
   )
 }

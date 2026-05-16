@@ -23,6 +23,7 @@ interface Questao {
   alternativa_d: string
   subject_name: string
   topic_name: string
+  resposta_usuario?: string | null
 }
 
 interface Resultado {
@@ -134,7 +135,17 @@ export default function SimuladoPage({ params }: { params: Promise<{ id: string 
       const tempo = tempoData.tempo_restante_segundos ?? 5 * 60 * 60
       setTimeRemaining(tempo)
       timeRemainingRef.current = tempo
-      setQuestoes(questoesData.questions)
+
+      const listaQuestoes: Questao[] = questoesData.questions ?? []
+      setQuestoes(listaQuestoes)
+
+      // Recupera as respostas já salvas — progresso persiste ao reabrir o simulado
+      const respostasSalvas: Record<string, string> = {}
+      for (const q of listaQuestoes) {
+        if (q.resposta_usuario) respostasSalvas[q.id] = q.resposta_usuario
+      }
+      setAnswers(respostasSalvas)
+
       setLoadingQuestoes(false)
 
       if (tempoData.expired) {

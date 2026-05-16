@@ -57,6 +57,23 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // No máximo 1 simulado em andamento por vez (acertos null = não finalizado).
+    const { data: emAndamento } = await supabase
+      .from("simulados")
+      .select("id")
+      .eq("user_id", userId)
+      .is("acertos", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (emAndamento) {
+      return NextResponse.json(
+        { error: "Você já tem um simulado em andamento.", emAndamento: emAndamento.id },
+        { status: 409 }
+      )
+    }
+
     // Em paralelo: mapa de matérias + questões que o usuário já viu em simulados anteriores.
     const [subjectsRes, vistasRes] = await Promise.all([
       supabase.from("subjects").select("id, name"),

@@ -19,13 +19,20 @@ interface SimuladoRealizado {
   numero_questoes: number
 }
 
+interface SimuladoEmAndamento {
+  id: string
+  titulo: string
+  created_at: string
+}
+
 export default function SimuladosPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [deletandoId, setDeletandoId] = useState<string | null>(null)
-  const [confirmarExclusao, setConfirmarExclusao] = useState<SimuladoRealizado | null>(null)
+  const [confirmarExclusao, setConfirmarExclusao] = useState<SimuladoEmAndamento | null>(null)
   const [loadingHistorico, setLoadingHistorico] = useState(true)
   const [simuladosRealizados, setSimuladosRealizados] = useState<SimuladoRealizado[]>([])
+  const [emAndamento, setEmAndamento] = useState<SimuladoEmAndamento[]>([])
   const [plano, setPlano] = useState<string>("free")
 
   useEffect(() => {
@@ -42,7 +49,6 @@ export default function SimuladosPage() {
           .from("simulados")
           .select("id, titulo, created_at, acertos, erros, percentual, numero_questoes")
           .eq("user_id", user.id)
-          .not("acertos", "is", null)
           .order("created_at", { ascending: false }),
         supabase
           .from("users")
@@ -51,7 +57,9 @@ export default function SimuladosPage() {
           .single(),
       ])
 
-      setSimuladosRealizados(simuladosRes.data ?? [])
+      const todos = simuladosRes.data ?? []
+      setSimuladosRealizados(todos.filter((s: any) => s.acertos !== null))
+      setEmAndamento(todos.filter((s: any) => s.acertos === null))
       setPlano(usuarioRes.data?.plano ?? "free")
       setLoadingHistorico(false)
     }
@@ -71,6 +79,10 @@ export default function SimuladosPage() {
       if (!res.ok) {
         if (res.status === 403 && data.upgrade) {
           router.push("/#planos")
+          return
+        }
+        if (res.status === 409 && data.emAndamento) {
+          router.push(`/dashboard/simulados/${data.emAndamento}`)
           return
         }
         toast.error(data.error ?? "Erro ao gerar simulado")
@@ -96,6 +108,7 @@ export default function SimuladosPage() {
         return
       }
       setSimuladosRealizados((prev) => prev.filter((s) => s.id !== id))
+      setEmAndamento((prev) => prev.filter((s) => s.id !== id))
       setConfirmarExclusao(null)
       toast.success("Simulado excluído")
     } catch {
@@ -161,6 +174,47 @@ export default function SimuladosPage() {
                 <p className="text-xl font-bold text-foreground">{simuladosRealizados.length}</p>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Continuar simulado em andamento ── */}
+      {emAndamento.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-sm font-semibold text-foreground">Continuar de onde parou</h2>
+          </div>
+          <div className="space-y-3">
+            {emAndamento.map((s) => (
+              <div key={s.id} className="rounded-xl border border-primary/40 bg-card p-4 flex items-center gap-4">
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-foreground">Simulado em andamento</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Começado em {formatDate(s.created_at)} · {formatTime(s.created_at)}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  className="shrink-0 gap-1.5"
+                  onClick={() => router.push(`/dashboard/simulados/${s.id}`)}
+                >
+                  Continuar <ArrowRight className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0 text-muted-foreground hover:text-destructive"
+                  onClick={() => setConfirmarExclusao(s)}
+                  disabled={deletandoId === s.id}
+                >
+                  {deletandoId === s.id
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : <Trash2 className="h-4 w-4" />
+                  }
+                </Button>
+              </div>
+            ))}
           </div>
         </div>
       )}

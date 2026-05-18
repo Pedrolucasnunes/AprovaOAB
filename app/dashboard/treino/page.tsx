@@ -155,6 +155,17 @@ function TreinoPageInner() {
     init()
   }, [materiaParam])
 
+  // Free: se a quantidade selecionada não cabe mais no limite diário, recua para
+  // a maior opção que ainda cabe — evita o usuário tentar iniciar um treino barrado.
+  useEffect(() => {
+    if (plano !== "free") return
+    const restante = Math.max(0, 10 - questoesHoje)
+    if (Number(quantidadeQuestoes) > restante) {
+      const valida = [...QUANTIDADES_VALIDAS].reverse().find((v) => Number(v) <= restante)
+      if (valida) setQuantidadeQuestoes(valida)
+    }
+  }, [plano, questoesHoje, quantidadeQuestoes])
+
   function limparFiltroMateria() {
     setMateriaFiltrada(null)
     router.replace("/dashboard/treino")
@@ -223,6 +234,8 @@ function TreinoPageInner() {
         ...prev,
         [questao.id]: { acertou: data.acertou, correta: data.resposta_correta },
       }))
+      // Mantém o contador diário vivo — o backend já registrou esta questão.
+      setQuestoesHoje((prev) => prev + 1)
     }
   }
 
@@ -238,7 +251,10 @@ function TreinoPageInner() {
 
     fetch("/api/dashboard")
       .then(r => r.json())
-      .then(d => { if (d.resumo) setProgresso(d.resumo) })
+      .then(d => {
+        if (d.resumo) setProgresso(d.resumo)
+        if (typeof d.questoesHoje === "number") setQuestoesHoje(d.questoesHoje)
+      })
   }
 
   const concluirTreino = () => {
@@ -269,7 +285,10 @@ function TreinoPageInner() {
 
     fetch("/api/dashboard")
       .then(r => r.json())
-      .then(d => { if (d.resumo) setProgresso(d.resumo) })
+      .then(d => {
+        if (d.resumo) setProgresso(d.resumo)
+        if (typeof d.questoesHoje === "number") setQuestoesHoje(d.questoesHoje)
+      })
   }
 
   // ─── MODO TREINO ATIVO ────────────────────────────────────────
@@ -627,6 +646,7 @@ function TreinoPageInner() {
           {(() => {
             const diagnosticoPendente = onboardingCompleto && !diagnosticoCompleto
             const limiteBatido = plano === "free" && questoesHoje >= 10
+            const restante = Math.max(0, 10 - questoesHoje)
 
             if (diagnosticoPendente) {
               return (
@@ -687,6 +707,40 @@ function TreinoPageInner() {
                 </Card>
               )
             }
+
+            // Free com saldo positivo, mas menor que o menor treino (5 questões):
+            // não dá pra montar treino — direciona para as questões avulsas.
+            if (plano === "free" && restante > 0 && restante < 5) {
+              return (
+                <Card>
+                  <CardContent className="p-6 text-center space-y-4">
+                    <div className="flex justify-center">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10">
+                        <AlertTriangle className="h-6 w-6 text-amber-500" />
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-foreground">
+                        Poucas questões restantes hoje
+                      </h3>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        Você tem {restante} {restante === 1 ? "questão restante" : "questões restantes"} no
+                        plano Grátis — menos que o menor treino (5 questões). Responda em
+                        Questões avulsas ou volte amanhã para um treino completo.
+                      </p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                      <Button asChild className="flex-1">
+                        <Link href="/dashboard/questoes">Ir para Questões avulsas</Link>
+                      </Button>
+                      <Button asChild variant="outline" className="flex-1">
+                        <Link href="/#planos">Conhecer o Pro</Link>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            }
             return (
               <Card>
                 <CardHeader>
@@ -707,23 +761,34 @@ function TreinoPageInner() {
                     <Label className="mb-3 block text-sm font-medium">
                       Quantas questões você quer resolver?
                     </Label>
+                    {plano === "free" && (
+                      <p className="mb-3 text-xs text-muted-foreground">
+                        Plano Grátis · {restante} de 10 questões restantes hoje
+                        {restante < 10 && " — opções maiores que o restante ficam indisponíveis"}
+                      </p>
+                    )}
                     <RadioGroup
                       value={quantidadeQuestoes}
                       onValueChange={setQuantidadeQuestoes}
                       className="grid gap-3 grid-cols-2 sm:grid-cols-4"
                     >
-                      {treinoOptions.map((option) => (
-                        <div key={option.value}>
-                          <RadioGroupItem value={option.value} id={`treino-${option.value}`} className="peer sr-only" />
-                          <Label
-                            htmlFor={`treino-${option.value}`}
-                            className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-border p-4 transition-all peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 hover:bg-secondary"
-                          >
-                            <span className="text-2xl font-bold text-foreground">{option.label}</span>
-                            <span className="text-xs text-muted-foreground text-center">{option.description}</span>
-                          </Label>
-                        </div>
-                      ))}
+                      {treinoOptions.map((option) => {
+                        const optDisabled = plano === "free" && Number(option.value) > restante
+                        return (
+                          <div key={option.value}>
+                            <RadioGroupItem value={option.value} id={`treino-${option.value}`} className="peer sr-only" disabled={optDisabled} />
+                            <Label
+                              htmlFor={`treino-${option.value}`}
+                              className={`flex flex-col items-center justify-center rounded-lg border-2 border-border p-4 transition-all peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 ${
+                                optDisabled ? "cursor-not-allowed opacity-40" : "cursor-pointer hover:bg-secondary"
+                              }`}
+                            >
+                              <span className="text-2xl font-bold text-foreground">{option.label}</span>
+                              <span className="text-xs text-muted-foreground text-center">{option.description}</span>
+                            </Label>
+                          </div>
+                        )
+                      })}
                     </RadioGroup>
                   </div>
 
@@ -759,7 +824,12 @@ function TreinoPageInner() {
                     )}
                   </div>
 
-                  <Button className="w-full" size="lg" onClick={iniciarTreino} disabled={iniciando}>
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    onClick={iniciarTreino}
+                    disabled={iniciando || (plano === "free" && Number(quantidadeQuestoes) > restante)}
+                  >
                     {iniciando
                       ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Preparando treino...</>
                       : <><Play className="mr-2 h-5 w-5" />

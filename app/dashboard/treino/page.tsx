@@ -105,6 +105,7 @@ function TreinoPageInner() {
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [respostas, setRespostas] = useState<Record<string, { acertou: boolean; correta: string }>>({})
   const [verificando, setVerificando] = useState(false)
+  const [limiteAtingido, setLimiteAtingido] = useState(false)
   const [resumoFinal, setResumoFinal] = useState<ResumoTreino | null>(null)
 
   useEffect(() => {
@@ -211,6 +212,12 @@ function TreinoPageInner() {
     const data = await res.json()
     setVerificando(false)
 
+    if (res.status === 403 && data.limiteDiario) {
+      setQuestoesHoje(10)
+      setLimiteAtingido(true)
+      return
+    }
+
     if (res.ok) {
       setRespostas((prev) => ({
         ...prev,
@@ -225,6 +232,7 @@ function TreinoPageInner() {
     setAnswers({})
     setRespostas({})
     setCurrentQuestion(0)
+    setLimiteAtingido(false)
     setMateriaFiltrada(null)
     router.replace("/dashboard/treino")
 
@@ -256,6 +264,7 @@ function TreinoPageInner() {
       .sort((a, b) => a.acertos / a.total - b.acertos / b.total)
 
     setTreinoAtivo(null)
+    setLimiteAtingido(false)
     setResumoFinal({ total, acertos, erros, percentual, porMateria })
 
     fetch("/api/dashboard")
@@ -406,6 +415,27 @@ function TreinoPageInner() {
               <AlertDialogCancel>Continuar treinando</AlertDialogCancel>
               <AlertDialogAction onClick={encerrarTreino}>
                 Encerrar mesmo assim
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={limiteAtingido}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Limite diário atingido</AlertDialogTitle>
+              <AlertDialogDescription>
+                Você completou suas 10 questões de hoje no plano Grátis. As respostas
+                já enviadas estão salvas — veja o resultado da sessão e volte amanhã,
+                ou conheça o Pro para questões ilimitadas.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel asChild>
+                <Link href="/#planos">Conhecer o Pro</Link>
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={concluirTreino}>
+                Ver resultado do treino
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

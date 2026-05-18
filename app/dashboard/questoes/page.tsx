@@ -265,20 +265,14 @@ export default function QuestoesPage() {
       if (user) {
         setUserId(user.id)
 
-        const hoje = new Date()
-        hoje.setUTCHours(0, 0, 0, 0)
-
-        const [usuarioRes, contagemRes] = await Promise.all([
-          supabase.from("users").select("plano").eq("id", user.id).single(),
-          supabase
-            .from("question_attempts")
-            .select("id", { count: "exact", head: true })
-            .eq("user_id", user.id)
-            .gte("created_at", hoje.toISOString()),
-        ])
-
-        setPlano(usuarioRes.data?.plano ?? "free")
-        setQuestoesHoje(contagemRes.count ?? 0)
+        // Contador e plano via /api/dashboard — mesma fonte que o backend usa para
+        // aplicar o limite (meia-noite de São Paulo, exclui questões de diagnóstico).
+        const dashRes = await fetch("/api/dashboard")
+        const dashData = await dashRes.json()
+        if (dashRes.ok) {
+          setPlano(dashData.plano ?? "free")
+          setQuestoesHoje(dashData.questoesHoje ?? 0)
+        }
       }
       const res = await fetch("/api/questions/filtros")
       const data = await res.json()

@@ -25,11 +25,8 @@ export async function POST(req: NextRequest) {
   const { quantidade, materia } = body
   const totalQuestoes = [5, 10, 20, 30].includes(Number(quantidade)) ? Number(quantidade) : 10
   const materiaFiltrada = typeof materia === "string" && materia.length > 0 ? materia : null
-  let sessaoFocada = totalQuestoes === 5 && !materiaFiltrada
-  let qtdRisco = sessaoFocada ? totalQuestoes : Math.round(totalQuestoes * 0.7)
-  let qtdGeral = totalQuestoes - qtdRisco
 
-  // Check limite diário para plano free antes de buscar questões
+  // Limite diário do plano free — verificado antes de montar o treino
   const { data: userPlanoRow } = await supabase
     .from("users")
     .select("plano")
@@ -45,6 +42,25 @@ export async function POST(req: NextRequest) {
       { status: 403 }
     )
   }
+
+  // Free: bloqueia se o treino pedido for maior do que resta do limite diário —
+  // em vez de montar um treino que o usuário seria barrado de terminar no meio.
+  const restante = limit.limit - limit.count
+  if (plano === "free" && totalQuestoes > restante) {
+    return NextResponse.json(
+      {
+        error: `Você tem só ${restante} ${restante === 1 ? "questão restante" : "questões restantes"} hoje no plano Grátis. Escolha um treino menor ou volte amanhã.`,
+        limiteDiario: true,
+        upgrade: true,
+        restante,
+      },
+      { status: 403 }
+    )
+  }
+
+  let sessaoFocada = totalQuestoes === 5 && !materiaFiltrada
+  let qtdRisco = sessaoFocada ? totalQuestoes : Math.round(totalQuestoes * 0.7)
+  let qtdGeral = totalQuestoes - qtdRisco
 
   // 1. Questões já acertadas pelo usuário (simulados + treino avulso em paralelo)
   const { data: attemptsData } = await supabase

@@ -56,34 +56,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ requiresVerification: true, email })
     }
 
-    let exists = false
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/admin/users?filter=${encodeURIComponent(email)}&page=1&per_page=10`,
-        {
-          headers: {
-            apikey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
-            Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY!}`,
-          },
-        },
-      )
-      if (res.ok) {
-        const json = await res.json()
-        const norm = email.trim().toLowerCase()
-        exists =
-          Array.isArray(json?.users) &&
-          json.users.some((u: { email?: string }) => u.email?.toLowerCase() === norm)
-      }
-    } catch {
-      // fall through with exists=false
-    }
-
+    // Mensagem genérica de propósito: evita enumeração de emails (OWASP A07).
     return NextResponse.json(
-      {
-        error: exists
-          ? "Senha incorreta. Tente novamente ou redefina sua senha."
-          : "Nenhuma conta encontrada com este e-mail. Crie uma conta para continuar.",
-      },
+      { error: "E-mail ou senha incorretos." },
       { status: 401 },
     )
   }

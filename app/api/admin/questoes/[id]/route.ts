@@ -1,27 +1,25 @@
 import { requireAdmin } from "@/lib/auth-server"
 import { supabaseAdmin } from "@/lib/supabase-admin"
 import { NextRequest, NextResponse } from "next/server"
+import { questaoSchema } from "../schema"
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { error } = await requireAdmin()
   if (error) return error
 
   const { id } = await params
-  const body = await req.json()
-
-  const {
-    enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d,
-    resposta_correta, dificuldade, banca, ano, subject_id, topic_id,
-    explicacao, incidencia_prova,
-  } = body
+  const body = await req.json().catch(() => null)
+  const parsed = questaoSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Dados inválidos", detalhes: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    )
+  }
 
   const { error: dbError } = await supabaseAdmin
     .from("questions")
-    .update({
-      enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d,
-      resposta_correta, dificuldade, banca, ano, subject_id, topic_id,
-      explicacao, incidencia_prova,
-    })
+    .update(parsed.data)
     .eq("id", id)
 
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 })

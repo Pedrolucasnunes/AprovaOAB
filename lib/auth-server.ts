@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr"
 import type { User } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "./supabase-admin"
 
@@ -72,4 +73,19 @@ export async function requireAdmin(): Promise<AdminAuthResult> {
   }
 
   return { user, error: null }
+}
+
+/** Gate em páginas server-side: redireciona pra /login (não auth) ou /dashboard (não admin). */
+export async function requireAdminPage(): Promise<void> {
+  const supabase = await buildServerClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) redirect("/login")
+
+  const { data } = await supabaseAdmin
+    .from("users")
+    .select("role")
+    .eq("id", user.id)
+    .single()
+
+  if (data?.role !== "admin") redirect("/dashboard")
 }

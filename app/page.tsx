@@ -11,8 +11,11 @@ import { Pricing } from "@/components/landing/pricing"
 import { FAQ } from "@/components/landing/faq"
 import { CTA } from "@/components/landing/cta"
 import { Footer } from "@/components/landing/footer"
+import { isTrialEnabled } from "@/lib/trial"
 
 export default function HomePage() {
+  const trialOn = isTrialEnabled()
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -25,8 +28,8 @@ export default function HomePage() {
         <Comparison />
         <MidCTA />
         <Testimonials />
-        <Pricing />
-        <FAQ />
+        <Pricing trialOn={trialOn} />
+        <FAQ trialOn={trialOn} />
         <CTA />
       </main>
       <Footer />

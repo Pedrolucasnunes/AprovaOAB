@@ -9,12 +9,13 @@ import { toast } from "sonner"
 
 interface CheckoutButtonProps {
   plano: "pro" | "aprovacao"
+  trial?: boolean
   className?: string
   variant?: "default" | "outline"
   children: React.ReactNode
 }
 
-export function CheckoutButton({ plano, className, variant = "default", children }: CheckoutButtonProps) {
+export function CheckoutButton({ plano, trial, className, variant = "default", children }: CheckoutButtonProps) {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 
@@ -32,7 +33,7 @@ export function CheckoutButton({ plano, className, variant = "default", children
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plano }),
+        body: JSON.stringify({ plano, ...(trial ? { trial: true } : {}) }),
       })
 
       const text = await res.text()

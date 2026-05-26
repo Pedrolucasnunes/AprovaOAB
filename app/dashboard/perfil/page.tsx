@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { User, Mail, Lock, Trophy, BookOpen, Target, Loader2, ExternalLink, ArrowRight, Sparkles } from "lucide-react"
-import { createBrowserClient } from "@supabase/ssr"
+import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import Link from "next/link"
@@ -39,12 +39,6 @@ export default function PerfilPage() {
 
   useEffect(() => {
     async function init() {
-      // ✅ createBrowserClient dentro do componente
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
-
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
@@ -115,11 +109,6 @@ export default function PerfilPage() {
   const handleSalvar = async () => {
     setSalvando(true)
     try {
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
-
       const updates: any = { data: { nome, full_name: nome } }
 
       if (novaSenha) {
@@ -432,10 +421,6 @@ export default function PerfilPage() {
         description="Você será redirecionado para a página de login."
         confirmLabel="Sair"
         onConfirm={async () => {
-          const supabase = createBrowserClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-          )
           await supabase.auth.signOut()
           window.location.href = "/login"
         }}

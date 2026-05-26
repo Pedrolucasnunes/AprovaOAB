@@ -20,7 +20,7 @@ import {
   Dumbbell, Target, Lightbulb, Play, TrendingUp, Sparkles,
   ChevronLeft, ChevronRight, CheckCircle2, XCircle, Loader2, X, AlertTriangle
 } from "lucide-react"
-import { createBrowserClient } from "@supabase/ssr"
+import { supabase } from "@/lib/supabase"
 
 const treinoOptions = [
   { value: "5",  label: "5",  description: "Sessão focada (5-8 min)" },
@@ -96,7 +96,7 @@ function TreinoPageInner() {
   const [questoesHoje, setQuestoesHoje] = useState(0)
   const [plano, setPlano] = useState<"free" | "pro" | "aprovacao">("free")
   const [trialUsed, setTrialUsed] = useState(false)
-  const [onboardingCompleto, setOnboardingCompleto] = useState(false)
+  const [temPerfilOnboarding, setTemPerfilOnboarding] = useState(false)
   const [diagnosticoCompleto, setDiagnosticoCompleto] = useState(false)
 
   const trialDisponivel =
@@ -114,10 +114,6 @@ function TreinoPageInner() {
 
   useEffect(() => {
     async function init() {
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
@@ -130,7 +126,7 @@ function TreinoPageInner() {
         setQuestoesHoje(data.questoesHoje ?? 0)
         setPlano(data.plano ?? "free")
         setTrialUsed(data.trialUsed ?? false)
-        setOnboardingCompleto(data.onboardingCompleto ?? false)
+        setTemPerfilOnboarding(data.temPerfilOnboarding ?? false)
         setDiagnosticoCompleto(data.diagnosticoCompleto ?? false)
       }
 
@@ -653,7 +649,7 @@ function TreinoPageInner() {
           )}
 
           {(() => {
-            const diagnosticoPendente = onboardingCompleto && !diagnosticoCompleto
+            const diagnosticoPendente = temPerfilOnboarding && !diagnosticoCompleto
             const limiteBatido = plano === "free" && questoesHoje >= 10
             const restante = Math.max(0, 10 - questoesHoje)
 

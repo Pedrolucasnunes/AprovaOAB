@@ -41,8 +41,12 @@ export default function DiagnosticoInicialPage() {
 
   useEffect(() => {
     fetch("/api/diagnostico/gerar")
-      .then((r) => r.json())
-      .then((json) => {
+      .then((r) => r.json().then((json) => ({ status: r.status, json })))
+      .then(({ status, json }) => {
+        if (status === 400 && json.error === "ONBOARDING_REQUIRED") {
+          router.replace("/dashboard?onboarding=true")
+          return
+        }
         if (json.error || !json.questions || json.questions.length === 0) {
           setLoadError(json.error ?? "Não foi possível carregar as questões.")
           setLoading(false)
@@ -56,7 +60,7 @@ export default function DiagnosticoInicialPage() {
         setLoadError("Erro ao carregar diagnóstico.")
         setLoading(false)
       })
-  }, [])
+  }, [router])
 
   function selecionar(alt: Alt) {
     if (feedback) return

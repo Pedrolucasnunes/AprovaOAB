@@ -56,8 +56,15 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  const metadataUpdate: { exam_date: string | null; onboarding_completed?: true } = {
+    exam_date: exam_date ?? null,
+  }
+  if (hasProfileData) {
+    metadataUpdate.onboarding_completed = true
+  }
+
   const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(user.id, {
-    user_metadata: { exam_date: exam_date ?? null, onboarding_completed: true },
+    user_metadata: metadataUpdate,
   })
 
   if (updateError) {

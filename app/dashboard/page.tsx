@@ -92,6 +92,7 @@ interface DashboardData {
     insightMateria:  { subject: string; taxa: number; diasSemTreino: number | null } | null
   }
   onboardingCompleto?: boolean
+  temPerfilOnboarding?: boolean
   diagnosticoCompleto?: boolean
   questoesHoje?: number
   plano?: "free" | "pro" | "aprovacao"
@@ -224,7 +225,7 @@ export default function DashboardPage() {
       )}
 
       {/* ── Diagnóstico completo (cenário A) ── */}
-      {isNewUser && data?.onboardingCompleto && data?.diagnosticoCompleto && (() => {
+      {isNewUser && data?.temPerfilOnboarding && data?.diagnosticoCompleto && (() => {
         const limiteBatido = data.plano === "free" && (data.questoesHoje ?? 0) >= 10
         const treinoHref = foco
           ? `/dashboard/treino?quantidade=5&materia=${foco.id}`
@@ -274,7 +275,7 @@ export default function DashboardPage() {
       })()}
 
       {/* ── Onboarding feito, diagnóstico pendente (cenário B) ── */}
-      {isNewUser && data?.onboardingCompleto && !data?.diagnosticoCompleto && (
+      {isNewUser && data?.temPerfilOnboarding && !data?.diagnosticoCompleto && (
         <div className="rounded-xl border border-primary/30 bg-primary/5 p-5 space-y-3">
           <div className="flex items-start gap-3">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/15">
@@ -296,7 +297,7 @@ export default function DashboardPage() {
       )}
 
       {/* ── Onboarding (usuário antigo sem perfil) ── */}
-      {isNewUser && !data?.onboardingCompleto && (
+      {isNewUser && !data?.temPerfilOnboarding && (
         <div className="rounded-xl border border-border bg-card p-5 space-y-4">
           <div>
             <p className="font-semibold">
@@ -331,6 +332,14 @@ export default function DashboardPage() {
                 <p className="text-xs text-muted-foreground mt-0.5">Questões priorizadas pelo seu ponto fraco.</p>
               </div>
             </div>
+          </div>
+          <div className="pt-1 border-t border-border/50">
+            <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
+              <Link href="/dashboard?onboarding=true">
+                <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                Configure seu plano de estudos
+              </Link>
+            </Button>
           </div>
         </div>
       )}

@@ -3,72 +3,83 @@ import { Button } from "@/components/ui/button"
 import { Check, ArrowRight, Zap } from "lucide-react"
 import { FadeIn } from "@/components/ui/fade-in"
 import { CheckoutButton } from "@/components/checkout-button"
+import { TRIAL_DAYS } from "@/lib/trial"
 
-const plans = [
-  {
-    id: "gratis",
-    label: "Grátis",
-    price: "R$ 0",
-    period: "pra sempre",
-    priceTotal: null,
-    description: "Descubra seu nível e entenda exatamente onde melhorar.",
-    highlight: false,
-    badge: null,
-    features: [
-      "Diagnóstico inicial completo",
-      "Plano básico de estudos",
-      "Até 10 questões por dia",
-    ],
-    missing: [
-      "Questões ilimitadas",
-      "Simulados completos",
-      "Questões personalizadas com base nos seus erros",
-    ],
-    cta: "Começar grátis",
-    href: "/cadastro",
-  },
-  {
-    id: "pro",
-    label: "Pro",
-    price: "R$ 19",
-    originalPrice: "R$ 29",
-    period: "/mês",
-    priceTotal: "acesso antecipado · cancele quando quiser",
-    description: "Para quem quer estudar com foco no que realmente cai.",
-    highlight: true,
-    badge: "Mais escolhido",
-    features: [
-      "Tudo do plano Grátis",
-      "Questões ilimitadas",
-      "Simulados completos estilo FGV",
-      "Plano de estudos dinâmico",
-      "Revisão automática",
-    ],
-    missing: [],
-    cta: "Assinar plano Pro",
-    href: "/cadastro",
-  },
-  {
-    id: "aprovacao",
-    label: "Aprovação",
-    price: "R$ 49",
-    period: "/mês",
-    priceTotal: null,
-    description: "Para quem quer recursos extras e suporte prioritário.",
-    highlight: false,
-    badge: "Em breve",
-    features: [
-      "Tudo do plano Pro",
-      "Questões personalizadas com base nos seus erros",
-      "Suporte prioritário por email",
-    ],
-    missing: [],
-    cta: "Entrar na lista de espera",
-    href: "/cadastro",
-  },
-]
+function buildPlans(trialOn: boolean) {
+  return [
+    {
+      id: "gratis",
+      label: "Grátis",
+      price: "R$ 0",
+      period: "pra sempre",
+      priceTotal: null,
+      description: "Descubra seu nível e entenda exatamente onde melhorar.",
+      highlight: false,
+      badge: null,
+      features: [
+        "Diagnóstico inicial completo",
+        "Plano básico de estudos",
+        "Até 10 questões por dia",
+      ],
+      missing: [
+        "Questões ilimitadas",
+        "Simulados completos",
+        "Questões personalizadas com base nos seus erros",
+      ],
+      cta: "Começar grátis",
+      href: "/cadastro",
+    },
+    {
+      id: "pro",
+      label: "Pro",
+      price: "R$ 19",
+      originalPrice: "R$ 29",
+      period: "/mês",
+      priceTotal: trialOn
+        ? `${TRIAL_DAYS} dias grátis · depois R$ 19/mês`
+        : "acesso antecipado · cancele quando quiser",
+      description: "Para quem quer estudar com foco no que realmente cai.",
+      highlight: true,
+      badge: "Mais escolhido",
+      features: [
+        "Tudo do plano Grátis",
+        "Questões ilimitadas",
+        "Simulados completos estilo FGV",
+        "Plano de estudos dinâmico",
+        "Revisão automática",
+      ],
+      missing: [],
+      cta: trialOn ? "Começar 7 dias grátis" : "Assinar plano Pro",
+      href: "/cadastro",
+    },
+    {
+      id: "aprovacao",
+      label: "Aprovação",
+      price: "R$ 49",
+      period: "/mês",
+      priceTotal: null,
+      description: "Para quem quer recursos extras e suporte prioritário.",
+      highlight: false,
+      badge: "Em breve",
+      features: [
+        "Tudo do plano Pro",
+        "Questões personalizadas com base nos seus erros",
+        "Suporte prioritário por email",
+      ],
+      missing: [],
+      cta: "Entrar na lista de espera",
+      href: "/cadastro",
+    },
+  ]
+}
 
-export function Pricing() {
+interface PricingProps {
+  trialOn: boolean
+}
+
+export function Pricing({ trialOn }: PricingProps) {
+  const plans = buildPlans(trialOn)
+
   return (
     <section id="planos" className="py-20 lg:py-32">
       <div className="mx-auto max-w-7xl px-4 lg:px-8">
@@ -218,6 +229,7 @@ export function Pricing() {
                   {plan.id === "pro" ? (
                     <CheckoutButton
                       plano="pro"
+                      trial={trialOn}
                       className={plan.highlight ? "bg-white text-primary hover:bg-white/90" : ""}
                       variant={plan.highlight ? "default" : "outline"}
                     >
@@ -253,7 +265,9 @@ export function Pricing() {
 
         <FadeIn delay={400}>
           <p className="mt-10 text-center font-mono text-xs text-muted-foreground">
-            Comece grátis · Cancele quando quiser · Pagamento seguro
+            {trialOn
+              ? "7 dias grátis no Pro · Cancele quando quiser · Pagamento seguro"
+              : "Comece grátis · Cancele quando quiser · Pagamento seguro"}
           </p>
         </FadeIn>
       </div>

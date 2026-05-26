@@ -17,6 +17,30 @@ export async function GET() {
     return NextResponse.json({ error: dbError.message }, { status: 500 })
   }
 
+  // Resolve user_id pra email + nome. Cacheia por ID pra não chamar getUserById
+  // várias vezes pro mesmo usuário (um reporter pode ter mandado N feedbacks).
+  const uniqueIds = Array.from(new Set((data ?? []).map((f) => f.user_id).filter(Boolean)))
+  const userInfoMap: Record<string, { email: string; nome: string }> = {}
+  await Promise.all(
+    uniqueIds.map(async (id) => {
+      const { data: authData } = await supabaseAdmin.auth.admin.getUserById(id)
+      if (authData?.user) {
+        const email = authData.user.email ?? ""
+        const fullName = (authData.user.user_metadata?.full_name as string | undefined) ?? ""
+        userInfoMap[id] = {
+          email,
+          nome: fullName || (email ? email.split("@")[0] : ""),
+        }
+      }
+    })
+  )
+
+  const feedbacks = (data ?? []).map((f) => ({
+    ...f,
+    user_nome: userInfoMap[f.user_id]?.nome ?? "Usuário removido",
+    user_email: userInfoMap[f.user_id]?.email ?? "",
+  }))
+
   const totais = {
     total: data?.length ?? 0,
     bug: data?.filter((f) => f.type === "bug").length ?? 0,
@@ -24,5 +48,5 @@ export async function GET() {
     elogio: data?.filter((f) => f.type === "elogio").length ?? 0,
   }
 
-  return NextResponse.json({ feedbacks: data ?? [], totais })
+  return NextResponse.json({ feedbacks, totais })
 }

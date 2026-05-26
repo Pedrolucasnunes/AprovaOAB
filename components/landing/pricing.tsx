@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Check, ArrowRight, Zap } from "lucide-react"
+import { Check, ArrowRight, Zap, Gift } from "lucide-react"
 import { FadeIn } from "@/components/ui/fade-in"
 import { CheckoutButton } from "@/components/checkout-button"
 import { TRIAL_DAYS } from "@/lib/trial"
@@ -35,9 +35,7 @@ function buildPlans(trialOn: boolean) {
       price: "R$ 19",
       originalPrice: "R$ 29",
       period: "/mês",
-      priceTotal: trialOn
-        ? `${TRIAL_DAYS} dias grátis · depois R$ 19/mês`
-        : "acesso antecipado · cancele quando quiser",
+      priceTotal: trialOn ? null : "acesso antecipado · cancele quando quiser",
       description: "Para quem quer estudar com foco no que realmente cai.",
       highlight: true,
       badge: "Mais escolhido",
@@ -171,6 +169,18 @@ export function Pricing({ trialOn }: PricingProps) {
                   >
                     {plan.priceTotal}
                   </p>
+                )}
+
+                {plan.id === "pro" && trialOn && (
+                  <div className="mt-3">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-foreground/15 px-3 py-1.5 text-sm font-semibold text-primary-foreground">
+                      <Gift className="h-4 w-4" />
+                      {TRIAL_DAYS} dias grátis pra testar
+                    </span>
+                    <p className="mt-1.5 font-mono text-[11px] text-primary-foreground/60">
+                      depois R$ 19/mês · cancele quando quiser
+                    </p>
+                  </div>
                 )}
 
                 <p

@@ -78,11 +78,28 @@ export async function GET() {
     total,
   }))
 
-  const { data: usuariosRecentes } = await supabaseAdmin
+  const { data: usuariosRecentesRow } = await supabaseAdmin
     .from("users")
-    .select("id, role")
-    .order("id", { ascending: false })
+    .select("id, role, plano, created_at")
+    .order("created_at", { ascending: false })
     .limit(5)
+
+  const usuariosRecentes = await Promise.all(
+    (usuariosRecentesRow ?? []).map(async (u) => {
+      const { data } = await supabaseAdmin.auth.admin.getUserById(u.id)
+      const email = data?.user?.email ?? ""
+      const fullName = (data?.user?.user_metadata?.full_name as string | undefined) ?? ""
+      const nome = fullName || (email ? email.split("@")[0] : "Sem nome")
+      return {
+        id: u.id,
+        nome,
+        email,
+        role: u.role,
+        plano: u.plano,
+        criadoEm: u.created_at,
+      }
+    })
+  )
 
   return NextResponse.json({
     totais: {
@@ -93,6 +110,6 @@ export async function GET() {
     },
     questoesPorDisciplina,
     simuladosPorDia,
-    usuariosRecentes: usuariosRecentes ?? [],
+    usuariosRecentes,
   })
 }

@@ -5,12 +5,9 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
   FileQuestion,
-  FileText,
   Users,
-  BarChart3,
   MessageSquare,
   LogOut,
-  Settings,
 } from "lucide-react"
 import {
   Sidebar,
@@ -28,7 +25,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -45,19 +41,9 @@ const menuItems = [
     icon: FileQuestion,
   },
   {
-    title: "Simulados",
-    url: "/admin/simulados",
-    icon: FileText,
-  },
-  {
     title: "Usuários",
     url: "/admin/usuarios",
     icon: Users,
-  },
-  {
-    title: "Estatísticas",
-    url: "/admin/estatisticas",
-    icon: BarChart3,
   },
   {
     title: "Feedbacks",
@@ -123,13 +109,6 @@ export function AdminSidebar() {
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent side="top" align="start" className="w-56">
-                <DropdownMenuItem asChild>
-                  <Link href="/admin/configuracoes" className="flex items-center gap-2">
-                    <Settings className="h-4 w-4" />
-                    Configurações
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href="/" className="flex items-center gap-2 text-destructive">
                     <LogOut className="h-4 w-4" />

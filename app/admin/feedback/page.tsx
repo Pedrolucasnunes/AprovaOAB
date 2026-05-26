@@ -9,6 +9,8 @@ import { toast } from "sonner"
 interface FeedbackItem {
   id: string
   user_id: string
+  user_nome: string
+  user_email: string
   type: "bug" | "sugestao" | "elogio"
   message: string
   page: string | null
@@ -144,9 +146,16 @@ export default function AdminFeedbackPage() {
                         )}
                       </div>
                       <p className="text-sm text-foreground whitespace-pre-wrap">{fb.message}</p>
-                      <span className="text-xs font-mono text-muted-foreground truncate">
-                        {fb.user_id}
-                      </span>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-xs font-medium text-foreground truncate">
+                          {fb.user_nome}
+                        </span>
+                        {fb.user_email && (
+                          <span className="text-xs text-muted-foreground truncate">
+                            {fb.user_email}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <span className="shrink-0 text-xs text-muted-foreground">
                       {new Date(fb.created_at).toLocaleString("pt-BR", {

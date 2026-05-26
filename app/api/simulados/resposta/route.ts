@@ -142,6 +142,13 @@ export async function POST(req: NextRequest) {
       })
 
     if (qaError) {
+      // Trigger atômico do banco — defesa contra race condition que escapa do checkDailyLimit acima.
+      if (qaError.message?.includes("free_daily_limit_exceeded")) {
+        return NextResponse.json(
+          { error: "Você atingiu o limite de 10 questões por dia no plano Grátis.", upgrade: true, limiteDiario: true },
+          { status: 403 }
+        )
+      }
       logError(qaError, { area: "simulados-resposta", userId, questionId, phase: "insert-treino" })
       return NextResponse.json({ error: qaError.message }, { status: 500 })
     }

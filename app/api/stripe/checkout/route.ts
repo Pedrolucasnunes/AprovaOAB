@@ -4,6 +4,7 @@ import { stripe, STRIPE_PRICES, ensureStripeCustomer } from "@/lib/stripe"
 import { requireUser } from "@/lib/auth-server"
 import { supabaseAdmin } from "@/lib/supabase-admin"
 import { rateLimit } from "@/lib/rate-limit"
+import { isTrialEnabled, TRIAL_DAYS } from "@/lib/trial"
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,7 +16,7 @@ export async function POST(req: NextRequest) {
     const { user, error } = await requireUser()
     if (error) return error
 
-    const { plano } = await req.json()
+    const { plano, trial } = await req.json()
     const priceId = STRIPE_PRICES[plano as keyof typeof STRIPE_PRICES]
 
     if (!priceId) {
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
 
     const { data: userData } = await supabaseAdmin
       .from("users")
-      .select("stripe_customer_id, email, plano")
+      .select("stripe_customer_id, email, plano, trial_used")
       .eq("id", user.id)
       .single()
 
@@ -35,6 +36,19 @@ export async function POST(req: NextRequest) {
           ? `Você já tem o plano ${planoLabel} ativo. Para cancelar ou alterar a forma de pagamento, acesse "Gerenciar assinatura" no seu perfil.`
           : `Você já tem o plano ${planoLabel} ativo. Para trocar de plano, acesse "Gerenciar assinatura" no seu perfil.`
       return NextResponse.json({ error: message }, { status: 400 })
+    }
+
+    const wantsTrial = trial === true
+    if (wantsTrial) {
+      if (!isTrialEnabled()) {
+        return NextResponse.json({ error: "Trial indisponível no momento." }, { status: 400 })
+      }
+      if (plano !== "pro") {
+        return NextResponse.json({ error: "Trial disponível apenas para o plano Pro." }, { status: 400 })
+      }
+      if (userData?.trial_used) {
+        return NextResponse.json({ error: "Você já utilizou seu período de trial." }, { status: 400 })
+      }
     }
 
     const customerId = await ensureStripeCustomer(
@@ -61,7 +75,11 @@ export async function POST(req: NextRequest) {
       success_url: `${origin}/assinar/sucesso?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/#planos`,
       subscription_data: {
-        metadata: { supabase_user_id: user.id },
+        metadata: {
+          supabase_user_id: user.id,
+          ...(wantsTrial ? { trial: "true" } : {}),
+        },
+        ...(wantsTrial ? { trial_period_days: TRIAL_DAYS } : {}),
       },
     })
 

@@ -95,8 +95,12 @@ function TreinoPageInner() {
   const [materiaFiltrada, setMateriaFiltrada] = useState<{ id: string; nome: string } | null>(null)
   const [questoesHoje, setQuestoesHoje] = useState(0)
   const [plano, setPlano] = useState<"free" | "pro" | "aprovacao">("free")
+  const [trialUsed, setTrialUsed] = useState(false)
   const [onboardingCompleto, setOnboardingCompleto] = useState(false)
   const [diagnosticoCompleto, setDiagnosticoCompleto] = useState(false)
+
+  const trialDisponivel =
+    process.env.NEXT_PUBLIC_TRIAL_ENABLED === "true" && plano === "free" && !trialUsed
 
   const [treinoAtivo, setTreinoAtivo] = useState<TreinoAtivo | null>(null)
   const [iniciando, setIniciando] = useState(false)
@@ -125,6 +129,7 @@ function TreinoPageInner() {
         setProgresso(data.resumo ?? null)
         setQuestoesHoje(data.questoesHoje ?? 0)
         setPlano(data.plano ?? "free")
+        setTrialUsed(data.trialUsed ?? false)
         setOnboardingCompleto(data.onboardingCompleto ?? false)
         setDiagnosticoCompleto(data.diagnosticoCompleto ?? false)
       }
@@ -445,13 +450,17 @@ function TreinoPageInner() {
               <AlertDialogTitle>Limite diário atingido</AlertDialogTitle>
               <AlertDialogDescription>
                 Você completou suas 10 questões de hoje no plano Grátis. As respostas
-                já enviadas estão salvas — veja o resultado da sessão e volte amanhã,
-                ou conheça o Pro para questões ilimitadas.
+                já enviadas estão salvas — veja o resultado da sessão
+                {trialDisponivel
+                  ? " ou teste o Pro grátis por 7 dias para continuar agora."
+                  : " e volte amanhã, ou conheça o Pro para questões ilimitadas."}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel asChild>
-                <Link href="/#planos">Conhecer o Pro</Link>
+                <Link href={trialDisponivel ? "/dashboard/perfil/trial" : "/#planos"}>
+                  {trialDisponivel ? "Testar Pro 7 dias grátis" : "Conhecer o Pro"}
+                </Link>
               </AlertDialogCancel>
               <AlertDialogAction onClick={concluirTreino}>
                 Ver resultado do treino
@@ -692,16 +701,33 @@ function TreinoPageInner() {
                       </h3>
                       <p className="mt-2 text-sm text-muted-foreground">
                         Você completou suas 10 questões de hoje no plano Grátis.
-                        Volte amanhã pra continuar o plano — ou veja seu calendário agora.
+                        {trialDisponivel
+                          ? " Teste o Pro grátis por 7 dias para continuar agora — sem limite diário."
+                          : " Volte amanhã pra continuar o plano — ou veja seu calendário agora."}
                       </p>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2 pt-2">
-                      <Button asChild className="flex-1">
-                        <Link href="/dashboard/calendario">Ver meu calendário</Link>
-                      </Button>
-                      <Button asChild variant="outline" className="flex-1">
-                        <Link href="/#planos">Conhecer o Pro</Link>
-                      </Button>
+                      {trialDisponivel ? (
+                        <>
+                          <Button asChild className="flex-1 gap-1.5">
+                            <Link href="/dashboard/perfil/trial">
+                              <Sparkles className="h-4 w-4" /> Testar Pro 7 dias grátis
+                            </Link>
+                          </Button>
+                          <Button asChild variant="outline" className="flex-1">
+                            <Link href="/dashboard/calendario">Ver meu calendário</Link>
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button asChild className="flex-1">
+                            <Link href="/dashboard/calendario">Ver meu calendário</Link>
+                          </Button>
+                          <Button asChild variant="outline" className="flex-1">
+                            <Link href="/#planos">Conhecer o Pro</Link>
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -733,9 +759,17 @@ function TreinoPageInner() {
                       <Button asChild className="flex-1">
                         <Link href="/dashboard/questoes">Ir para Questões avulsas</Link>
                       </Button>
-                      <Button asChild variant="outline" className="flex-1">
-                        <Link href="/#planos">Conhecer o Pro</Link>
-                      </Button>
+                      {trialDisponivel ? (
+                        <Button asChild variant="outline" className="flex-1 gap-1.5">
+                          <Link href="/dashboard/perfil/trial">
+                            <Sparkles className="h-4 w-4" /> Testar Pro 7 dias grátis
+                          </Link>
+                        </Button>
+                      ) : (
+                        <Button asChild variant="outline" className="flex-1">
+                          <Link href="/#planos">Conhecer o Pro</Link>
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

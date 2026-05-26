@@ -22,10 +22,12 @@ Deployed on Vercel at `https://www.aprovaoab.app.br`.
 
 | Cliente | Arquivo | Quando usar |
 |---|---|---|
-| Browser (anon key) | `createBrowserClient(...)` inline nos componentes | Componentes client-side |
+| Browser (anon key) | `lib/supabase.ts` → singleton `supabase` | Componentes client-side |
 | Admin (service role) | `lib/supabase-admin.ts` → `supabaseAdmin` | Rotas API server-side que precisam ignorar RLS |
 
 O cliente browser respeita RLS. O `supabaseAdmin` ignora RLS completamente — usar **apenas em rotas `/api/`**, nunca em código client-side.
+
+**Importante:** sempre importar o singleton (`import { supabase } from "@/lib/supabase"`), nunca criar `createBrowserClient(...)` inline. Cada instância tem seu próprio storage adapter e disputam o `navigator.locks` do token de auth, causando erro "Lock was released because another request stole it" quando dois componentes rodam `getUser()` em paralelo.
 
 ### Autenticação nas rotas API
 

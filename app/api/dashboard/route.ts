@@ -34,6 +34,9 @@ export async function GET(req: NextRequest) {
   ])
 
   const onboardingCompleto = user.user_metadata?.onboarding_completed === true
+  const temPerfilOnboarding =
+    Array.isArray(userRow?.onboarding_data?.dificuldades) &&
+    userRow.onboarding_data.dificuldades.length > 0
   const diagnosticoCompleto = (diagnosticAttemptsCount ?? 0) >= 5
   const questoesHoje = questoesHojeCount ?? 0
   const plano: "free" | "pro" | "aprovacao" = userPlanoRow?.plano ?? "free"
@@ -302,6 +305,7 @@ export async function GET(req: NextRequest) {
     evolucao,
     actionCards,
     onboardingCompleto,
+    temPerfilOnboarding,
     diagnosticoCompleto,
     questoesHoje,
     plano,

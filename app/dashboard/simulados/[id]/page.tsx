@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { createBrowserClient } from "@supabase/ssr"
+import { supabase } from "@/lib/supabase"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -84,11 +84,6 @@ export default function SimuladoPage({ params }: { params: Promise<{ id: string 
 
   useEffect(() => {
     async function init() {
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
-
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push("/login"); return }
 

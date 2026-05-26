@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
-import { createBrowserClient } from "@supabase/ssr"
+import { supabase } from "@/lib/supabase"
 import {
   LayoutDashboard,
   FileText,
@@ -54,10 +54,6 @@ interface UserInfo {
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
 
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
   const [loadingUser, setLoadingUser] = useState(true)

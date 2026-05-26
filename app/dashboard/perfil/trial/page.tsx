@@ -10,7 +10,7 @@ import {
   Sparkles, CheckCircle2, CreditCard, CalendarClock, XCircle,
   ArrowRight, Loader2, ArrowLeft,
 } from "lucide-react"
-import { createBrowserClient } from "@supabase/ssr"
+import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
 import Link from "next/link"
 
@@ -30,11 +30,6 @@ export default function TrialPage() {
         setLoading(false)
         return
       }
-
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      )
 
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {

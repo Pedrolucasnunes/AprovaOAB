@@ -25,6 +25,13 @@ export async function GET() {
 
   const dificuldades: string[] = userRow?.onboarding_data?.dificuldades ?? []
 
+  if (dificuldades.length === 0) {
+    return NextResponse.json(
+      { error: "ONBOARDING_REQUIRED" },
+      { status: 400 },
+    )
+  }
+
   const { data: simAttempts } = await supabase
     .from("simulado_attempts")
     .select("id")

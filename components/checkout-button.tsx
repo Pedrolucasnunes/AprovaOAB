@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowRight } from "lucide-react"
-import { createBrowserClient } from "@supabase/ssr"
+import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
 
 interface CheckoutButtonProps {
@@ -17,11 +17,6 @@ interface CheckoutButtonProps {
 export function CheckoutButton({ plano, className, variant = "default", children }: CheckoutButtonProps) {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
-
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
 
   const handleClick = async () => {
     setIsLoading(true)

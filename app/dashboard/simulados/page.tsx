@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { createBrowserClient } from "@supabase/ssr"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Clock, Target, BarChart2, Loader2, Trash2, AlertTriangle, ArrowRight, BarChart, Lock } from "lucide-react"
+import { Clock, Target, BarChart2, Loader2, Trash2, AlertTriangle, ArrowRight, BarChart, Lock, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 
@@ -34,6 +34,10 @@ export default function SimuladosPage() {
   const [simuladosRealizados, setSimuladosRealizados] = useState<SimuladoRealizado[]>([])
   const [emAndamento, setEmAndamento] = useState<SimuladoEmAndamento[]>([])
   const [plano, setPlano] = useState<string>("free")
+  const [trialUsed, setTrialUsed] = useState(false)
+
+  const trialDisponivel =
+    process.env.NEXT_PUBLIC_TRIAL_ENABLED === "true" && plano === "free" && !trialUsed
 
   useEffect(() => {
     async function init() {
@@ -52,7 +56,7 @@ export default function SimuladosPage() {
           .order("created_at", { ascending: false }),
         supabase
           .from("users")
-          .select("plano")
+          .select("plano, trial_used")
           .eq("id", user.id)
           .single(),
       ])
@@ -61,6 +65,7 @@ export default function SimuladosPage() {
       setSimuladosRealizados(todos.filter((s: any) => s.acertos !== null))
       setEmAndamento(todos.filter((s: any) => s.acertos === null))
       setPlano(usuarioRes.data?.plano ?? "free")
+      setTrialUsed(usuarioRes.data?.trial_used ?? false)
       setLoadingHistorico(false)
     }
     init()
@@ -78,7 +83,7 @@ export default function SimuladosPage() {
       const data = await res.json()
       if (!res.ok) {
         if (res.status === 403 && data.upgrade) {
-          router.push("/#planos")
+          router.push(trialDisponivel ? "/dashboard/perfil/trial" : "/#planos")
           return
         }
         if (res.status === 409 && data.emAndamento) {
@@ -250,16 +255,28 @@ export default function SimuladosPage() {
           </div>
           <div className="shrink-0 self-center">
             {plano === "free" ? (
-              <Button
-                size="lg"
-                variant="outline"
-                className="gap-2 text-base font-semibold px-6"
-                asChild
-              >
-                <Link href="/#planos">
-                  <Lock className="h-4 w-4" /> Assinar para simular
-                </Link>
-              </Button>
+              trialDisponivel ? (
+                <Button
+                  size="lg"
+                  className="gap-2 text-base font-semibold px-6"
+                  asChild
+                >
+                  <Link href="/dashboard/perfil/trial">
+                    <Sparkles className="h-4 w-4" /> Testar Pro 7 dias grátis
+                  </Link>
+                </Button>
+              ) : (
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="gap-2 text-base font-semibold px-6"
+                  asChild
+                >
+                  <Link href="/#planos">
+                    <Lock className="h-4 w-4" /> Assinar para simular
+                  </Link>
+                </Button>
+              )
             ) : (
               <Button
                 size="lg"

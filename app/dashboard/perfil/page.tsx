@@ -8,11 +8,12 @@ import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { User, Mail, Lock, Trophy, BookOpen, Target, Loader2, ExternalLink, ArrowRight } from "lucide-react"
+import { User, Mail, Lock, Trophy, BookOpen, Target, Loader2, ExternalLink, ArrowRight, Sparkles } from "lucide-react"
 import { createBrowserClient } from "@supabase/ssr"
 import { toast } from "sonner"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import Link from "next/link"
+import { getTrialState, isTrialEnabledClient, type TrialUser } from "@/lib/trial"
 
 export default function PerfilPage() {
   const [isEditing, setIsEditing] = useState(false)
@@ -28,6 +29,13 @@ export default function PerfilPage() {
   const [plano, setPlano] = useState<"free" | "pro" | "aprovacao">("free")
   const [stripeCustomerId, setStripeCustomerId] = useState<string | null>(null)
   const [abrindoPortal, setAbrindoPortal] = useState(false)
+  const [trialUser, setTrialUser] = useState<TrialUser>({
+    plano: "free",
+    trial_used: false,
+    subscription_status: "active",
+    trial_ends_at: null,
+  })
+  const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(false)
 
   useEffect(() => {
     async function init() {
@@ -50,7 +58,11 @@ export default function PerfilPage() {
       const [dashRes, simuladosRes, usuarioRes] = await Promise.all([
         fetch("/api/dashboard"),
         supabase.from("simulados").select("id", { count: "exact" }).eq("user_id", user.id).gt("acertos", 0),
-        supabase.from("users").select("plano, stripe_customer_id").eq("id", user.id).single(),
+        supabase
+          .from("users")
+          .select("plano, stripe_customer_id, trial_used, trial_ends_at, subscription_status, cancel_at_period_end")
+          .eq("id", user.id)
+          .single(),
       ])
 
       const dashData = await dashRes.json()
@@ -63,8 +75,17 @@ export default function PerfilPage() {
         })
       }
 
-      setPlano((usuarioRes.data?.plano as "free" | "pro" | "aprovacao") ?? "free")
-      setStripeCustomerId(usuarioRes.data?.stripe_customer_id ?? null)
+      const row = usuarioRes.data
+      const userPlano = (row?.plano as "free" | "pro" | "aprovacao") ?? "free"
+      setPlano(userPlano)
+      setStripeCustomerId(row?.stripe_customer_id ?? null)
+      setTrialUser({
+        plano: userPlano,
+        trial_used: row?.trial_used ?? false,
+        subscription_status: row?.subscription_status ?? "active",
+        trial_ends_at: row?.trial_ends_at ?? null,
+      })
+      setCancelAtPeriodEnd(row?.cancel_at_period_end ?? false)
 
       setLoading(false)
     }
@@ -251,42 +272,93 @@ export default function PerfilPage() {
               <CardDescription>Detalhes da sua assinatura</CardDescription>
             </CardHeader>
             <CardContent>
-              {plano === "free" ? (
-                <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-4">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg font-semibold text-foreground">Plano Grátis</span>
-                      <Badge variant="secondary">Ativo</Badge>
+              {(() => {
+                const trialState = getTrialState(trialUser, isTrialEnabledClient())
+
+                if (trialState.type === "in_trial") {
+                  const fimDate = trialState.endsAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "long" })
+                  return (
+                    <div className="flex items-center justify-between rounded-lg border border-primary bg-primary/5 p-4">
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-lg font-semibold text-foreground">Plano Pro</span>
+                          <Badge className="bg-primary gap-1">
+                            <Sparkles className="h-3 w-3" /> Trial
+                          </Badge>
+                          {cancelAtPeriodEnd && <Badge variant="outline">Cancelado</Badge>}
+                        </div>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {cancelAtPeriodEnd
+                            ? `Encerra em ${trialState.daysLeft} ${trialState.daysLeft === 1 ? "dia" : "dias"} (${fimDate}) · sem cobrança`
+                            : `Termina em ${trialState.daysLeft} ${trialState.daysLeft === 1 ? "dia" : "dias"} · cobrança de R$ 19 em ${fimDate}`
+                          }
+                        </p>
+                      </div>
+                      {stripeCustomerId && !cancelAtPeriodEnd && (
+                        <Button variant="outline" onClick={handlePortal} disabled={abrindoPortal} className="gap-1.5 shrink-0">
+                          {abrindoPortal ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
+                          Cancelar trial
+                        </Button>
+                      )}
+                      {stripeCustomerId && cancelAtPeriodEnd && (
+                        <Button variant="outline" onClick={handlePortal} disabled={abrindoPortal} className="gap-1.5 shrink-0">
+                          {abrindoPortal ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
+                          Reativar
+                        </Button>
+                      )}
                     </div>
-                    <p className="mt-1 text-sm text-muted-foreground">Até 10 questões por dia · Sem simulados</p>
-                  </div>
-                  <Button asChild>
-                    <Link href="/#planos" className="gap-1.5">
-                      Fazer upgrade <ArrowRight className="h-4 w-4" />
-                    </Link>
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between rounded-lg border border-primary bg-primary/5 p-4">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg font-semibold text-foreground">
-                        {plano === "pro" ? "Plano Pro" : "Plano Aprovação"}
-                      </span>
-                      <Badge className="bg-primary">Ativo</Badge>
+                  )
+                }
+
+                if (plano === "free") {
+                  return (
+                    <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-4 gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg font-semibold text-foreground">Plano Grátis</span>
+                          <Badge variant="secondary">Ativo</Badge>
+                        </div>
+                        <p className="mt-1 text-sm text-muted-foreground">Até 10 questões por dia · Sem simulados</p>
+                      </div>
+                      {trialState.type === "eligible" ? (
+                        <Button asChild className="shrink-0">
+                          <Link href="/dashboard/perfil/trial" className="gap-1.5">
+                            <Sparkles className="h-4 w-4" /> Testar Pro 7 dias grátis
+                          </Link>
+                        </Button>
+                      ) : (
+                        <Button asChild className="shrink-0">
+                          <Link href="/#planos" className="gap-1.5">
+                            Fazer upgrade <ArrowRight className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                      )}
                     </div>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {plano === "pro" ? "Questões ilimitadas · Simulados completos" : "Tudo do Pro · Suporte prioritário"}
-                    </p>
+                  )
+                }
+
+                return (
+                  <div className="flex items-center justify-between rounded-lg border border-primary bg-primary/5 p-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg font-semibold text-foreground">
+                          {plano === "pro" ? "Plano Pro" : "Plano Aprovação"}
+                        </span>
+                        <Badge className="bg-primary">Ativo</Badge>
+                      </div>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {plano === "pro" ? "Questões ilimitadas · Simulados completos" : "Tudo do Pro · Suporte prioritário"}
+                      </p>
+                    </div>
+                    {stripeCustomerId && (
+                      <Button variant="outline" onClick={handlePortal} disabled={abrindoPortal} className="gap-1.5 shrink-0">
+                        {abrindoPortal ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
+                        Gerenciar
+                      </Button>
+                    )}
                   </div>
-                  {stripeCustomerId && (
-                    <Button variant="outline" onClick={handlePortal} disabled={abrindoPortal} className="gap-1.5 shrink-0">
-                      {abrindoPortal ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
-                      Gerenciar
-                    </Button>
-                  )}
-                </div>
-              )}
+                )
+              })()}
               <div className="mt-4 grid gap-4 sm:grid-cols-3">
                 {plano === "free"
                   ? [["10/dia", "Questões"], ["—", "Simulados"], ["Básico", "Plano de estudos"]].map(([v, l]) => (

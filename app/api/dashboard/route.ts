@@ -30,15 +30,17 @@ export async function GET(req: NextRequest) {
       .eq("user_id", userId)
       .eq("is_diagnostic", false)
       .gte("created_at", inicioDoDia.toISOString()),
-    supabase.from("users").select("plano, subscription_status").eq("id", userId).single(),
+    supabase.from("users").select("plano, subscription_status, trial_used, trial_ends_at").eq("id", userId).single(),
   ])
 
   const onboardingCompleto = user.user_metadata?.onboarding_completed === true
   const diagnosticoCompleto = (diagnosticAttemptsCount ?? 0) >= 5
   const questoesHoje = questoesHojeCount ?? 0
   const plano: "free" | "pro" | "aprovacao" = userPlanoRow?.plano ?? "free"
-  const subscriptionStatus: "active" | "past_due" | "canceled" =
+  const subscriptionStatus: "active" | "trialing" | "past_due" | "canceled" =
     userPlanoRow?.subscription_status ?? "active"
+  const trialUsed: boolean = userPlanoRow?.trial_used ?? false
+  const trialEndsAt: string | null = userPlanoRow?.trial_ends_at ?? null
   const examDate: string | null = (user.user_metadata?.exam_date as string | null) ?? null
 
   // 1. Resumo geral via desempenho_materia
@@ -304,6 +306,8 @@ export async function GET(req: NextRequest) {
     questoesHoje,
     plano,
     subscriptionStatus,
+    trialUsed,
+    trialEndsAt,
     examDate,
   }, {
     status: 200,

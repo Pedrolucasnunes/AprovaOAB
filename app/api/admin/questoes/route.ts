@@ -1,6 +1,7 @@
 import { requireAdmin } from "@/lib/auth-server"
 import { supabaseAdmin } from "@/lib/supabase-admin"
 import { NextRequest, NextResponse } from "next/server"
+import { questaoSchema } from "./schema"
 
 export async function GET(req: NextRequest) {
   const { error } = await requireAdmin()
@@ -54,30 +55,18 @@ export async function POST(req: NextRequest) {
   const { error } = await requireAdmin()
   if (error) return error
 
-  const body = await req.json()
-  const { enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d,
-    resposta_correta, dificuldade, banca, ano, subject_id, topic_id, explicacao } = body
-
-  if (!enunciado || !resposta_correta || !subject_id) {
-    return NextResponse.json({ error: "Campos obrigatórios faltando" }, { status: 400 })
-  }
-
-  if (typeof enunciado !== "string" || enunciado.length > 5000) {
-    return NextResponse.json({ error: "Enunciado inválido (máx 5000 caracteres)" }, { status: 400 })
-  }
-
-  for (const [name, val] of Object.entries({ alternativa_a, alternativa_b, alternativa_c, alternativa_d, explicacao, banca })) {
-    if (val != null && (typeof val !== "string" || val.length > 2000)) {
-      return NextResponse.json({ error: `${name} inválido (máx 2000 caracteres)` }, { status: 400 })
-    }
+  const body = await req.json().catch(() => null)
+  const parsed = questaoSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Dados inválidos", detalhes: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    )
   }
 
   const { data, error: dbError } = await supabaseAdmin
     .from("questions")
-    .insert({
-      enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d,
-      resposta_correta, dificuldade, banca, ano: Number(ano), subject_id, topic_id, explicacao
-    })
+    .insert(parsed.data)
     .select("id").single()
 
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 })

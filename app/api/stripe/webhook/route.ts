@@ -59,12 +59,17 @@ export async function POST(req: NextRequest) {
           break
         }
 
+        const isTrial = sub.status === "trialing"
+        const trialEndsAt = sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null
+
         await supabaseAdmin
           .from("users")
           .update({
             plano,
             stripe_subscription_id: subscriptionId,
-            subscription_status: "active",
+            subscription_status: isTrial ? "trialing" : "active",
+            cancel_at_period_end: sub.cancel_at_period_end ?? false,
+            ...(isTrial ? { trial_used: true, trial_ends_at: trialEndsAt } : {}),
           })
           .eq("stripe_customer_id", customerId)
 
@@ -100,12 +105,17 @@ export async function POST(req: NextRequest) {
             break
           }
 
+          const isTrial = sub.status === "trialing"
+          const trialEndsAt = sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null
+
           await supabaseAdmin
             .from("users")
             .update({
               plano,
               stripe_subscription_id: sub.id,
-              subscription_status: "active",
+              subscription_status: isTrial ? "trialing" : "active",
+              cancel_at_period_end: sub.cancel_at_period_end ?? false,
+              ...(isTrial ? { trial_used: true, trial_ends_at: trialEndsAt } : {}),
             })
             .eq("stripe_customer_id", customerId)
         } else if (sub.status === "past_due" || sub.status === "unpaid") {
@@ -127,6 +137,7 @@ export async function POST(req: NextRequest) {
             plano: "free",
             stripe_subscription_id: null,
             subscription_status: "canceled",
+            cancel_at_period_end: false,
           })
           .eq("stripe_customer_id", customerId)
         break

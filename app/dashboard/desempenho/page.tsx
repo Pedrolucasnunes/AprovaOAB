@@ -377,15 +377,15 @@ export default function DesempenhoPage() {
                       <XAxis dataKey="date" axisLine={false} tickLine={false} className="text-xs fill-muted-foreground" />
                       <YAxis axisLine={false} tickLine={false} className="text-xs fill-muted-foreground" domain={[0, 100]} />
                       <Tooltip
-                        contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }}
-                        labelStyle={{ color: "hsl(var(--foreground))" }}
+                        contentStyle={{ backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px" }}
+                        labelStyle={{ color: "var(--foreground)" }}
                         formatter={(value) => [`${value}%`, "Nota"]}
                       />
                       <ReferenceLine
                         y={META}
-                        stroke="hsl(var(--muted-foreground))"
+                        stroke="var(--muted-foreground)"
                         strokeDasharray="5 5"
-                        label={{ value: `Meta ${META}%`, position: "insideTopRight", fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                        label={{ value: `Meta ${META}%`, position: "insideTopRight", fontSize: 10, fill: "var(--muted-foreground)" }}
                       />
                       <Area type="monotone" dataKey="nota" stroke="var(--chart-1)" strokeWidth={2} fillOpacity={1} fill="url(#colorNota2)" name="Nota" />
                     </AreaChart>
@@ -528,12 +528,12 @@ export default function DesempenhoPage() {
                       <XAxis dataKey="dia" axisLine={false} tickLine={false} className="text-xs fill-muted-foreground" />
                       <YAxis axisLine={false} tickLine={false} className="text-xs fill-muted-foreground" />
                       <Tooltip
-                        contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }}
-                        labelStyle={{ color: "hsl(var(--foreground))" }}
+                        contentStyle={{ backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px" }}
+                        labelStyle={{ color: "var(--foreground)" }}
                       />
                       <Legend />
                       <Bar dataKey="acertos" fill="var(--chart-1)" name="Acertos" stackId="a" />
-                      <Bar dataKey="erros" fill="var(--chart-2)" name="Erros" stackId="a" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="erros" fill="var(--chart-4)" name="Erros" stackId="a" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

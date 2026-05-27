@@ -11,6 +11,7 @@ import { Pricing } from "@/components/landing/pricing"
 import { FAQ } from "@/components/landing/faq"
 import { CTA } from "@/components/landing/cta"
 import { Footer } from "@/components/landing/footer"
+import { WhatsAppFab } from "@/components/landing/whatsapp-fab"
 import { isTrialEnabled } from "@/lib/trial"
 
 export default function HomePage() {
@@ -33,6 +34,7 @@ export default function HomePage() {
         <CTA />
       </main>
       <Footer />
+      <WhatsAppFab />
     </div>
   )
 }

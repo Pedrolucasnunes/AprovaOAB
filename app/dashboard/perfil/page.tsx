@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { User, Mail, Lock, Trophy, BookOpen, Target, Loader2, ExternalLink, ArrowRight, Sparkles } from "lucide-react"
+import { User, Mail, Lock, Trophy, BookOpen, Target, Loader2, ExternalLink, ArrowRight, Sparkles, MessageCircle } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import { whatsappSupportUrl } from "@/lib/support"
 import { toast } from "sonner"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import Link from "next/link"
@@ -387,6 +388,26 @@ export default function PerfilPage() {
                   </div>
                 </div>
               ))}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <MessageCircle className="h-5 w-5 text-[#25D366]" />
+                Precisa de ajuda?
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Fale com nosso suporte direto pelo WhatsApp. Respondemos em horário comercial.
+              </p>
+              <Button asChild className="w-full bg-[#25D366] hover:bg-[#1FB855] text-white">
+                <a href={whatsappSupportUrl()} target="_blank" rel="noopener noreferrer">
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  Abrir conversa
+                </a>
+              </Button>
             </CardContent>
           </Card>
 

@@ -13,7 +13,9 @@ import {
   User,
   LogOut,
   CalendarDays,
+  MessageCircle,
 } from "lucide-react"
+import { whatsappSupportUrl } from "@/lib/support"
 import {
   Sidebar,
   SidebarContent,
@@ -169,6 +171,17 @@ export function AppSidebar() {
                     <User className="h-4 w-4" />
                     Perfil
                   </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <a
+                    href={whatsappSupportUrl()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2"
+                  >
+                    <MessageCircle className="h-4 w-4 text-[#25D366]" />
+                    Suporte via WhatsApp
+                  </a>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem

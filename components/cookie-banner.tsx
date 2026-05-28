@@ -138,6 +138,7 @@ export function CookieBanner() {
                   onCheckedChange={(checked) =>
                     setPrefs((p) => ({ ...p, analytics: checked }))
                   }
+                  className="cursor-pointer hover:brightness-110"
                 />
               </div>
             </div>
@@ -159,6 +160,7 @@ export function CookieBanner() {
                   onCheckedChange={(checked) =>
                     setPrefs((p) => ({ ...p, marketing: checked }))
                   }
+                  className="cursor-pointer hover:brightness-110"
                 />
               </div>
             </div>

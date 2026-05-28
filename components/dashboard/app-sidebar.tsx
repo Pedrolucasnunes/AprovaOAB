@@ -167,7 +167,7 @@ export function AppSidebar() {
 
               <DropdownMenuContent side="top" align="start" className="w-56">
                 <DropdownMenuItem asChild>
-                  <Link href="/dashboard/perfil" className="flex items-center gap-2">
+                  <Link href="/dashboard/perfil" className="flex items-center gap-2 cursor-pointer">
                     <User className="h-4 w-4" />
                     Perfil
                   </Link>
@@ -177,7 +177,7 @@ export function AppSidebar() {
                     href={whatsappSupportUrl()}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 cursor-pointer"
                   >
                     <MessageCircle className="h-4 w-4 text-[#25D366]" />
                     Suporte via WhatsApp

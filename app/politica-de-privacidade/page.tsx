@@ -18,7 +18,7 @@ export default function PoliticaDePrivacidadePage() {
         </Link>
 
         <h1 className="mb-2 text-3xl font-bold text-foreground">Política de Privacidade</h1>
-        <p className="mb-10 text-sm text-muted-foreground">Última atualização: abril de 2026</p>
+        <p className="mb-10 text-sm text-muted-foreground">Última atualização: maio de 2026</p>
 
         <div className="space-y-8 text-sm leading-7 text-muted-foreground">
           <section>
@@ -92,7 +92,38 @@ export default function PoliticaDePrivacidadePage() {
           </section>
 
           <section>
-            <h2 className="mb-3 text-base font-semibold text-foreground">8. Contato</h2>
+            <h2 className="mb-3 text-base font-semibold text-foreground">8. Cookies e tecnologias de rastreamento</h2>
+            <p>
+              Utilizamos <strong className="text-foreground">Google Tag Manager</strong> e{" "}
+              <strong className="text-foreground">Google Analytics 4</strong> para coletar
+              métricas anônimas de uso — páginas visitadas, jornada dentro da plataforma e tipo
+              de dispositivo. Esses dados nos ajudam a entender quais funcionalidades ajudam mais
+              na sua preparação.
+            </p>
+            <p className="mt-3">
+              <strong className="text-foreground">Base legal:</strong> consentimento explícito.
+              Na sua primeira visita, exibimos um aviso de cookies onde você pode aceitar todos,
+              recusar ou personalizar suas escolhas. Por padrão, nenhum cookie de análise ou
+              marketing é ativado antes do seu consentimento (Google Consent Mode v2).
+            </p>
+            <p className="mt-3">
+              Você pode revisar ou alterar suas preferências a qualquer momento clicando em{" "}
+              <strong className="text-foreground">"Gerenciar cookies"</strong> no rodapé do site.
+              Saiba mais sobre como o Google processa esses dados em{" "}
+              <a
+                href="https://policies.google.com/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                policies.google.com/privacy
+              </a>
+              .
+            </p>
+          </section>
+
+          <section>
+            <h2 className="mb-3 text-base font-semibold text-foreground">9. Contato</h2>
             <p>
               Dúvidas sobre esta política? Entre em contato pelo e-mail{" "}
               <a href="mailto:contato@aprovaoab.app.br" className="text-primary hover:underline">

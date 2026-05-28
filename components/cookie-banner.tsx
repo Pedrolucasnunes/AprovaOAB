@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
+import { Cookie } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -69,31 +70,34 @@ export function CookieBanner() {
           role="dialog"
           aria-live="polite"
           aria-label="Aviso de cookies"
-          className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/95 p-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/80"
+          className="fixed bottom-24 right-6 z-50 w-[calc(100%-3rem)] max-w-sm rounded-lg border border-border bg-background/95 p-5 shadow-xl backdrop-blur supports-[backdrop-filter]:bg-background/85 animate-in slide-in-from-bottom-4 fade-in duration-300"
         >
-          <div className="mx-auto flex max-w-5xl flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="text-sm text-muted-foreground">
-              <p>
-                Usamos cookies para analisar o uso da plataforma e melhorar sua experiência.
-                Você pode aceitar todos, recusar ou personalizar suas escolhas. Leia mais na{" "}
-                <Link href="/politica-de-privacidade" className="text-primary underline-offset-4 hover:underline">
-                  Política de Privacidade
-                </Link>
-                .
-              </p>
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-              <Button variant="ghost" size="sm" onClick={rejectAll}>
-                Recusar
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setPrefsOpen(true)}>
-                Personalizar
-              </Button>
-              <Button size="sm" onClick={acceptAll}>
-                Aceitar todos
-              </Button>
-            </div>
+          <div className="flex items-center gap-2">
+            <Cookie className="h-4 w-4 text-primary" />
+            <h2 className="text-sm font-semibold text-foreground">Privacidade & cookies</h2>
           </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Usamos cookies pra entender como você usa o AprovaOAB. Veja na{" "}
+            <Link href="/politica-de-privacidade" className="text-primary underline-offset-4 hover:underline">
+              Política de Privacidade
+            </Link>
+            .
+          </p>
+          <div className="mt-4 flex flex-col gap-2">
+            <Button size="sm" onClick={acceptAll} className="w-full">
+              Aceitar todos
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setPrefsOpen(true)} className="w-full">
+              Personalizar
+            </Button>
+          </div>
+          <button
+            type="button"
+            onClick={rejectAll}
+            className="mt-3 mx-auto block text-xs text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
+          >
+            Recusar todos
+          </button>
         </div>
       )}
 

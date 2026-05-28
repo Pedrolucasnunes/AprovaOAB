@@ -1,5 +1,9 @@
 import Link from "next/link"
 
+import { CookiePreferencesTrigger } from "@/components/cookie-preferences-trigger"
+
+const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID
+
 export function Footer() {
   return (
     <footer className="border-t border-border py-14">
@@ -83,6 +87,11 @@ export function Footer() {
                   Privacidade
                 </Link>
               </li>
+              {GTM_ID && (
+                <li>
+                  <CookiePreferencesTrigger />
+                </li>
+              )}
             </ul>
           </div>
         </div>

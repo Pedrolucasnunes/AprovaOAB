@@ -126,8 +126,8 @@ export default function PoliticaDePrivacidadePage() {
             <h2 className="mb-3 text-base font-semibold text-foreground">9. Contato</h2>
             <p>
               Dúvidas sobre esta política? Entre em contato pelo e-mail{" "}
-              <a href="mailto:contato@aprovaoab.app.br" className="text-primary hover:underline">
-                contato@aprovaoab.app.br
+              <a href="mailto:contato.aprovaoab@gmail.com" className="text-primary hover:underline">
+                contato.aprovaoab@gmail.com
               </a>
               .
             </p>

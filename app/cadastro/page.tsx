@@ -120,6 +120,13 @@ export default function CadastroPage() {
       return
     }
 
+    // Boas-vindas (best-effort — não bloqueia a ativação da conta)
+    try {
+      await fetch("/api/auth/welcome", { method: "POST" })
+    } catch {
+      // ignora — ativação não pode falhar por causa do e-mail
+    }
+
     await supabase.auth.signOut()
     setStep("success")
   }

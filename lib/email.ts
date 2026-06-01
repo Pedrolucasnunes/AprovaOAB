@@ -48,6 +48,77 @@ export async function sendWelcomeProEmail(opts: {
   }
 }
 
+export async function sendWelcomeFreeEmail(opts: {
+  toEmail: string
+  firstName: string | null
+}): Promise<void> {
+  if (!resend) {
+    logWarning("RESEND_API_KEY não configurada, pulando email", {
+      area: "email",
+      phase: "send-welcome-free",
+    })
+    return
+  }
+
+  const greeting = opts.firstName ? `Olá, ${opts.firstName}!` : "Olá!"
+  const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://www.aprovaoab.app.br"}/dashboard`
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: opts.toEmail,
+      subject: "Bem-vindo ao AprovaOAB! 🎉",
+      html: buildWelcomeFreeHtml({ greeting, dashboardUrl }),
+    })
+  } catch (err) {
+    logError(err, { area: "email", phase: "send-welcome-free" })
+    // Não propaga — cadastro não deve falhar por causa de email
+  }
+}
+
+const FREE_FEATURES = [
+  "10 questões comentadas por dia",
+  "Treino inteligente focado nas suas dificuldades",
+  "Agenda inteligente de estudos personalizada",
+]
+
+function buildWelcomeFreeHtml(o: {
+  greeting: string
+  dashboardUrl: string
+}): string {
+  const featuresHtml = FREE_FEATURES
+    .map((f) => `<li style="margin: 8px 0; color: #1f2937; padding-left: 24px; position: relative;"><span style="position: absolute; left: 0; color: #10b981; font-weight: bold;">✓</span> ${f}</li>`)
+    .join("")
+
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Bem-vindo ao AprovaOAB</title></head>
+<body style="margin: 0; padding: 32px 16px; background-color: #f9fafb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <div style="max-width: 560px; margin: 0 auto; background-color: white; border-radius: 12px; padding: 40px 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+    <h1 style="margin: 0 0 8px 0; color: #10b981; font-size: 28px; font-weight: 700;">Bem-vindo ao AprovaOAB!</h1>
+    <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 16px;">${o.greeting}</p>
+    <p style="margin: 0 0 16px 0; color: #1f2937; font-size: 15px; line-height: 1.6;">
+      Sua conta está ativa e sua preparação para a OAB começa agora. Já dá pra usar:
+    </p>
+    <ul style="margin: 0 0 32px 0; padding: 0; list-style: none;">
+      ${featuresHtml}
+    </ul>
+    <a href="${o.dashboardUrl}" style="display: inline-block; padding: 12px 24px; background-color: #10b981; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px;">
+      Ir pro meu painel
+    </a>
+    <p style="margin: 32px 0 0 0; color: #4b5563; font-size: 14px; line-height: 1.6;">
+      Quando quiser questões ilimitadas e simulados completos da OAB (80 questões), conheça os planos
+      <strong style="color: #1f2937;">Pro</strong> e <strong style="color: #1f2937;">Aprovação</strong> direto no painel.
+    </p>
+    <p style="margin: 24px 0 0 0; color: #9ca3af; font-size: 13px; line-height: 1.5;">
+      Bons estudos!<br>
+      Time AprovaOAB
+    </p>
+  </div>
+</body>
+</html>`
+}
+
 function buildWelcomeHtml(o: {
   greeting: string
   planoLabel: string

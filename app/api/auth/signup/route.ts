@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     },
   )
 
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: { data: { full_name: name } },
@@ -62,6 +62,17 @@ export async function POST(req: NextRequest) {
       )
     }
     return NextResponse.json({ error: error.message }, { status: 400 })
+  }
+
+  // Proteção contra enumeração de e-mails: quando a conta já existe e está
+  // confirmada, o Supabase NÃO retorna erro nem envia e-mail — apenas devolve
+  // o user com identities vazio. Sem isso, o usuário ia parar na tela de OTP
+  // esperando um código que nunca chega.
+  if (data.user && data.user.identities?.length === 0) {
+    return NextResponse.json(
+      { error: "Este e-mail já está cadastrado. Faça login." },
+      { status: 409 },
+    )
   }
 
   await supabase.auth.signOut()

@@ -108,7 +108,7 @@ export default function CadastroPage() {
     }
 
     setIsLoading(true)
-    const { error: verifyError } = await supabase.auth.verifyOtp({
+    const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
       email: emailCadastro,
       token,
       type: "signup",
@@ -120,9 +120,14 @@ export default function CadastroPage() {
       return
     }
 
-    // Boas-vindas (best-effort — não bloqueia a ativação da conta)
+    // Boas-vindas (best-effort — não bloqueia a ativação da conta).
+    // Passa o token da sessão recém-criada em vez de depender do cookie.
     try {
-      await fetch("/api/auth/welcome", { method: "POST" })
+      const accessToken = verifyData.session?.access_token
+      await fetch("/api/auth/welcome", {
+        method: "POST",
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+      })
     } catch {
       // ignora — ativação não pode falhar por causa do e-mail
     }

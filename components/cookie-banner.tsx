@@ -24,9 +24,6 @@ import {
   setStoredConsent,
 } from "@/lib/consent"
 
-const ALL_GRANTED: ConsentPreferences = { analytics: true, marketing: true }
-const ALL_DENIED: ConsentPreferences = { analytics: false, marketing: false }
-
 export function CookieBanner() {
   const [bannerOpen, setBannerOpen] = useState(false)
   const [prefsOpen, setPrefsOpen] = useState(false)
@@ -59,8 +56,7 @@ export function CookieBanner() {
     setPrefsOpen(false)
   }, [])
 
-  const acceptAll = () => persist(ALL_GRANTED)
-  const rejectAll = () => persist(ALL_DENIED)
+  const acknowledge = () => persist(prefs)
   const savePrefs = () => persist(prefs)
 
   return (
@@ -77,27 +73,21 @@ export function CookieBanner() {
             <h2 className="text-sm font-semibold text-foreground">Privacidade & cookies</h2>
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
-            Usamos cookies pra entender como você usa o AprovaOAB. Veja na{" "}
+            Usamos cookies de análise pra entender como você usa o AprovaOAB e melhorar a
+            plataforma. Você pode recusar ou personalizar a qualquer momento. Saiba mais na{" "}
             <Link href="/politica-de-privacidade" className="text-primary underline-offset-4 hover:underline">
               Política de Privacidade
             </Link>
             .
           </p>
           <div className="mt-4 flex flex-col gap-2">
-            <Button size="sm" onClick={acceptAll} className="w-full">
-              Aceitar todos
+            <Button size="sm" onClick={acknowledge} className="w-full">
+              Entendi
             </Button>
             <Button variant="outline" size="sm" onClick={() => setPrefsOpen(true)} className="w-full">
-              Personalizar
+              Gerenciar cookies
             </Button>
           </div>
-          <button
-            type="button"
-            onClick={rejectAll}
-            className="mt-3 mx-auto block text-xs text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
-          >
-            Recusar todos
-          </button>
         </div>
       )}
 

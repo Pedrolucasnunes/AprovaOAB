@@ -9,8 +9,10 @@ export type StoredConsent = ConsentPreferences & {
 
 const STORAGE_KEY = "aprovaoab_consent_v1"
 
+// Análise é ligada por padrão (legítimo interesse / opt-out — métricas anônimas).
+// Marketing continua exigindo consentimento explícito (opt-in).
 export const DEFAULT_PREFERENCES: ConsentPreferences = {
-  analytics: false,
+  analytics: true,
   marketing: false,
 }
 

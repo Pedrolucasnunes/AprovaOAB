@@ -5,6 +5,7 @@ import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from "sonner"
 import { CookieBanner } from '@/components/cookie-banner'
+import { ClarityAnalytics } from '@/components/clarity-analytics'
 import './globals.css'
 
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID
@@ -83,6 +84,7 @@ export default function RootLayout({
           {children}
         </ThemeProvider>
         <Analytics />
+        <ClarityAnalytics />
         <Toaster richColors position="top-right" />
         {GTM_ID && <CookieBanner />}
       </body>

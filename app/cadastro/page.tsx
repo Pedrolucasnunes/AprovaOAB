@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft, Eye, EyeOff, Check, Mail } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import { trackEvent } from "@/lib/analytics"
 
 type Step = "form" | "verify" | "success"
 
@@ -22,6 +23,7 @@ export default function CadastroPage() {
   const inputsRef = useRef<(HTMLInputElement | null)[]>([])
 
   const handleGoogleLogin = async () => {
+    trackEvent("cadastro_google_click")
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback` },
@@ -69,6 +71,8 @@ export default function CadastroPage() {
     }
 
     setEmailCadastro(email)
+    // Funil: dados preenchidos e código OTP enviado (passo 1 → 2)
+    trackEvent("cadastro_form_enviado")
     setStep("verify")
   }
 
@@ -131,6 +135,9 @@ export default function CadastroPage() {
     } catch {
       // ignora — ativação não pode falhar por causa do e-mail
     }
+
+    // Funil: OTP confirmado, conta ativada (passo 2 → 3 — fim do funil)
+    trackEvent("conta_ativada")
 
     await supabase.auth.signOut()
     setStep("success")

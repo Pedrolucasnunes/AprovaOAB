@@ -101,10 +101,14 @@ export default function PoliticaDePrivacidadePage() {
               na sua preparação.
             </p>
             <p className="mt-3">
-              <strong className="text-foreground">Base legal:</strong> consentimento explícito.
-              Na sua primeira visita, exibimos um aviso de cookies onde você pode aceitar todos,
-              recusar ou personalizar suas escolhas. Por padrão, nenhum cookie de análise ou
-              marketing é ativado antes do seu consentimento (Google Consent Mode v2).
+              <strong className="text-foreground">Base legal:</strong> os cookies de{" "}
+              <strong className="text-foreground">análise</strong> (Google Analytics) são tratados
+              com fundamento no <strong className="text-foreground">legítimo interesse</strong>,
+              coletando apenas métricas anônimas — ficam ativos por padrão, e você pode recusá-los
+              a qualquer momento (opt-out). Já os cookies de{" "}
+              <strong className="text-foreground">marketing</strong> dependem do seu{" "}
+              <strong className="text-foreground">consentimento explícito</strong> e permanecem
+              desativados até que você os autorize. Tudo é controlado via Google Consent Mode v2.
             </p>
             <p className="mt-3">
               Você pode revisar ou alterar suas preferências a qualquer momento clicando em{" "}

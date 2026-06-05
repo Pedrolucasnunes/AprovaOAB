@@ -34,21 +34,23 @@ const QUESTION_FIELDS =
 
 // Matérias que têm ao menos 1 questão, com slug e contagem (capada no teto público).
 export async function getPublicSubjects(): Promise<PublicSubject[]> {
-  const [{ data: subjects }, { data: counts }] = await Promise.all([
-    supabaseAdmin.from("subjects").select("id, name").order("name"),
-    supabaseAdmin.from("questions").select("subject_id"),
-  ])
+  const { data: subjects } = await supabaseAdmin
+    .from("subjects")
+    .select("id, name")
+    .order("name")
 
-  const countMap = new Map<string, number>()
-  for (const row of counts ?? []) {
-    const sid = (row as { subject_id: string | null }).subject_id
-    if (sid) countMap.set(sid, (countMap.get(sid) ?? 0) + 1)
-  }
-
-  return (subjects ?? [])
-    .map((s) => {
+  // Conta por matéria com `count: "exact", head: true` (não traz linhas).
+  // NÃO usar um select("subject_id") global: o PostgREST capa a resposta em 1000
+  // linhas por padrão, então matérias cujas questões ficam além da linha 1000
+  // sumiriam do site (count 0 → filtradas). Uma contagem por matéria é imune a isso.
+  const result = await Promise.all(
+    (subjects ?? []).map(async (s) => {
       const subj = s as { id: string; name: string }
-      const raw = countMap.get(subj.id) ?? 0
+      const { count } = await supabaseAdmin
+        .from("questions")
+        .select("id", { count: "exact", head: true })
+        .eq("subject_id", subj.id)
+      const raw = count ?? 0
       return {
         id: subj.id,
         name: subj.name,
@@ -56,7 +58,9 @@ export async function getPublicSubjects(): Promise<PublicSubject[]> {
         count: Math.min(raw, PUBLIC_QUESTIONS_PER_SUBJECT),
       }
     })
-    .filter((s) => s.count > 0)
+  )
+
+  return result.filter((s) => s.count > 0)
 }
 
 // As N questões públicas de uma matéria — ordem determinística (estável entre builds).

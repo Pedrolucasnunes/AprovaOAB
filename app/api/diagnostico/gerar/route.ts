@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { requireUser } from "@/lib/auth-server"
+import { fetchAllRows, fetchByIds } from "@/lib/supabase-paginate"
 
 interface QuestionRow {
   id: string
@@ -32,23 +33,26 @@ export async function GET() {
     )
   }
 
-  const { data: simAttempts } = await supabase
-    .from("simulado_attempts")
-    .select("id")
-    .eq("user_id", user.id)
+  // Conjunto de já respondidas — paginado (usuário ativo passa de 1000 registros).
+  const attemptIds = (
+    await fetchAllRows<{ id: string }>(
+      () => supabase.from("simulado_attempts").select("id").eq("user_id", user.id),
+    )
+  ).map((a) => a.id)
 
-  const attemptIds = (simAttempts ?? []).map((a) => a.id)
-
-  const [{ data: simResp }, { data: treinoResp }] = await Promise.all([
-    attemptIds.length > 0
-      ? supabase.from("simulado_respostas").select("question_id").in("attempt_id", attemptIds)
-      : Promise.resolve({ data: [] }),
-    supabase.from("question_attempts").select("question_id").eq("user_id", user.id),
+  const [simResp, treinoResp] = await Promise.all([
+    fetchByIds<{ question_id: string }>(
+      (ids) => supabase.from("simulado_respostas").select("question_id").in("attempt_id", ids),
+      attemptIds,
+    ),
+    fetchAllRows<{ question_id: string }>(
+      () => supabase.from("question_attempts").select("question_id").eq("user_id", user.id),
+    ),
   ])
 
   const respondidas = new Set<string>([
-    ...(simResp ?? []).map((r) => r.question_id),
-    ...(treinoResp ?? []).map((r) => r.question_id),
+    ...simResp.map((r) => r.question_id),
+    ...treinoResp.map((r) => r.question_id),
   ])
 
   const selecionadas: QuestionRow[] = []
@@ -56,20 +60,18 @@ export async function GET() {
 
   async function pegarQuestoesDeSubjects(subjectIds: string[], qtd: number): Promise<QuestionRow[]> {
     if (subjectIds.length === 0 || qtd === 0) return []
-    const excluir = [...respondidas, ...usadasIds]
+    const excluir = new Set<string>([...respondidas, ...usadasIds])
 
-    let query = supabase
-      .from("questions")
-      .select("id, enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d, subject_id")
-      .in("subject_id", subjectIds)
-      .limit(qtd * 5)
-
-    if (excluir.length > 0) {
-      query = query.not("id", "in", `(${excluir.join(",")})`)
-    }
-
-    const { data } = await query
-    const embaralhadas = (data ?? []).sort(() => Math.random() - 0.5)
+    // Pagina os candidatos e exclui em JS (sem .not(id in ...) na URL).
+    const candidatos = await fetchAllRows<QuestionRow>(
+      () => supabase
+        .from("questions")
+        .select("id, enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d, subject_id")
+        .in("subject_id", subjectIds),
+    )
+    const embaralhadas = candidatos
+      .filter((q) => !excluir.has(q.id))
+      .sort(() => Math.random() - 0.5)
 
     const resultado: QuestionRow[] = []
     const subjectsUsadas = new Set<string>()
@@ -111,18 +113,24 @@ export async function GET() {
 
   if (selecionadas.length < 5) {
     const restante = 5 - selecionadas.length
-    let query = supabase
-      .from("questions")
-      .select("id, enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d, subject_id")
-      .limit(restante * 5)
+    const excluir = new Set<string>([...respondidas, ...usadasIds])
 
-    const excluir = [...respondidas, ...usadasIds]
-    if (excluir.length > 0) {
-      query = query.not("id", "in", `(${excluir.join(",")})`)
-    }
+    // Banco inteiro (>1000): pega os ids paginados, filtra/sorteia em JS e busca os campos das escolhidas.
+    const candidatoIds = (
+      await fetchAllRows<{ id: string }>(() => supabase.from("questions").select("id"))
+    )
+      .map((c) => c.id)
+      .filter((id) => !excluir.has(id))
+      .sort(() => Math.random() - 0.5)
+      .slice(0, restante)
 
-    const { data } = await query
-    const extras = (data ?? []).sort(() => Math.random() - 0.5).slice(0, restante)
+    const extras = await fetchByIds<QuestionRow>(
+      (ids) => supabase
+        .from("questions")
+        .select("id, enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d, subject_id")
+        .in("id", ids),
+      candidatoIds,
+    )
     extras.forEach((q) => { selecionadas.push(q); usadasIds.add(q.id) })
   }
 

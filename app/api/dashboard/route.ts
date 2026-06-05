@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireUser } from "@/lib/auth-server"
 import { inicioDoDiaBR, hojeStringBR, diaDaSemanaBR } from "@/lib/check-daily-limit"
+import { fetchAllRows, fetchByIds } from "@/lib/supabase-paginate"
 import { logError } from "@/lib/logger"
 
 export async function GET(req: NextRequest) {
@@ -66,7 +67,7 @@ export async function GET(req: NextRequest) {
   // 2. Último simulado + todos os finalizados (para taxa geral OAB)
   const [
     { data: ultimoSimulado, error: simError },
-    { data: simuladosFinalizados },
+    simuladosFinalizados,
   ] = await Promise.all([
     supabase
       .from("simulados")
@@ -75,11 +76,14 @@ export async function GET(req: NextRequest) {
       .order("created_at", { ascending: false })
       .limit(1)
       .single(),
-    supabase
-      .from("simulados")
-      .select("acertos, numero_questoes")
-      .eq("user_id", userId)
-      .not("percentual", "is", null),
+    // Pagina: um usuário ativo pode passar de 1000 simulados finalizados.
+    fetchAllRows<{ acertos: number; numero_questoes: number }>(
+      () => supabase
+        .from("simulados")
+        .select("acertos, numero_questoes")
+        .eq("user_id", userId)
+        .not("percentual", "is", null),
+    ),
   ])
 
   if (simError && simError.code !== "PGRST116") {
@@ -114,32 +118,31 @@ export async function GET(req: NextRequest) {
   }))
 
   // 5. Desempenho por matéria — apenas simulados
-  const { data: simAttempts } = await supabase
-    .from("simulado_attempts")
-    .select("id, question_id")
-    .eq("user_id", userId)
+  const simAttempts = await fetchAllRows<{ id: string; question_id: string }>(
+    () => supabase.from("simulado_attempts").select("id, question_id").eq("user_id", userId),
+  )
 
-  const simAttemptIds = (simAttempts ?? []).map((a) => a.id)
+  const simAttemptIds = simAttempts.map((a) => a.id)
 
   let desempenhoPorMateria: {
     subject_id: string; nome: string; total: number; acertos: number; taxa_acerto: number
   }[] = []
 
   if (simAttemptIds.length > 0) {
-    const { data: simRespostas } = await supabase
-      .from("simulado_respostas")
-      .select("question_id, acertou")
-      .in("attempt_id", simAttemptIds)
+    const simRespostas = await fetchByIds<{ question_id: string; acertou: boolean }>(
+      (ids) => supabase.from("simulado_respostas").select("question_id, acertou").in("attempt_id", ids),
+      simAttemptIds,
+    )
 
-    if (simRespostas && simRespostas.length > 0) {
+    if (simRespostas.length > 0) {
       const qIds = [...new Set(simRespostas.map((r) => r.question_id))]
 
-      const { data: simQuestions } = await supabase
-        .from("questions")
-        .select("id, subject_id")
-        .in("id", qIds)
+      const simQuestions = await fetchByIds<{ id: string; subject_id: string }>(
+        (ids) => supabase.from("questions").select("id, subject_id").in("id", ids),
+        qIds,
+      )
 
-      const qSubjectMap = Object.fromEntries((simQuestions ?? []).map((q) => [q.id, q.subject_id]))
+      const qSubjectMap = Object.fromEntries(simQuestions.map((q) => [q.id, q.subject_id]))
       const subjectStats = new Map<string, { total: number; acertos: number }>()
 
       for (const r of simRespostas) {
@@ -222,13 +225,13 @@ export async function GET(req: NextRequest) {
 
   if ((materiasRiscoRaw ?? []).length > 0) {
     if (recentAttempts && recentAttempts.length > 0) {
-      const qIds = [...new Set(recentAttempts.map((a) => a.question_id))]
-      const { data: qRows } = await supabase
-        .from("questions")
-        .select("id, subject_id")
-        .in("id", qIds)
+      const qIds = [...new Set(recentAttempts.map((a) => a.question_id))] as string[]
+      const qRows = await fetchByIds<{ id: string; subject_id: string }>(
+        (ids) => supabase.from("questions").select("id, subject_id").in("id", ids),
+        qIds,
+      )
 
-      const qSubMap = Object.fromEntries((qRows ?? []).map((q) => [q.id, q.subject_id]))
+      const qSubMap = Object.fromEntries(qRows.map((q) => [q.id, q.subject_id]))
       const lastPractice = new Map<string, Date>()
 
       for (const a of recentAttempts) {

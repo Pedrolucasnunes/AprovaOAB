@@ -4,6 +4,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ArrowRight } from "lucide-react"
 import { FadeIn } from "@/components/ui/fade-in"
+import { trackEvent } from "@/lib/analytics"
 import { useEffect, useRef } from "react"
 
 const bars = [
@@ -89,7 +90,10 @@ export function Hero() {
                   asChild
                   className="w-full gap-2 py-6 text-base font-semibold sm:w-fit sm:px-8"
                 >
-                  <Link href="/cadastro">
+                  <Link
+                    href="/cadastro"
+                    onClick={() => trackEvent("hero_cta_click", { location: "hero" })}
+                  >
                     Começar diagnóstico gratuito
                     <ArrowRight className="h-4 w-4" />
                   </Link>

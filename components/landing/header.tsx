@@ -24,6 +24,12 @@ export function Header() {
 
         {/* Nav desktop */}
         <nav className="hidden items-center gap-8 md:flex">
+          <Link href="/questoes" className="flex items-center gap-1.5 font-mono text-sm text-muted-foreground transition-colors hover:text-foreground">
+            Questões
+            <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+              grátis
+            </span>
+          </Link>
           <Link href="#como-funciona" className="font-mono text-sm text-muted-foreground transition-colors hover:text-foreground">
             Como funciona
           </Link>
@@ -65,6 +71,16 @@ export function Header() {
       {isMenuOpen && (
         <div className="border-t border-border bg-background px-4 py-5 md:hidden">
           <nav className="flex flex-col gap-1">
+            <Link
+              href="/questoes"
+              className="flex items-center gap-2 rounded-lg px-3 py-3 font-mono text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Questões
+              <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                grátis
+              </span>
+            </Link>
             <Link
               href="#como-funciona"
               className="rounded-lg px-3 py-3 font-mono text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"

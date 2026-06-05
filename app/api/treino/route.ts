@@ -2,7 +2,19 @@ import { NextRequest, NextResponse } from "next/server"
 import { requireUser } from "@/lib/auth-server"
 import { rateLimit } from "@/lib/rate-limit"
 import { checkDailyLimit } from "@/lib/check-daily-limit"
+import { fetchAllRows, fetchByIds } from "@/lib/supabase-paginate"
 import { logError } from "@/lib/logger"
+
+type QuestaoTreino = {
+  id: string
+  enunciado: string
+  alternativa_a: string
+  alternativa_b: string
+  alternativa_c: string
+  alternativa_d: string
+  subject_id: string
+  topic_id: string | null
+}
 
 export async function POST(req: NextRequest) {
   const rl = await rateLimit(req, "treino", 30, 60)
@@ -15,7 +27,7 @@ export async function POST(req: NextRequest) {
 
   const userId = user.id
 
-  let body: any
+  let body: { quantidade?: unknown; materia?: unknown }
   try {
     body = await req.json()
   } catch {
@@ -62,53 +74,64 @@ export async function POST(req: NextRequest) {
   let qtdRisco = sessaoFocada ? totalQuestoes : Math.round(totalQuestoes * 0.7)
   let qtdGeral = totalQuestoes - qtdRisco
 
-  // 1. Questões já acertadas pelo usuário (simulados + treino avulso em paralelo)
-  const { data: attemptsData } = await supabase
-    .from("simulado_attempts")
-    .select("id")
-    .eq("user_id", userId)
+  // 1. Questões já acertadas pelo usuário (simulados + treino avulso em paralelo).
+  //    Paginado: um usuário ativo pode passar de 1000 acertos.
+  const attemptIds = (
+    await fetchAllRows<{ id: string }>(
+      () => supabase.from("simulado_attempts").select("id").eq("user_id", userId),
+    )
+  ).map((a) => a.id)
 
-  const attemptIds = (attemptsData ?? []).map((a) => a.id)
-
-  const [simAcertouResult, treinoAcertouResult] = await Promise.all([
-    attemptIds.length > 0
-      ? supabase
-          .from("simulado_respostas")
-          .select("question_id")
-          .eq("acertou", true)
-          .in("attempt_id", attemptIds)
-      : Promise.resolve({ data: [] }),
-
-    supabase
-      .from("question_attempts")
-      .select("question_id")
-      .eq("user_id", userId)
-      .eq("acertou", true),
+  const [simAcertou, treinoAcertou] = await Promise.all([
+    fetchByIds<{ question_id: string }>(
+      (ids) => supabase.from("simulado_respostas").select("question_id").eq("acertou", true).in("attempt_id", ids),
+      attemptIds,
+    ),
+    fetchAllRows<{ question_id: string }>(
+      () => supabase.from("question_attempts").select("question_id").eq("user_id", userId).eq("acertou", true),
+    ),
   ])
 
-  const idsJaAcertou = [
-    ...new Set([
-      ...(simAcertouResult.data ?? []).map((r) => r.question_id),
-      ...(treinoAcertouResult.data ?? []).map((r) => r.question_id),
-    ]),
-  ]
+  const idsJaAcertou = new Set<string>([
+    ...simAcertou.map((r) => r.question_id),
+    ...treinoAcertou.map((r) => r.question_id),
+  ])
+
+  // Sorteia `n` questões de um escopo (matérias ou banco todo), excluindo ids já usados.
+  // Filtra em JS (sem .not(id in ...) na URL, que estoura com muitos UUIDs) e pagina os
+  // candidatos (o banco passa de 1000). Busca os campos completos só das escolhidas.
+  const QFIELDS =
+    "id, enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d, subject_id, topic_id"
+  async function sortearQuestoes(
+    n: number,
+    subjectIds: string[] | null,
+    excluir: Set<string>,
+  ): Promise<QuestaoTreino[]> {
+    if (n <= 0) return []
+    try {
+      const candidatos = await fetchAllRows<{ id: string }>(() => {
+        let q = supabase.from("questions").select("id")
+        if (subjectIds) q = q.in("subject_id", subjectIds)
+        return q
+      })
+      const escolhidos = candidatos
+        .map((c) => c.id)
+        .filter((id) => !excluir.has(id))
+        .sort(() => Math.random() - 0.5)
+        .slice(0, n)
+      return await fetchByIds<QuestaoTreino>(
+        (ids) => supabase.from("questions").select(QFIELDS).in("id", ids),
+        escolhidos,
+      )
+    } catch (err) {
+      logError(err, { area: "treino", userId, phase: "sortear-questoes" })
+      return []
+    }
+  }
 
   // 1.5. Modo focado — uma matéria específica (vindo do mini-diagnóstico)
   if (materiaFiltrada) {
-    let queryFocada = supabase
-      .from("questions")
-      .select("id, enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d, subject_id, topic_id")
-      .eq("subject_id", materiaFiltrada)
-      .limit(totalQuestoes * 5)
-
-    if (idsJaAcertou.length > 0) {
-      queryFocada = queryFocada.not("id", "in", `(${idsJaAcertou.join(",")})`)
-    }
-
-    const { data: focadasData } = await queryFocada
-    const questoesFocadas = (focadasData ?? [])
-      .sort(() => Math.random() - 0.5)
-      .slice(0, totalQuestoes)
+    const questoesFocadas = await sortearQuestoes(totalQuestoes, [materiaFiltrada], idsJaAcertou)
 
     const { data: subjectFocada } = await supabase
       .from("subjects")
@@ -152,49 +175,15 @@ export async function POST(req: NextRequest) {
   }
 
   // 3. Questões das matérias em risco (70%)
-  let questoesRisco: any[] = []
+  let questoesRisco: QuestaoTreino[] = []
 
   if (subjectIdsRisco.length > 0) {
-    let query = supabase
-      .from("questions")
-      .select("id, enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d, subject_id, topic_id")
-      .in("subject_id", subjectIdsRisco)
-      .limit(qtdRisco * 5)
-
-    if (idsJaAcertou.length > 0) {
-      query = query.not("id", "in", `(${idsJaAcertou.join(",")})`)
-    }
-
-    const { data, error: riscoError } = await query
-
-    if (riscoError) {
-      logError(riscoError, { area: "treino", userId, phase: "fetch-risco" })
-    }
-
-    questoesRisco = (data ?? []).sort(() => Math.random() - 0.5).slice(0, qtdRisco)
+    questoesRisco = await sortearQuestoes(qtdRisco, subjectIdsRisco, idsJaAcertou)
   }
 
-  // 4. Questões gerais (30%)
-  const idsJaSelecionados = [...idsJaAcertou, ...questoesRisco.map((q) => q.id)]
-
-  let queryGeral = supabase
-    .from("questions")
-    .select("id, enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d, subject_id, topic_id")
-    .limit(qtdGeral * 5)
-
-  if (idsJaSelecionados.length > 0) {
-    queryGeral = queryGeral.not("id", "in", `(${idsJaSelecionados.join(",")})`)
-  }
-
-  const { data: questoesGeral, error: geralError } = await queryGeral
-
-  if (geralError) {
-    logError(geralError, { area: "treino", userId, phase: "fetch-geral" })
-  }
-
-  const questoesGeralSelecionadas = (questoesGeral ?? [])
-    .sort(() => Math.random() - 0.5)
-    .slice(0, qtdGeral)
+  // 4. Questões gerais (30%) — exclui as já acertadas e as já escolhidas no bloco de risco
+  const idsJaSelecionados = new Set<string>([...idsJaAcertou, ...questoesRisco.map((q) => q.id)])
+  const questoesGeralSelecionadas = await sortearQuestoes(qtdGeral, null, idsJaSelecionados)
 
   // 5. Monta lista final
   const questoesFinal = [...questoesRisco, ...questoesGeralSelecionadas]

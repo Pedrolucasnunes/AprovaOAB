@@ -12,6 +12,7 @@ import {
   XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, Legend,
 } from "recharts"
 import { supabase } from "@/lib/supabase"
+import { fetchAllRows, fetchByIds } from "@/lib/supabase-paginate"
 
 const META = 50
 const LISTA_LIMITE = 6
@@ -128,13 +129,10 @@ export default function DesempenhoPage() {
   }
 
   async function fetchQuestoes(uid: string) {
-    const { data, error } = await supabase
-      .from("question_attempts")
-      .select("question_id, acertou, created_at")
-      .eq("user_id", uid)
-
-    if (error) throw error
-    if (!data) return
+    // Pagina: um usuário ativo pode passar de 1000 question_attempts.
+    const data = await fetchAllRows<{ question_id: string; acertou: boolean; created_at: string }>(
+      () => supabase.from("question_attempts").select("question_id, acertou, created_at").eq("user_id", uid),
+    )
 
     const total = data.length
     const acertos = data.filter(q => q.acertou).length
@@ -164,11 +162,12 @@ export default function DesempenhoPage() {
     if (data.length === 0) return
 
     const qIds = [...new Set(data.map(q => q.question_id))]
-    const { data: questions, error: qError } = await supabase
-      .from("questions").select("id, subject_id").in("id", qIds)
-    if (qError) throw qError
+    const questions = await fetchByIds<{ id: string; subject_id: string }>(
+      (ids) => supabase.from("questions").select("id, subject_id").in("id", ids),
+      qIds,
+    )
 
-    const subjectIds = [...new Set((questions ?? []).map(q => q.subject_id).filter(Boolean))]
+    const subjectIds = [...new Set(questions.map(q => q.subject_id).filter(Boolean))]
     const { data: subjects, error: sError } = await supabase
       .from("subjects").select("id, name").in("id", subjectIds.length > 0 ? subjectIds : ["null"])
     if (sError) throw sError
@@ -196,23 +195,25 @@ export default function DesempenhoPage() {
   }
 
   async function fetchDesempenho(uid: string) {
-    const { data: attempts, error: aError } = await supabase
-      .from("simulado_attempts").select("id").eq("user_id", uid)
-    if (aError) throw aError
-    if (!attempts || attempts.length === 0) return
+    // Pagina: usuário ativo pode passar de 1000 attempts/respostas de simulado.
+    const attempts = await fetchAllRows<{ id: string }>(
+      () => supabase.from("simulado_attempts").select("id").eq("user_id", uid),
+    )
+    if (attempts.length === 0) return
 
-    const { data: respostas, error: rError } = await supabase
-      .from("simulado_respostas").select("question_id, acertou")
-      .in("attempt_id", attempts.map(a => a.id))
-    if (rError) throw rError
-    if (!respostas || respostas.length === 0) return
+    const respostas = await fetchByIds<{ question_id: string; acertou: boolean }>(
+      (ids) => supabase.from("simulado_respostas").select("question_id, acertou").in("attempt_id", ids),
+      attempts.map(a => a.id),
+    )
+    if (respostas.length === 0) return
 
     const qIds = [...new Set(respostas.map(r => r.question_id))]
-    const { data: questions, error: qError } = await supabase
-      .from("questions").select("id, subject_id").in("id", qIds)
-    if (qError) throw qError
+    const questions = await fetchByIds<{ id: string; subject_id: string }>(
+      (ids) => supabase.from("questions").select("id, subject_id").in("id", ids),
+      qIds,
+    )
 
-    const subjectIds = [...new Set((questions ?? []).map(q => q.subject_id).filter(Boolean))]
+    const subjectIds = [...new Set(questions.map(q => q.subject_id).filter(Boolean))]
     const { data: subjects, error: sError } = await supabase
       .from("subjects").select("id, name").in("id", subjectIds.length > 0 ? subjectIds : ["null"])
     if (sError) throw sError

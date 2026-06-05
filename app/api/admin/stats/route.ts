@@ -1,5 +1,6 @@
 import { requireAdmin } from "@/lib/auth-server"
 import { supabaseAdmin } from "@/lib/supabase-admin"
+import { fetchAllRows } from "@/lib/supabase-paginate"
 import { NextResponse } from "next/server"
 
 export async function GET() {
@@ -32,12 +33,13 @@ export async function GET() {
 
   const subjectMap = Object.fromEntries((subjects ?? []).map(s => [s.id, s.name]))
 
-  const { data: questoesPorSubject } = await supabaseAdmin
-    .from("questions")
-    .select("subject_id")
+  // Pagina: a tabela questions passa de 1000 linhas, senão o gráfico subestimaria.
+  const questoesPorSubject = await fetchAllRows<{ subject_id: string | null }>(
+    () => supabaseAdmin.from("questions").select("subject_id"),
+  )
 
   const contagemPorSubject = new Map<string, number>()
-  for (const q of questoesPorSubject ?? []) {
+  for (const q of questoesPorSubject) {
     if (!q.subject_id) continue
     contagemPorSubject.set(q.subject_id, (contagemPorSubject.get(q.subject_id) ?? 0) + 1)
   }

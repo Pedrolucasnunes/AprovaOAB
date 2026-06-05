@@ -8,6 +8,7 @@ import {
   getPublicSubjects,
   getPublicQuestionsForSubject,
 } from "@/lib/seo/questions"
+import { getMateriaIntro } from "@/lib/seo/materia-intro"
 import { questionSlug } from "@/lib/slug"
 
 export const revalidate = 86400
@@ -52,6 +53,7 @@ export default async function MateriaPage({
   if (!subject) notFound()
 
   const questions = await getPublicQuestionsForSubject(subject.id)
+  const intro = getMateriaIntro(subject.slug)
 
   return (
     <SeoShell>
@@ -67,8 +69,8 @@ export default async function MateriaPage({
         Questões de {subject.name} — OAB
       </h1>
       <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">
-        Questões de {subject.name} no padrão FGV para a 1ª fase da OAB, com gabarito. Clique em uma
-        questão para ver as alternativas e a resposta — a resolução comentada fica no AprovaOAB.
+        {intro?.lead ??
+          `Questões de ${subject.name} no padrão FGV para a 1ª fase da OAB, com gabarito. Clique em uma questão para ver as alternativas e a resposta — a resolução comentada fica no AprovaOAB.`}
       </p>
 
       <div className="mt-10 space-y-3">
@@ -92,6 +94,35 @@ export default async function MateriaPage({
           </Link>
         ))}
       </div>
+
+      {intro && (intro.topicos?.length || intro.dica) && (
+        <section className="mt-12 max-w-2xl">
+          {intro.topicos?.length ? (
+            <>
+              <h2 className="text-xl font-semibold text-foreground">
+                O que mais cai de {subject.name} na OAB
+              </h2>
+              <ul className="mt-4 space-y-2">
+                {intro.topicos.map((t) => (
+                  <li
+                    key={t}
+                    className="flex gap-2 text-sm leading-relaxed text-muted-foreground"
+                  >
+                    <span className="mt-1 text-primary">•</span>
+                    <span>{t}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
+          {intro.dica ? (
+            <p className="mt-6 rounded-xl border border-border bg-muted/20 p-4 text-sm leading-relaxed text-muted-foreground">
+              <span className="font-semibold text-foreground">Dica de estudo: </span>
+              {intro.dica}
+            </p>
+          ) : null}
+        </section>
+      )}
 
       <div className="mt-12 rounded-2xl border border-border bg-muted/20 p-6 text-center">
         <p className="text-lg font-semibold text-foreground">

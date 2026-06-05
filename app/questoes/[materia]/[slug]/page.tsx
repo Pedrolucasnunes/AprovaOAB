@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 import { SeoShell } from "@/components/seo/seo-shell"
+import { SeoCtaButton } from "@/components/seo/seo-cta"
 import { QuestaoInterativa } from "@/components/seo/questao-interativa"
 import {
   getAllPublicQuestions,
@@ -127,6 +128,10 @@ export default async function QuestaoPage({
       <h1 className="text-xl font-bold leading-snug text-foreground sm:text-2xl">
         Questão de {q.subjectName} — OAB 1ª fase
       </h1>
+      <p className="mt-2 text-sm text-muted-foreground">
+        No <strong className="font-semibold text-foreground">AprovaOAB</strong> você resolve questões
+        como esta com diagnóstico em 10 minutos, plano de estudos personalizado e simulados no padrão FGV.
+      </p>
 
       {/* Enunciado */}
       <p className="mt-5 whitespace-pre-line text-base leading-relaxed text-foreground">
@@ -161,6 +166,17 @@ export default async function QuestaoPage({
           </div>
         </div>
       )}
+
+      {/* CTA de rodapé — garante chamada pra ação mesmo pra quem não respondeu a questão */}
+      <div className="mt-12 rounded-2xl border border-border bg-muted/20 p-6 text-center">
+        <p className="text-lg font-semibold text-foreground">
+          Pronto pra praticar de verdade?
+        </p>
+        <p className="mt-1 mb-5 text-sm text-muted-foreground">
+          Diagnóstico gratuito, resolução comentada e plano de estudos personalizado pra OAB.
+        </p>
+        <SeoCtaButton location="questao_rodape" />
+      </div>
     </SeoShell>
   )
 }

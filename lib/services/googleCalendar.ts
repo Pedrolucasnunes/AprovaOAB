@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { encrypt, decrypt } from "@/lib/crypto"
 import { logError } from "@/lib/logger"
+import { APP_URL } from "@/lib/app-url"
 
 const GOOGLE_AUTH_URL   = "https://accounts.google.com/o/oauth2/v2/auth"
 const GOOGLE_TOKEN_URL  = "https://oauth2.googleapis.com/token"
@@ -9,7 +10,7 @@ const GOOGLE_EVENTS_URL = "https://www.googleapis.com/calendar/v3/calendars/prim
 export function getGoogleAuthUrl(state: string): string {
   const params = new URLSearchParams({
     client_id:     process.env.GOOGLE_CLIENT_ID!,
-    redirect_uri:  `${process.env.NEXT_PUBLIC_APP_URL}/api/google-calendar/callback`,
+    redirect_uri:  `${APP_URL}/api/google-calendar/callback`,
     response_type: "code",
     scope:         "https://www.googleapis.com/auth/calendar.events",
     access_type:   "offline",
@@ -31,7 +32,7 @@ export async function exchangeCodeForTokens(code: string): Promise<{
       code,
       client_id:     process.env.GOOGLE_CLIENT_ID!,
       client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-      redirect_uri:  `${process.env.NEXT_PUBLIC_APP_URL}/api/google-calendar/callback`,
+      redirect_uri:  `${APP_URL}/api/google-calendar/callback`,
       grant_type:    "authorization_code",
     }),
   })

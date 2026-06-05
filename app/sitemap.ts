@@ -1,8 +1,9 @@
 import type { MetadataRoute } from "next"
 import { getPublicSubjects, getAllPublicQuestions } from "@/lib/seo/questions"
 import { questionSlug } from "@/lib/slug"
+import { APP_URL } from "@/lib/app-url"
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.aprovaoab.app.br"
+const BASE = APP_URL
 
 export const revalidate = 86400
 

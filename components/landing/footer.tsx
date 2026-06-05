@@ -60,6 +60,11 @@ export function Footer() {
             <p className="mb-4 text-sm font-semibold text-foreground">Produto</p>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
+                <Link href="/questoes" className="transition-opacity hover:opacity-80">
+                  Questões da OAB
+                </Link>
+              </li>
+              <li>
                 <Link href="#como-funciona" className="transition-opacity hover:opacity-80">
                   Como funciona
                 </Link>

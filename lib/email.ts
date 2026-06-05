@@ -1,5 +1,6 @@
 import { Resend } from "resend"
 import { logError, logWarning } from "@/lib/logger"
+import { APP_URL } from "@/lib/app-url"
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const FROM = "AprovaOAB <oi@aprovaoab.app.br>"
@@ -33,7 +34,7 @@ export async function sendWelcomeProEmail(opts: {
   const planoLabel = opts.plano === "pro" ? "Pro" : "Aprovação"
   const greeting = opts.firstName ? `Olá, ${opts.firstName}!` : "Olá!"
   const features = FEATURES_POR_PLANO[opts.plano]
-  const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://www.aprovaoab.app.br"}/dashboard`
+  const dashboardUrl = `${APP_URL}/dashboard`
 
   try {
     await resend.emails.send({
@@ -61,7 +62,7 @@ export async function sendWelcomeFreeEmail(opts: {
   }
 
   const greeting = opts.firstName ? `Olá, ${opts.firstName}!` : "Olá!"
-  const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://www.aprovaoab.app.br"}/dashboard`
+  const dashboardUrl = `${APP_URL}/dashboard`
 
   try {
     await resend.emails.send({

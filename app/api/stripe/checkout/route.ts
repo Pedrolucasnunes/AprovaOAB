@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth-server"
 import { supabaseAdmin } from "@/lib/supabase-admin"
 import { rateLimit } from "@/lib/rate-limit"
 import { isTrialEnabled, TRIAL_DAYS } from "@/lib/trial"
+import { APP_URL } from "@/lib/app-url"
 
 export async function POST(req: NextRequest) {
   try {
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
     const origin =
       (headerOrigin && headerOrigin !== "null" ? headerOrigin : null) ??
       (headerHost ? `https://${headerHost}` : null) ??
-      process.env.NEXT_PUBLIC_APP_URL
+      APP_URL
 
     if (!origin) {
       return NextResponse.json({ error: "Origem da requisição inválida" }, { status: 400 })

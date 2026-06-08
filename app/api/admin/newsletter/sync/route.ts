@@ -8,15 +8,16 @@ import { logError } from "@/lib/logger"
 // Idempotente: rodar de novo só adiciona quem é novo. Descadastros feitos pelo
 // usuário NÃO são revertidos (não reescrevemos contatos já existentes).
 //
-// Requer: RESEND_API_KEY e RESEND_AUDIENCE_ID no ambiente.
+// Requer: RESEND_FULL_API_KEY (chave Full access, separada da de envio) e
+// RESEND_AUDIENCE_ID no ambiente.
 // POST /api/admin/newsletter/sync  (somente admin)
 export async function POST() {
   const { error: authError } = await requireAdmin()
   if (authError) return authError
 
-  const apiKey = process.env.RESEND_API_KEY
+  const apiKey = process.env.RESEND_FULL_API_KEY
   const audienceId = process.env.RESEND_AUDIENCE_ID
-  if (!apiKey) return NextResponse.json({ error: "RESEND_API_KEY não configurada" }, { status: 500 })
+  if (!apiKey) return NextResponse.json({ error: "RESEND_FULL_API_KEY não configurada" }, { status: 500 })
   if (!audienceId) return NextResponse.json({ error: "RESEND_AUDIENCE_ID não configurada" }, { status: 500 })
 
   const resend = new Resend(apiKey)

@@ -10,8 +10,9 @@ import { logError } from "@/lib/logger"
 //
 // Requer: RESEND_FULL_API_KEY (chave Full access, separada da de envio) e
 // RESEND_AUDIENCE_ID no ambiente.
-// POST /api/admin/newsletter/sync  (somente admin)
-export async function POST() {
+// Aceita GET (abrir a URL no navegador, logado como admin) ou POST.
+// /api/admin/newsletter/sync  (somente admin)
+async function handle() {
   const { error: authError } = await requireAdmin()
   if (authError) return authError
 
@@ -59,3 +60,6 @@ export async function POST() {
 
   return NextResponse.json({ ok: true, total, criados, pulados })
 }
+
+export const GET = handle
+export const POST = handle

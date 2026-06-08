@@ -13,8 +13,9 @@ const FROM = "Café com OAB <oi@aprovaoab.app.br>"
 // Body opcional: uma NewsletterEdicao para sobrescrever a edição padrão.
 // Requer: RESEND_FULL_API_KEY (chave Full access, separada da de envio) e
 // RESEND_AUDIENCE_ID no ambiente.
-// POST /api/admin/newsletter/send[?send=true]  (somente admin)
-export async function POST(req: Request) {
+// Aceita GET (abrir a URL no navegador, logado como admin) ou POST.
+// /api/admin/newsletter/send[?send=true]  (somente admin)
+async function handle(req: Request) {
   const { error: authError } = await requireAdmin()
   if (authError) return authError
 
@@ -70,3 +71,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Falha ao montar a newsletter" }, { status: 500 })
   }
 }
+
+export const GET = handle
+export const POST = handle

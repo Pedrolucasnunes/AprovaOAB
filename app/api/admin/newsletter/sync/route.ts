@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server"
-import { Resend } from "resend"
 import { requireAdmin } from "@/lib/auth-server"
-import { supabaseAdmin } from "@/lib/supabase-admin"
+import { syncContactsToAudience } from "@/lib/services/newsletter"
 import { logError } from "@/lib/logger"
 
 // Sincroniza os usuários cadastrados (Supabase Auth) com a audiência do Resend.
@@ -21,44 +20,13 @@ async function handle() {
   if (!apiKey) return NextResponse.json({ error: "RESEND_FULL_API_KEY não configurada" }, { status: 500 })
   if (!audienceId) return NextResponse.json({ error: "RESEND_AUDIENCE_ID não configurada" }, { status: 500 })
 
-  const resend = new Resend(apiKey)
-  let criados = 0
-  let pulados = 0
-  let total = 0
-
   try {
-    const perPage = 1000
-    for (let page = 1; ; page++) {
-      const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage })
-      if (error) throw error
-      const users = data.users
-      if (users.length === 0) break
-
-      for (const u of users) {
-        if (!u.email) continue
-        total++
-        const fullName = (u.user_metadata?.full_name as string | undefined) ?? ""
-        const firstName = fullName.trim().split(/\s+/)[0] || undefined
-
-        const res = await resend.contacts.create({
-          audienceId,
-          email: u.email,
-          firstName,
-          unsubscribed: false,
-        })
-        // Resend devolve erro quando o contato já existe — tratamos como "pulado".
-        if (res.error) pulados++
-        else criados++
-      }
-
-      if (users.length < perPage) break
-    }
+    const { total, criados, pulados } = await syncContactsToAudience(apiKey, audienceId)
+    return NextResponse.json({ ok: true, total, criados, pulados })
   } catch (err) {
     logError(err, { area: "newsletter", phase: "sync-contacts" })
     return NextResponse.json({ error: "Falha ao sincronizar contatos" }, { status: 500 })
   }
-
-  return NextResponse.json({ ok: true, total, criados, pulados })
 }
 
 export const GET = handle

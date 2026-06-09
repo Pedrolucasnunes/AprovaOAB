@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server"
-import { Resend } from "resend"
 import { requireAdmin } from "@/lib/auth-server"
-import { buildNewsletterHtml, EDICAO_1, type NewsletterEdicao } from "@/lib/newsletter"
+import { CURRENT_EDICAO, type NewsletterEdicao } from "@/lib/newsletter"
+import { createNewsletterDraft, sendBroadcast } from "@/lib/services/newsletter"
 import { logError } from "@/lib/logger"
-
-const FROM = "Café com OAB <oi@aprovaoab.app.br>"
 
 // Cria um broadcast da newsletter no Resend a partir de uma edição.
 // Por padrão cria como RASCUNHO (você revisa e dispara no painel do Resend).
@@ -24,7 +22,7 @@ async function handle(req: Request) {
   if (!apiKey) return NextResponse.json({ error: "RESEND_FULL_API_KEY não configurada" }, { status: 500 })
   if (!audienceId) return NextResponse.json({ error: "RESEND_AUDIENCE_ID não configurada" }, { status: 500 })
 
-  let edicao: NewsletterEdicao = EDICAO_1
+  let edicao: NewsletterEdicao = CURRENT_EDICAO
   try {
     const body = await req.json().catch(() => null)
     if (body && typeof body === "object" && "questao" in body) edicao = body as NewsletterEdicao
@@ -33,43 +31,31 @@ async function handle(req: Request) {
   }
 
   const enviarAgora = new URL(req.url).searchParams.get("send") === "true"
-  const resend = new Resend(apiKey)
 
+  let broadcastId: string
   try {
-    const created = await resend.broadcasts.create({
-      audienceId,
-      from: FROM,
-      subject: edicao.subject,
-      name: `Café com OAB #${edicao.numero}`,
-      previewText: edicao.preheader,
-      html: buildNewsletterHtml(edicao),
-    })
-    if (created.error || !created.data) {
-      logError(created.error, { area: "newsletter", phase: "broadcast-create" })
-      return NextResponse.json({ error: "Falha ao criar o broadcast" }, { status: 502 })
-    }
-
-    const broadcastId = created.data.id
-
-    if (enviarAgora) {
-      const sent = await resend.broadcasts.send(broadcastId)
-      if (sent.error) {
-        logError(sent.error, { area: "newsletter", phase: "broadcast-send", broadcastId })
-        return NextResponse.json({ error: "Broadcast criado, mas falhou ao enviar", broadcastId }, { status: 502 })
-      }
-      return NextResponse.json({ ok: true, enviado: true, broadcastId })
-    }
-
-    return NextResponse.json({
-      ok: true,
-      enviado: false,
-      broadcastId,
-      mensagem: "Rascunho criado. Revise e dispare no painel do Resend (Broadcasts).",
-    })
+    broadcastId = await createNewsletterDraft(apiKey, audienceId, edicao)
   } catch (err) {
     logError(err, { area: "newsletter", phase: "broadcast" })
-    return NextResponse.json({ error: "Falha ao montar a newsletter" }, { status: 500 })
+    return NextResponse.json({ error: "Falha ao criar o broadcast" }, { status: 502 })
   }
+
+  if (enviarAgora) {
+    try {
+      await sendBroadcast(apiKey, broadcastId)
+    } catch (err) {
+      logError(err, { area: "newsletter", phase: "broadcast-send", broadcastId })
+      return NextResponse.json({ error: "Broadcast criado, mas falhou ao enviar", broadcastId }, { status: 502 })
+    }
+    return NextResponse.json({ ok: true, enviado: true, broadcastId })
+  }
+
+  return NextResponse.json({
+    ok: true,
+    enviado: false,
+    broadcastId,
+    mensagem: "Rascunho criado. Revise e dispare no painel do Resend (Broadcasts).",
+  })
 }
 
 export const GET = handle

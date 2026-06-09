@@ -242,3 +242,7 @@ export const EDICAO_1: NewsletterEdicao = {
   dica: "Constitucional é a matéria que mais paga em pontos por hora estudada — cai muito e a base é decorável. Reserve 20 minutos hoje só pra vedações e perda de mandato. É tema recorrente.",
   examDays: 90,
 }
+
+// Edição "atual" — a que o cron semanal e o /send usam por padrão. Ao montar uma
+// edição nova, atualize este ponteiro (ou edite o conteúdo acima).
+export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_1

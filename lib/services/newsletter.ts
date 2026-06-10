@@ -65,7 +65,9 @@ export async function createNewsletterDraft(
     subject: edicao.subject,
     name: `Café com OAB #${edicao.numero}`,
     previewText: edicao.preheader,
-    html: buildNewsletterHtml(edicao),
+    // Broadcast oficial sai terça de manhã (ver memória), então fixa "Bom dia"
+    // independentemente de quando o rascunho foi gerado pelo cron.
+    html: buildNewsletterHtml(edicao, { greeting: "Bom dia" }),
   })
   if (created.error || !created.data) {
     logError(created.error, { area: "newsletter", phase: "broadcast-create" })

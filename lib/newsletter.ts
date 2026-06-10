@@ -47,6 +47,20 @@ const LINE = "#e5e7eb"
 /** URL pública do banner. Salve o PNG em `public/cafe-com-oab-banner.png`. */
 export const BANNER_URL = `${APP_URL}/cafe-com-oab-banner.png`
 
+/** Saudação conforme a hora de Brasília (America/Sao_Paulo). */
+export function saudacaoBRT(date = new Date()): string {
+  const hora = Number(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Sao_Paulo",
+      hour: "2-digit",
+      hourCycle: "h23",
+    }).format(date),
+  )
+  if (hora < 12) return "Bom dia"
+  if (hora < 18) return "Boa tarde"
+  return "Boa noite"
+}
+
 function alternativaHtml(alt: Alternativa, gabarito: string): string {
   const acertou = alt.letra === gabarito
   const bg = acertou ? "#ecfdf5" : "#ffffff"
@@ -75,8 +89,12 @@ function sectionTitle(label: string): string {
     </td></tr>`
 }
 
-export function buildNewsletterHtml(ed: NewsletterEdicao, opts?: { bannerUrl?: string }): string {
+export function buildNewsletterHtml(
+  ed: NewsletterEdicao,
+  opts?: { bannerUrl?: string; greeting?: string },
+): string {
   const bannerUrl = opts?.bannerUrl || BANNER_URL
+  const saudacao = opts?.greeting || saudacaoBRT()
   const intro = ed.intro
     .map((p) => `<p style="margin:0 0 14px 0;color:${INK};font-size:15px;line-height:1.6;">${p}</p>`)
     .join("")
@@ -138,7 +156,7 @@ export function buildNewsletterHtml(ed: NewsletterEdicao, opts?: { bannerUrl?: s
         <tr><td style="padding:32px 28px 8px 28px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
             <tr><td>
-              <p style="margin:0 0 16px 0;color:${NAVY};font-size:20px;font-weight:700;">Bom dia, {{{FIRST_NAME|futuro(a) advogado(a)}}}! ☕</p>
+              <p style="margin:0 0 16px 0;color:${NAVY};font-size:20px;font-weight:700;">${saudacao}, {{{FIRST_NAME|futuro(a) advogado(a)}}}! ☕</p>
               ${intro}
               <p style="margin:18px 0 0 0;color:${MUTED};font-size:14px;">É só rolar ⬇️</p>
             </td></tr>

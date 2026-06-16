@@ -21,8 +21,8 @@ async function handle() {
   if (!audienceId) return NextResponse.json({ error: "RESEND_AUDIENCE_ID não configurada" }, { status: 500 })
 
   try {
-    const { total, criados, pulados } = await syncContactsToAudience(apiKey, audienceId)
-    return NextResponse.json({ ok: true, total, criados, pulados })
+    const { total, criados, jaExistiam, erros } = await syncContactsToAudience(apiKey, audienceId)
+    return NextResponse.json({ ok: true, total, criados, jaExistiam, erros })
   } catch (err) {
     logError(err, { area: "newsletter", phase: "sync-contacts" })
     return NextResponse.json({ error: "Falha ao sincronizar contatos" }, { status: 500 })

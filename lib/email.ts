@@ -126,7 +126,7 @@ function buildWelcomeFreeHtml(o: {
 export async function sendNewsletterDraftReadyEmail(opts: {
   numero: number
   subject: string
-  sync: { total: number; criados: number; pulados: number }
+  sync: { total: number; criados: number; jaExistiam: number; erros: number }
 }): Promise<void> {
   if (!resend) {
     logWarning("RESEND_API_KEY não configurada, pulando aviso da newsletter", {
@@ -154,7 +154,7 @@ export async function sendNewsletterDraftReadyEmail(opts: {
 function buildNewsletterDraftReadyHtml(o: {
   numero: number
   subject: string
-  sync: { total: number; criados: number; pulados: number }
+  sync: { total: number; criados: number; jaExistiam: number; erros: number }
 }): string {
   return `<!DOCTYPE html>
 <html>
@@ -167,7 +167,7 @@ function buildNewsletterDraftReadyHtml(o: {
     </p>
     <p style="margin: 0 0 8px 0; color: #1f2937; font-size: 14px;"><strong>Assunto:</strong> ${o.subject}</p>
     <p style="margin: 0 0 24px 0; color: #1f2937; font-size: 14px;">
-      <strong>Audiência:</strong> ${o.sync.total} usuários (${o.sync.criados} novos, ${o.sync.pulados} já existentes).
+      <strong>Audiência:</strong> ${o.sync.total} usuários (${o.sync.criados} novos, ${o.sync.jaExistiam} já existentes${o.sync.erros > 0 ? `, <span style="color:#dc2626;">${o.sync.erros} com erro</span>` : ""}).
     </p>
     <div style="margin: 0 0 24px 0; padding: 16px; background-color: #fffbeb; border-left: 4px solid #c8a04a; border-radius: 0 8px 8px 0;">
       <p style="margin: 0; color: #1f2937; font-size: 14px; line-height: 1.6;">

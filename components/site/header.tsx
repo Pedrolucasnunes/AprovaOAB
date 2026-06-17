@@ -7,6 +7,7 @@ import { Menu, X } from "lucide-react";
 
 import { CtaButton } from "@/components/site/cta-button";
 import { Logo } from "@/components/site/logo";
+import { Button } from "@/components/site/ui/button";
 import { cn } from "@/lib/utils";
 
 const EASE: [number, number, number, number] = [0.21, 0.61, 0.35, 1];
@@ -68,6 +69,14 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-3">
+          <Button
+            asChild
+            variant="outlineDark"
+            size="sm"
+            className="hidden sm:inline-flex"
+          >
+            <Link href="/login">Entrar</Link>
+          </Button>
           <CtaButton
             size="sm"
             label="Começar grátis"
@@ -123,7 +132,17 @@ export function Header() {
                   </a>
                 );
               })}
-              <CtaButton size="sm" label="Começar grátis" className="mt-2" />
+              <Button
+                asChild
+                variant="outlineDark"
+                size="sm"
+                className="mt-2"
+              >
+                <Link href="/login" onClick={() => setOpen(false)}>
+                  Entrar
+                </Link>
+              </Button>
+              <CtaButton size="sm" label="Começar grátis" className="mt-1.5" />
             </div>
           </motion.nav>
         ) : null}

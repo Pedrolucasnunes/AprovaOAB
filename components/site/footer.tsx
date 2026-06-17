@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { CookiePreferencesTrigger } from "@/components/cookie-preferences-trigger";
 import { Logo } from "@/components/site/logo";
 
 // `route: true` = rota real (next/link). Âncoras usam "/#..." pra funcionar de
@@ -96,14 +97,35 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col justify-between gap-3 border-t border-night-border pt-6 sm:flex-row">
-          <p className="text-xs text-night-muted">
-            © 2026 AprovaOAB — feito no Brasil.
-          </p>
-          <p className="max-w-md text-xs leading-relaxed text-night-muted">
-            Plataforma independente de estudos, sem vínculo com a OAB ou com a
-            FGV.
-          </p>
+        <div className="mt-12 border-t border-night-border pt-6">
+          <nav
+            aria-label="Links legais"
+            className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-night-muted"
+          >
+            <Link
+              href="/termos-de-uso"
+              className="transition-colors duration-200 hover:text-night-foreground"
+            >
+              Termos de uso
+            </Link>
+            <Link
+              href="/politica-de-privacidade"
+              className="transition-colors duration-200 hover:text-night-foreground"
+            >
+              Privacidade
+            </Link>
+            <CookiePreferencesTrigger className="hover:text-night-foreground" />
+          </nav>
+
+          <div className="mt-5 flex flex-col justify-between gap-3 sm:flex-row">
+            <p className="text-xs text-night-muted">
+              © 2026 AprovaOAB — feito no Brasil.
+            </p>
+            <p className="max-w-md text-xs leading-relaxed text-night-muted">
+              Plataforma independente de estudos, sem vínculo com a OAB ou com a
+              FGV.
+            </p>
+          </div>
         </div>
       </div>
     </footer>

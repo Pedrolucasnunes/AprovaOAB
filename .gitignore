@@ -30,3 +30,6 @@ pnpm-debug.log*
 
 # TypeScript
 *.tsbuildinfo
+
+# TS incremental build cache
+tsconfig.tsbuildinfo

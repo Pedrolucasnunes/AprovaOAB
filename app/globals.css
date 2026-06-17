@@ -54,6 +54,19 @@
   --info-foreground: #FFFFFF;
   --danger: #EF4444;
   --danger-foreground: #FFFFFF;
+
+  /* ── Tokens da landing page (dark-first, cores fixas) ──────────
+     Não atrelados ao .dark: as seções da landing definem o próprio
+     fundo escuro independentemente do tema do app. */
+  --night: #0F172A;
+  --night-card: #111827;
+  --night-border: #1F2937;
+  --night-foreground: #E5E7EB;
+  --night-muted: #9CA3AF;
+  --secondary-bright: #3B82F6;
+  --primary-deep: #059669;
+  --eyebrow: #FEF3C7;
+  --eyebrow-foreground: #065F46;
 }
 
 /* Dark Mode - Professional for long study sessions */
@@ -106,9 +119,47 @@
   --danger-foreground: #FFFFFF;
 }
 
+/* ── Landing pinada no claro ──────────────────────────────────
+   A landing é um mix claro/escuro fixo (igual ao preview): as seções
+   claras usam bg-background/bg-card e as escuras usam os tokens `night*`
+   (cores fixas). Como o app usa defaultTheme="system", um visitante com
+   o SO no escuro herdaria o `.dark` e as seções claras ficariam escuras.
+   Este wrapper redeclara os tokens claros no próprio subtree da landing,
+   sobrepondo a herança do `.dark` — sem afetar o app logado. */
+.force-light {
+  --background: #FFFFFF;
+  --foreground: #111827;
+  --card: #F8FAFC;
+  --card-foreground: #111827;
+  --popover: #FFFFFF;
+  --popover-foreground: #111827;
+  --primary: #10B981;
+  /* texto escuro nos botões verdes da landing (igual ao preview) */
+  --primary-foreground: #022C22;
+  --secondary: #1E3A8A;
+  --secondary-foreground: #FFFFFF;
+  --muted: #F1F5F9;
+  --muted-foreground: #64748B;
+  --accent: #10B981;
+  --accent-foreground: #FFFFFF;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --border: #E5E7EB;
+  --input: #F1F5F9;
+  --ring: #10B981;
+  --success: #10B981;
+  --success-foreground: #FFFFFF;
+  --warning: #F59E0B;
+  --warning-foreground: #111827;
+  --info: #3B82F6;
+  --info-foreground: #FFFFFF;
+  --danger: #EF4444;
+  --danger-foreground: #FFFFFF;
+}
+
 @theme inline {
-  --font-sans: 'Geist', 'Geist Fallback';
-  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, 'SF Mono', monospace;
 
   /* ── Fontes da landing page ── */
   --font-fraunces: var(--font-fraunces);
@@ -133,6 +184,14 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -150,6 +209,17 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* ── Cores da landing page ── */
+  --color-night: var(--night);
+  --color-night-card: var(--night-card);
+  --color-night-border: var(--night-border);
+  --color-night-foreground: var(--night-foreground);
+  --color-night-muted: var(--night-muted);
+  --color-secondary-bright: var(--secondary-bright);
+  --color-primary-deep: var(--primary-deep);
+  --color-eyebrow: var(--eyebrow);
+  --color-eyebrow-foreground: var(--eyebrow-foreground);
 }
 
 @layer base {
@@ -271,4 +341,25 @@
 .reveal.in {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* ── Container editorial compartilhado (landing) ─────────────── */
+.container-page {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 76rem;
+  padding-inline: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .container-page {
+    padding-inline: 2rem;
+  }
+}
+
+/* ── Grade sutil para seções escuras (landing) ──────────────── */
+.bg-grid-dark {
+  background-image: linear-gradient(to right, rgb(255 255 255 / 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.045) 1px, transparent 1px);
+  background-size: 52px 52px;
 }

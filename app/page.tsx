@@ -1,37 +1,50 @@
-import { Header } from "@/components/landing/header"
-import { Hero } from "@/components/landing/hero"
-import { SocialProof } from "@/components/landing/social-proof"
-import { ProblemSolution } from "@/components/landing/problem-solution"
-import { HowItWorks } from "@/components/landing/how-it-works"
-import { Features } from "@/components/landing/features"
-import { Comparison } from "@/components/landing/comparison"
-import { MidCTA } from "@/components/landing/mid-cta"
-import { Testimonials } from "@/components/landing/testimonials"
-import { Pricing } from "@/components/landing/pricing"
-import { FAQ } from "@/components/landing/faq"
-import { CTA } from "@/components/landing/cta"
-import { Footer } from "@/components/landing/footer"
+import type { Metadata } from "next"
+
+import { Header } from "@/components/site/header"
+import { Hero } from "@/components/site/hero"
+import { ProblemSolution } from "@/components/site/problem-solution"
+import { HowItWorks } from "@/components/site/how-it-works"
+import { Benefits } from "@/components/site/benefits"
+import { FreeQuestions } from "@/components/site/free-questions"
+import { Newsletter } from "@/components/site/newsletter"
+import { Pricing } from "@/components/site/pricing"
+import { Faq } from "@/components/site/faq"
+import { FinalCta } from "@/components/site/final-cta"
+import { Footer } from "@/components/site/footer"
 import { WhatsAppFab } from "@/components/landing/whatsapp-fab"
-import { isTrialEnabled } from "@/lib/trial"
 
+export const metadata: Metadata = {
+  title: "AprovaOAB — Estude só o que você precisa pra passar na 1ª fase",
+  description:
+    "Diagnóstico por matéria, plano de estudos montado pelos seus erros e simulados completos no padrão FGV. Comece grátis, sem cartão de crédito.",
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "AprovaOAB — Estude só o que você precisa pra passar na OAB",
+    description:
+      "Diagnóstico por matéria, plano montado pelos seus erros e simulados no padrão FGV. Comece grátis, sem cartão de crédito.",
+    url: "/",
+    type: "website",
+  },
+}
+
+// Landing com mix claro/escuro fixo (igual ao preview): cada seção define o
+// próprio fundo (claras em bg-background/bg-card, escuras em bg-night). O wrapper
+// `force-light` pina os tokens claros pra landing não herdar o `.dark` do tema do
+// sistema — o app logado segue com o seletor de tema normalmente.
 export default function HomePage() {
-  const trialOn = isTrialEnabled()
-
   return (
-    <div className="min-h-screen bg-background">
+    <div id="top" className="force-light bg-background">
       <Header />
       <main>
         <Hero />
-        <SocialProof />
         <ProblemSolution />
         <HowItWorks />
-        <Features />
-        <Comparison />
-        <MidCTA />
-        <Testimonials />
-        <Pricing trialOn={trialOn} />
-        <FAQ trialOn={trialOn} />
-        <CTA />
+        <Benefits />
+        <FreeQuestions />
+        <Newsletter />
+        <Pricing />
+        <Faq />
+        <FinalCta />
       </main>
       <Footer />
       <WhatsAppFab />

@@ -2,16 +2,20 @@ import Link from "next/link";
 
 import { Logo } from "@/components/site/logo";
 
+// `route: true` = rota real (next/link). Âncoras usam "/#..." pra funcionar de
+// qualquer página (na landing rolam; em /questoes navegam pra landing + seção).
 const PRODUCT_LINKS = [
-  { href: "#como-funciona", label: "Como funciona" },
-  { href: "#beneficios", label: "Benefícios" },
-  { href: "#planos", label: "Planos" },
-  { href: "#faq", label: "FAQ" },
+  { href: "/#como-funciona", label: "Como funciona" },
+  { href: "/#beneficios", label: "Benefícios" },
+  { href: "/questoes", label: "Questões grátis", route: true },
+  { href: "/#newsletter", label: "Newsletter" },
+  { href: "/#planos", label: "Planos" },
+  { href: "/#faq", label: "FAQ" },
 ];
 
 const ACCOUNT_LINKS = [
   { href: "/cadastro", label: "Criar conta grátis" },
-  { href: "/cadastro", label: "Entrar" },
+  { href: "/login", label: "Entrar" },
 ];
 
 export function Footer() {
@@ -38,12 +42,21 @@ export function Footer() {
             <ul className="mt-3 space-y-1">
               {PRODUCT_LINKS.map((link) => (
                 <li key={link.href}>
-                  <a
-                    href={link.href}
-                    className="block py-1 text-sm text-night-muted transition-colors duration-200 hover:text-night-foreground"
-                  >
-                    {link.label}
-                  </a>
+                  {link.route ? (
+                    <Link
+                      href={link.href}
+                      className="block py-1 text-sm text-night-muted transition-colors duration-200 hover:text-night-foreground"
+                    >
+                      {link.label}
+                    </Link>
+                  ) : (
+                    <a
+                      href={link.href}
+                      className="block py-1 text-sm text-night-muted transition-colors duration-200 hover:text-night-foreground"
+                    >
+                      {link.label}
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>

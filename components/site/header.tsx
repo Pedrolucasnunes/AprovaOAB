@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Menu, X } from "lucide-react";
 
@@ -10,11 +11,14 @@ import { cn } from "@/lib/utils";
 
 const EASE: [number, number, number, number] = [0.21, 0.61, 0.35, 1];
 
+// `route: true` = rota real (next/link). As âncoras usam "/#..." pra funcionar de
+// qualquer página: na landing rolam suave; em /questoes navegam pra landing + seção.
 const LINKS = [
-  { href: "#como-funciona", label: "Como funciona" },
-  { href: "#beneficios", label: "Benefícios" },
-  { href: "#planos", label: "Planos" },
-  { href: "#faq", label: "FAQ" },
+  { href: "/#como-funciona", label: "Como funciona" },
+  { href: "/#beneficios", label: "Benefícios" },
+  { href: "/questoes", label: "Questões grátis", route: true },
+  { href: "/#planos", label: "Planos" },
+  { href: "/#faq", label: "FAQ" },
 ];
 
 export function Header() {
@@ -48,15 +52,19 @@ export function Header() {
           aria-label="Navegação principal"
           className="hidden items-center gap-7 md:flex"
         >
-          {LINKS.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="text-sm text-night-muted transition-colors duration-200 hover:text-night-foreground"
-            >
-              {link.label}
-            </a>
-          ))}
+          {LINKS.map((link) => {
+            const cls =
+              "text-sm text-night-muted transition-colors duration-200 hover:text-night-foreground";
+            return link.route ? (
+              <Link key={link.href} href={link.href} className={cls}>
+                {link.label}
+              </Link>
+            ) : (
+              <a key={link.href} href={link.href} className={cls}>
+                {link.label}
+              </a>
+            );
+          })}
         </nav>
 
         <div className="flex items-center gap-3">
@@ -92,16 +100,29 @@ export function Header() {
             className="overflow-hidden border-t border-night-border bg-night/95 backdrop-blur-md md:hidden"
           >
             <div className="container-page flex flex-col gap-1 py-4">
-              {LINKS.map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setOpen(false)}
-                  className="rounded-md px-2 py-2.5 text-sm text-night-muted transition-colors duration-200 hover:bg-white/5 hover:text-night-foreground"
-                >
-                  {link.label}
-                </a>
-              ))}
+              {LINKS.map((link) => {
+                const cls =
+                  "rounded-md px-2 py-2.5 text-sm text-night-muted transition-colors duration-200 hover:bg-white/5 hover:text-night-foreground";
+                return link.route ? (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setOpen(false)}
+                    className={cls}
+                  >
+                    {link.label}
+                  </Link>
+                ) : (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setOpen(false)}
+                    className={cls}
+                  >
+                    {link.label}
+                  </a>
+                );
+              })}
               <CtaButton size="sm" label="Começar grátis" className="mt-2" />
             </div>
           </motion.nav>

@@ -125,7 +125,9 @@ function PlanCard({ plan }: { plan: Plan }) {
         ))}
       </ul>
 
-      <div className="mt-8 pt-2">
+      {/* mt-auto ancora o botão na base — alinha os 3 planos mesmo com nº de itens
+          diferente; pt-8 garante respiro do último item no card mais cheio (Pro). */}
+      <div className="mt-auto pt-8">
         <CtaButton
           variant={plan.featured ? "default" : "outlineDark"}
           className="w-full"

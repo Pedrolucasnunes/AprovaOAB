@@ -94,7 +94,10 @@ export default async function QuestaoPage({
     <SeoShell>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{
+          // escapa `<` pra um enunciado/alternativa com "</script>" não quebrar a tag
+          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+        }}
       />
 
       {/* Breadcrumb */}

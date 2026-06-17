@@ -23,9 +23,11 @@ const geistMono = Geist_Mono({
 })
 
 // ── Fontes da landing page ───────────────────────────────────
+// Carregada como fonte variável (sem `weight` fixo) — mantém o eixo de optical
+// sizing, que dá o peso dramático/alto contraste dos títulos no tamanho display
+// (igual ao preview). Fixar weights estáticos achata esse contraste.
 const fraunces = Fraunces({
   subsets: ["latin"],
-  weight: ["700", "900"],
   style: ["normal", "italic"],
   variable: "--font-fraunces",
   display: "swap",

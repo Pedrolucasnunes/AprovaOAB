@@ -4,7 +4,7 @@ import Link, { useLinkStatus } from "next/link";
 import { ArrowRight, Loader2 } from "lucide-react";
 import type { VariantProps } from "class-variance-authority";
 
-import { Button, type buttonVariants } from "@/components/ui/button";
+import { Button, type buttonVariants } from "@/components/site/ui/button";
 import { cn } from "@/lib/utils";
 
 function CtaIndicator() {

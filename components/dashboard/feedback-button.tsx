@@ -30,9 +30,12 @@ export function FeedbackButton() {
   const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
 
-  // Oculta durante o simulado ativo
-  const isSimuladoAtivo = /^\/dashboard\/simulados\/[^/]+$/.test(pathname)
-  if (isSimuladoAtivo) return null
+  // Oculta nas páginas de resolução de questões (simulado ativo, treino e banco de questões)
+  const ocultarEmQuestoes =
+    /^\/dashboard\/simulados\/[^/]+$/.test(pathname) ||
+    pathname === "/dashboard/treino" ||
+    pathname === "/dashboard/questoes"
+  if (ocultarEmQuestoes) return null
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

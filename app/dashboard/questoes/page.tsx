@@ -15,6 +15,7 @@ import {
   CalendarDays,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import { getClientUser } from "@/lib/auth-client"
 import Link from "next/link"
 
 type Modo = "resolver" | "explorar"
@@ -261,7 +262,7 @@ export default function QuestoesPage() {
 
   useEffect(() => {
     async function init() {
-      const { data: { user } } = await supabase.auth.getUser()
+      const user = await getClientUser()
       if (user) {
         setUserId(user.id)
 

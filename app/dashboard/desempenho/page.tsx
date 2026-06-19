@@ -12,6 +12,7 @@ import {
   XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, Legend,
 } from "recharts"
 import { supabase } from "@/lib/supabase"
+import { getClientUser } from "@/lib/auth-client"
 import { fetchAllRows, fetchByIds } from "@/lib/supabase-paginate"
 
 const META = 50
@@ -74,8 +75,7 @@ export default function DesempenhoPage() {
   useEffect(() => {
     async function init() {
       try {
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
-        if (authError) throw authError
+        const user = await getClientUser()
         if (!user) { setError("Usuário não autenticado."); return }
         await Promise.all([fetchSimulados(user.id), fetchQuestoes(user.id), fetchDesempenho(user.id)])
       } catch (err) {

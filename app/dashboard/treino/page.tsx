@@ -21,6 +21,7 @@ import {
   ChevronLeft, ChevronRight, CheckCircle2, XCircle, Loader2, X, AlertTriangle
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import { getClientUser } from "@/lib/auth-client"
 
 const treinoOptions = [
   { value: "5",  label: "5",  description: "Sessão focada (5-8 min)" },
@@ -114,7 +115,7 @@ function TreinoPageInner() {
 
   useEffect(() => {
     async function init() {
-      const { data: { user } } = await supabase.auth.getUser()
+      const user = await getClientUser()
       if (!user) return
 
       const res = await fetch("/api/dashboard")

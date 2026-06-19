@@ -11,6 +11,7 @@ import {
   ArrowRight, Loader2, ArrowLeft,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import { getClientUser } from "@/lib/auth-client"
 import { toast } from "sonner"
 import Link from "next/link"
 
@@ -31,7 +32,7 @@ export default function TrialPage() {
         return
       }
 
-      const { data: { user } } = await supabase.auth.getUser()
+      const user = await getClientUser()
       if (!user) {
         router.replace("/login")
         return

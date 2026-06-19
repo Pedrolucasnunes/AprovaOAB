@@ -12,7 +12,7 @@ import {
   ArrowRight, Clock, Zap, ListChecks, Lightbulb, Sparkles,
 } from "lucide-react"
 import Link from "next/link"
-import { supabase } from "@/lib/supabase"
+import { getClientUser } from "@/lib/auth-client"
 
 const META = 50
 
@@ -122,7 +122,7 @@ export default function DashboardPage() {
   useEffect(() => {
     async function fetchDashboard() {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
+        const user = await getClientUser()
         if (!user) { setError("Usuário não autenticado"); setLoading(false); return }
 
         const firstName = user.user_metadata?.full_name?.split(" ")[0]

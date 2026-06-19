@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowRight } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { getClientUser } from "@/lib/auth-client"
 import { toast } from "sonner"
 
 interface CheckoutButtonProps {
@@ -22,7 +22,7 @@ export function CheckoutButton({ plano, trial, className, variant = "default", c
   const handleClick = async () => {
     setIsLoading(true)
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getClientUser()
 
     if (!user) {
       router.push("/cadastro?redirect=/#planos")

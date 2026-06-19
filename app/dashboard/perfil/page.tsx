@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { User, Mail, Lock, Trophy, BookOpen, Target, Loader2, ExternalLink, ArrowRight, Sparkles, MessageCircle } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import { getClientUser } from "@/lib/auth-client"
 import { whatsappSupportUrl } from "@/lib/support"
 import { toast } from "sonner"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
@@ -40,7 +41,7 @@ export default function PerfilPage() {
 
   useEffect(() => {
     async function init() {
-      const { data: { user } } = await supabase.auth.getUser()
+      const user = await getClientUser()
       if (!user) return
 
       setEmail(user.email ?? "")

@@ -858,7 +858,9 @@ export function DeviceCluster() {
         style={
           reduce ? undefined : { rotateX, rotateY, transformStyle: "preserve-3d" }
         }
-        initial={reduce ? false : { opacity: 0, y: 44 }}
+        // Above-the-fold: visível na primeira pintura (sem fade-in de entrada).
+        // O tilt 3D e a flutuação contínua abaixo permanecem.
+        initial={false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease: EASE }}
       >
@@ -879,7 +881,8 @@ export function DeviceCluster() {
         <motion.div
           className="pointer-events-none relative z-20 mx-auto mt-7 w-44 sm:absolute sm:-bottom-10 sm:-right-2 sm:mx-0 sm:mt-0 sm:w-48 sm:rotate-6 lg:-right-6"
           style={reduce ? undefined : { z: 60 }}
-          initial={reduce ? false : { opacity: 0, y: 48 }}
+          // Above-the-fold: visível na primeira pintura (sem fade-in de entrada).
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.3, ease: EASE }}
         >

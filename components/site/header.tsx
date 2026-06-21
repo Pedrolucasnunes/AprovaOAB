@@ -36,7 +36,9 @@ export function Header() {
 
   return (
     <motion.header
-      initial={reduce ? false : { y: -24, opacity: 0 }}
+      // Above-the-fold: renderiza visível na primeira pintura (sem esconder até
+      // hidratar). O fade-in de entrada do header fica de fora pra não atrasar o FCP.
+      initial={false}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.55, ease: EASE }}
       className={cn(

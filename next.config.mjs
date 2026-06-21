@@ -5,6 +5,11 @@ const nextConfig = {
   turbopack: {
     root: process.cwd(),
   },
+  experimental: {
+    // Melhora o tree-shaking destes pacotes (barrel imports). `motion` v12 não
+    // está na lista default do Next; lucide-react reforça o existente.
+    optimizePackageImports: ["motion", "lucide-react"],
+  },
   images: {
     unoptimized: true,
   },

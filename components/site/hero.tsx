@@ -1,11 +1,19 @@
 "use client";
 
-import { motion, useReducedMotion, type Variants } from "motion/react";
+import dynamic from "next/dynamic";
+import { motion, type Variants } from "motion/react";
 import { Brain, FileText, Target } from "lucide-react";
 
 import { CtaButton } from "@/components/site/cta-button";
-import { DeviceCluster } from "@/components/site/device-cluster";
 import { Eyebrow } from "@/components/site/section-heading";
+
+// Code-split da demo pesada (concentra as APIs caras do motion: springs,
+// transforms, AnimatePresence). Mantém SSR (ssr é true por padrão no next/dynamic),
+// então continua visível na primeira pintura — só separa o JS num chunk próprio
+// pra o texto/CTA do hero hidratarem antes.
+const DeviceCluster = dynamic(() =>
+  import("@/components/site/device-cluster").then((m) => m.DeviceCluster)
+);
 
 const EASE: [number, number, number, number] = [0.21, 0.61, 0.35, 1];
 
@@ -35,8 +43,6 @@ const FACTS = [
 ];
 
 export function Hero() {
-  const reduce = useReducedMotion();
-
   return (
     <section className="relative overflow-hidden bg-night">
       {/* Fundo: grade + brilhos */}
@@ -55,7 +61,10 @@ export function Hero() {
           <motion.div
             className="lg:col-span-5"
             variants={container}
-            initial={reduce ? false : "hidden"}
+            // Above-the-fold: renderiza já visível (sem fade-in escalonado) pra
+            // não esconder o título/CTA até o JS hidratar. initial={false} propaga
+            // pros filhos `item`, que passam a pintar no estado final imediatamente.
+            initial={false}
             animate="visible"
           >
             <motion.div variants={item}>

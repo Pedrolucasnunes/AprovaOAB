@@ -310,8 +310,8 @@ export default function SimuladoPage({ params }: { params: Promise<{ id: string 
             </div>
           ))}
         </div>
-        <div className={`max-w-lg mx-auto rounded-lg border p-4 text-center text-sm font-medium ${resultado.percentual >= 60 ? "border-primary/30 bg-primary/5 text-primary" : "border-destructive/30 bg-destructive/5 text-destructive"}`}>
-          {resultado.percentual >= 60 ? "✓ Aprovado — você atingiu a nota mínima da OAB (60%)" : "✗ Reprovado — a nota mínima da OAB é 60%"}
+        <div className={`max-w-lg mx-auto rounded-lg border p-4 text-center text-sm font-medium ${resultado.percentual >= 50 ? "border-primary/30 bg-primary/5 text-primary" : "border-destructive/30 bg-destructive/5 text-destructive"}`}>
+          {resultado.percentual >= 50 ? "✓ Aprovado — você atingiu a nota mínima da OAB (50%)" : "✗ Reprovado — a nota mínima da OAB é 50%"}
         </div>
         <div className="space-y-3">
           <h2 className="text-lg font-semibold text-foreground">Gabarito ({resultado.total} questões respondidas)</h2>

@@ -302,6 +302,47 @@ export const EDICAO_2: NewsletterEdicao = {
   examDays: 82,
 }
 
+// ── Edição #3 (dados reais do banco: Ética Profissional, 39% de acerto) ───────
+export const EDICAO_3: NewsletterEdicao = {
+  numero: 3,
+  subject: "☕ Café com OAB #3 — a pegadinha de Ética que 6 em cada 10 erram",
+  preheader: "O advogado responde sempre junto com o cliente na lide temerária? Cuidado com o “sempre”.",
+  intro: [
+    "Inscrição encerrada, choro nenhum: agora é estudo puro. Da sua mesa até a 1ª fase são <strong>75 dias</strong> — a prova objetiva é <strong>6 de setembro</strong>. É a reta em que constância vence intensidade: quem faz 1h todo dia chega na frente de quem vira a noite na véspera.",
+    "E pra começar a semana acordado, a matéria que parece a mais tranquila e é onde a galera mais se entrega: <strong>Ética e Estatuto da OAB</strong>. Na plataforma, só 39% acertam — <strong>6 em cada 10 erram</strong>. A pegadinha de hoje é a clássica da <em>lide temerária</em>: o advogado responde junto com o cliente? Depende. ⚖️",
+  ],
+  termometro:
+    "🔴 <strong>Ética Profissional — 39% de acerto na plataforma.</strong> 6 em cada 10 candidatos erram. É uma das matérias de maior peso na 1ª fase e, ainda assim, a que mais escorrega — porque quase todo mundo acha que “já sabe”.",
+  questao: {
+    fonte: "FGV · Exame de Ordem XLII/2024 · Ética e Estatuto da OAB",
+    enunciado:
+      "O advogado Antônio Carlos ajuizou, em favor de sua cliente Celina, lide manifestamente temerária em face de João. A esse respeito, à luz do Estatuto da Advocacia e da OAB, assinale a afirmativa correta.",
+    alternativas: [
+      { letra: "A", texto: "A responsabilidade de Antônio Carlos e Celina será solidária, independentemente do intuito de lesar João, parte contrária." },
+      { letra: "B", texto: "Não há responsabilidade solidária entre Celina e Antônio Carlos se comprovado que não estavam coligados nos seus intuitos." },
+      { letra: "C", texto: "Celina poderá ser responsabilizada se comprovada a violação do dever de cuidado, ao constar como parte autora no processo, ainda que não esteja coligada com seu advogado." },
+      { letra: "D", texto: "Caso comprovado que Celina não sabia do conteúdo temerário da lide, Antônio Carlos não poderá ser civilmente responsável de forma isolada, porque a responsabilização do advogado exige participação dolosa de Celina." },
+    ],
+    gabarito: "B",
+    comentario:
+      "Em regra, o advogado responde pelos atos que praticar com dolo ou culpa no exercício profissional (Estatuto, art. 32). Mas, na lide temerária, a responsabilidade solidária com o cliente só nasce se ficar provado que os dois estavam coligados para lesar a parte contrária (art. 32, parágrafo único). Sem esse conluio, não há solidariedade — por isso a alternativa B está correta.",
+  },
+  pegadinha:
+    "A maioria marca <strong>A</strong>, achando que o advogado que entra com uma lide temerária responde <em>automaticamente</em> junto com o cliente. Erro: a lei exige que os dois estejam <strong>coligados para lesar</strong> a parte contrária — é o intuito comum que gera a solidariedade, não o simples fato de a ação ser temerária (Estatuto, art. 32, parágrafo único). 🧠 <strong>Fixa assim:</strong> lide temerária só gruda no advogado se houver <strong>conluio</strong> com o cliente. Sem combinação pra prejudicar o outro lado, cada um responde por si.",
+  noticia: {
+    titulo: "📰 Tá rolando: a reta final do 47 começou",
+    texto:
+      "Com as inscrições encerradas, o <strong>47º Exame de Ordem</strong> entra na fase de estudo puro. Faltam <strong>75 dias</strong> pra 1ª fase (<strong>6 de setembro</strong>). Próximos marcos do calendário: o <strong>resultado preliminar da isenção</strong> da taxa sai em <strong>6 de julho</strong> e o <strong>pagamento da inscrição</strong> vai até <strong>31 de julho</strong>. Anota aí pra não perder prazo. ⏰",
+  },
+  curiosidade: {
+    titulo: "💡 Você sabia?",
+    texto:
+      "O <strong>Exame de Ordem</strong> que você vai encarar tem aval do Supremo: em 2011, o STF declarou a <strong>constitucionalidade</strong> da exigência do exame para o exercício da advocacia (RE 603.583, em repercussão geral). Ou seja, não é capricho da OAB — é requisito legal validado pela mais alta corte do país. Bola pra frente. 💪",
+  },
+  dica: "Ética e Estatuto da OAB é peso alto na 1ª fase e das matérias mais decoráveis — o melhor custo-benefício por hora estudada. Reserve 15 minutos hoje pra responsabilidade do advogado (art. 32 do Estatuto) e honorários: é tema que cai praticamente todo exame.",
+  examDays: 75,
+}
+
 // Edição "atual" — a que o cron semanal e o /send usam por padrão. Ao montar uma
 // edição nova, atualize este ponteiro (ou edite o conteúdo acima).
-export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_2
+export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_3

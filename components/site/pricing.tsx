@@ -35,7 +35,7 @@ const PLANS: Plan[] = [
   },
   {
     name: "Pro",
-    badge: { label: "Mais escolhido", tone: "primary" },
+    badge: { label: "Recomendado", tone: "primary" },
     price: "R$ 19",
     oldPrice: "R$ 29",
     period: "/mês",
@@ -50,19 +50,6 @@ const PLANS: Plan[] = [
     ],
     cta: "Assinar o Pro",
     featured: true,
-  },
-  {
-    name: "Aprovação",
-    badge: { label: "Em breve", tone: "warning" },
-    price: "R$ 49",
-    period: "/mês",
-    description: "Pra quem quer o treino mais personalizado possível.",
-    features: [
-      "Tudo do Pro",
-      "Questões personalizadas pelos seus erros",
-      "Suporte prioritário",
-    ],
-    cta: "Entrar na lista de espera",
   },
 ];
 
@@ -152,7 +139,7 @@ export function Pricing() {
           />
         </Reveal>
 
-        <div className="mt-16 grid items-stretch gap-6 lg:grid-cols-3 lg:gap-8">
+        <div className="mx-auto mt-16 grid max-w-3xl items-stretch gap-6 lg:grid-cols-2 lg:gap-8">
           {PLANS.map((plan, i) => (
             <Reveal key={plan.name} delay={i * 0.07} className="h-full">
               <PlanCard plan={plan} />

@@ -18,6 +18,13 @@ export async function POST(req: NextRequest) {
     if (error) return error
 
     const { plano, trial } = await req.json()
+
+    // Único plano pago vendável hoje é o Pro. O "aprovacao" segue no plumbing
+    // (tipos/webhook) como rede defensiva, mas não pode iniciar checkout.
+    if (plano !== "pro") {
+      return NextResponse.json({ error: "Plano inválido" }, { status: 400 })
+    }
+
     const priceId = STRIPE_PRICES[plano as keyof typeof STRIPE_PRICES]
 
     if (!priceId) {

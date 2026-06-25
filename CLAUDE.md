@@ -62,16 +62,19 @@ O campo `plano` é atualizado **exclusivamente pelo webhook do Stripe** (`/api/s
 - `lib/stripe.ts` exporta instância singleton do cliente Stripe
 
 Planos live:
-- Pro: `STRIPE_PRICE_PRO` (R$ 19/mês, promocional — preço real R$ 29)
-- Aprovação: `STRIPE_PRICE_APROVACAO` (R$ 49/mês)
+- Pro: `STRIPE_PRICE_PRO` (R$ 19/mês, promocional — preço real R$ 29) — **único plano pago vendável**
+
+O plano **Aprovação** foi removido da vitrine: não aparece mais na landing e o checkout rejeita `plano !== "pro"` (`app/api/stripe/checkout/route.ts`). O valor `"aprovacao"` permanece nos tipos, no webhook (`planoFromPriceId`) e nos badges admin apenas como plumbing defensivo, para reintroduzir um tier premium real no futuro (ex.: 2ª fase). `STRIPE_PRICE_APROVACAO` segue no env mas o price está arquivado na Stripe.
 
 ### Regras de negócio por plano
 
-| Funcionalidade | Free | Pro | Aprovação |
-|---|---|---|---|
-| Questões (treino avulso) | 10/dia | Ilimitado | Ilimitado |
-| Treino inteligente | ✅ | ✅ | ✅ |
-| Simulados completos (80 questões) | ❌ | ✅ | ✅ |
+| Funcionalidade | Free | Pro |
+|---|---|---|
+| Questões (treino avulso) | 10/dia | Ilimitado |
+| Treino inteligente | ✅ | ✅ |
+| Simulados completos (80 questões) | ❌ | ✅ |
+
+(Internamente o gate é sempre `plano === "free"` vs. pago; um eventual `"aprovacao"` legado se comporta como Pro.)
 
 **Onde o gate está no código:**
 - Limite diário free: verificado em `app/api/simulados/resposta/route.ts` (não em `/api/questions`). Conta registros em `question_attempts` de hoje (UTC). Retorna `{ error, limiteDiario: true }` com status 403 ao atingir 10.

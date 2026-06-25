@@ -13,6 +13,19 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  async redirects() {
+    // non-www → www, permanente (308). Obs.: se o apex estiver configurado como
+    // "domínio de redirect" no painel da Vercel, ele é resolvido na borda antes de
+    // chegar aqui — nesse caso ajustar a permanência também nas Settings → Domains.
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "aprovaoab.app.br" }],
+        destination: "https://www.aprovaoab.app.br/:path*",
+        permanent: true,
+      },
+    ]
+  },
   async headers() {
     const csp = [
       "default-src 'self'",

@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react"
 import { SeoShell } from "@/components/seo/seo-shell"
 import { SeoCtaButton } from "@/components/seo/seo-cta"
 import { QuestaoInterativa } from "@/components/seo/questao-interativa"
+import { JsonLd } from "@/components/seo/json-ld"
 import {
   getAllPublicQuestions,
   getPublicQuestionById,
@@ -12,6 +13,8 @@ import {
   type PublicQuestionDetail,
 } from "@/lib/seo/questions"
 import { parseQuestionId, questionSlug } from "@/lib/slug"
+import { OG_BASE } from "@/lib/seo/og"
+import { APP_URL } from "@/lib/app-url"
 
 export const revalidate = 86400
 
@@ -48,7 +51,7 @@ export async function generateMetadata({
     title,
     description,
     alternates: { canonical },
-    openGraph: { title, description, url: canonical },
+    openGraph: { ...OG_BASE, title, description, url: canonical },
   }
 }
 
@@ -90,15 +93,36 @@ export default async function QuestaoPage({
     },
   }
 
+  // JSON-LD: BreadcrumbList (Questões › matéria › questão) — URLs absolutas.
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Questões",
+        item: `${APP_URL}/questoes`,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: q.subjectName,
+        item: `${APP_URL}/questoes/${q.subjectSlug}`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: `Questão de ${q.subjectName} — OAB 1ª fase`,
+        item: `${APP_URL}/questoes/${q.subjectSlug}/${questionSlug(q)}`,
+      },
+    ],
+  }
+
   return (
     <SeoShell>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          // escapa `<` pra um enunciado/alternativa com "</script>" não quebrar a tag
-          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
-        }}
-      />
+      <JsonLd data={jsonLd} />
+      <JsonLd data={breadcrumbLd} />
 
       {/* Breadcrumb */}
       <nav className="mb-6 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">

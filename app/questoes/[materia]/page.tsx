@@ -10,6 +10,7 @@ import {
 } from "@/lib/seo/questions"
 import { getMateriaIntro } from "@/lib/seo/materia-intro"
 import { questionSlug } from "@/lib/slug"
+import { OG_BASE } from "@/lib/seo/og"
 
 export const revalidate = 86400
 
@@ -33,7 +34,7 @@ export async function generateMetadata({
     title,
     description,
     alternates: { canonical: `/questoes/${materia}` },
-    openGraph: { title, description, url: `/questoes/${materia}` },
+    openGraph: { ...OG_BASE, title, description, url: `/questoes/${materia}` },
   }
 }
 

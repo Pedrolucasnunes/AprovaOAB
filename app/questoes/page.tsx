@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { SeoShell } from "@/components/seo/seo-shell"
 import { SeoCtaButton } from "@/components/seo/seo-cta"
 import { getPublicSubjects } from "@/lib/seo/questions"
+import { OG_BASE } from "@/lib/seo/og"
 
 export const revalidate = 86400
 
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
     "Pratique questões da 1ª fase da OAB no padrão FGV, organizadas por matéria e com gabarito. Resolução comentada e plano de estudos personalizado no AprovaOAB.",
   alternates: { canonical: "/questoes" },
   openGraph: {
+    ...OG_BASE,
     title: "Questões da OAB por matéria — grátis e comentadas",
     description:
       "Pratique questões da 1ª fase da OAB no padrão FGV, organizadas por matéria e com gabarito.",

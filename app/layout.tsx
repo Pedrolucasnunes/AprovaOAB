@@ -6,10 +6,49 @@ import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from "sonner"
 import { CookieBanner } from '@/components/cookie-banner'
 import { ClarityAnalytics } from '@/components/clarity-analytics'
+import { JsonLd } from '@/components/seo/json-ld'
 import { APP_URL } from '@/lib/app-url'
 import './globals.css'
 
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID
+
+// JSON-LD sitewide (Organization, WebSite, SoftwareApplication). Renderizado uma
+// vez no body do root layout, em todas as páginas.
+const SITE_JSON_LD = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "AprovaOAB",
+    url: APP_URL,
+    logo: `${APP_URL}/aprovaoab-logo-primary.png`,
+    description:
+      "Plataforma de preparação para a OAB com diagnóstico por matéria, questões no padrão FGV, simulados completos e plano de estudos personalizado.",
+    areaServed: "BR",
+    sameAs: [
+      "https://x.com/AprovaOAB_app",
+      "https://www.instagram.com/aprovaoab.app/",
+    ],
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "AprovaOAB",
+    url: APP_URL,
+    inLanguage: "pt-BR",
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "AprovaOAB",
+    applicationCategory: "EducationalApplication",
+    operatingSystem: "Web",
+    url: APP_URL,
+    offers: [
+      { "@type": "Offer", name: "Grátis", price: "0", priceCurrency: "BRL" },
+      { "@type": "Offer", name: "Pro", price: "19", priceCurrency: "BRL" },
+    ],
+  },
+]
 
 // ── Fontes originais do projeto ──────────────────────────────
 const geist = Geist({
@@ -74,6 +113,7 @@ export default function RootLayout({
         </head>
       )}
       <body className="font-sans antialiased" suppressHydrationWarning>
+        <JsonLd data={SITE_JSON_LD} />
         {GTM_ID && (
           <noscript>
             <iframe

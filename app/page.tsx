@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 
+import { OG_BASE } from "@/lib/seo/og"
 import { Header } from "@/components/site/header"
 import { Hero } from "@/components/site/hero"
 import { ProblemSolution } from "@/components/site/problem-solution"
@@ -19,11 +20,11 @@ export const metadata: Metadata = {
     "Diagnóstico por matéria, plano de estudos montado pelos seus erros e simulados completos no padrão FGV. Comece grátis, sem cartão de crédito.",
   alternates: { canonical: "/" },
   openGraph: {
+    ...OG_BASE,
     title: "AprovaOAB — Estude só o que você precisa pra passar na OAB",
     description:
       "Diagnóstico por matéria, plano montado pelos seus erros e simulados no padrão FGV. Comece grátis, sem cartão de crédito.",
     url: "/",
-    type: "website",
   },
 }
 

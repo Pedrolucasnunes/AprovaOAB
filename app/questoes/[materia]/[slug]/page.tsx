@@ -13,6 +13,7 @@ import {
   type PublicQuestionDetail,
 } from "@/lib/seo/questions"
 import { parseQuestionId, questionSlug } from "@/lib/slug"
+import { getQuestionErrorRate } from "@/lib/seo/stats"
 import { OG_BASE } from "@/lib/seo/og"
 import { APP_URL } from "@/lib/app-url"
 
@@ -44,7 +45,10 @@ export async function generateMetadata({
   if (!q || q.subjectSlug !== materia) return {}
 
   const ctx = [q.banca, q.ano].filter(Boolean).join(" ")
-  const title = `Questão de ${q.subjectName} — OAB${ctx ? " " + ctx : ""} | AprovaOAB`
+  // Título por tópico (único por questão); fallback à matéria quando não há topic_id.
+  const title = q.topicName
+    ? `Questão de ${q.topicName} — ${q.subjectName} OAB${ctx ? " " + ctx : ""} | AprovaOAB`
+    : `Questão de ${q.subjectName} — OAB${ctx ? " " + ctx : ""} | AprovaOAB`
   const description = preview(q.enunciado)
   const canonical = `/questoes/${q.subjectSlug}/${questionSlug(q)}`
   return {
@@ -76,6 +80,10 @@ export default async function QuestaoPage({
   const related = (await getPublicQuestionsForSubject(q.subject_id))
     .filter((r) => r.id !== q.id)
     .slice(0, 6)
+
+  // Stat product-derived (% de alunos que erram) — só vem com amostra real >= limiar;
+  // null quando a questão ainda tem poucas respostas (nada fabricado).
+  const stat = await getQuestionErrorRate(q.id)
 
   // JSON-LD: schema.org Quiz → Question (elegível ao rich result de "practice problems")
   const jsonLd = {
@@ -113,7 +121,9 @@ export default async function QuestaoPage({
       {
         "@type": "ListItem",
         position: 3,
-        name: `Questão de ${q.subjectName} — OAB 1ª fase`,
+        name: q.topicName
+          ? `Questão de ${q.topicName} — ${q.subjectName}`
+          : `Questão de ${q.subjectName} — OAB 1ª fase`,
         item: `${APP_URL}/questoes/${q.subjectSlug}/${questionSlug(q)}`,
       },
     ],
@@ -153,7 +163,9 @@ export default async function QuestaoPage({
       </div>
 
       <h1 className="text-xl font-bold leading-snug text-foreground sm:text-2xl">
-        Questão de {q.subjectName} — OAB 1ª fase
+        {q.topicName
+          ? `Questão de ${q.topicName} — ${q.subjectName} (OAB)`
+          : `Questão de ${q.subjectName} — OAB 1ª fase`}
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">
         No <strong className="font-semibold text-foreground">AprovaOAB</strong> você resolve questões
@@ -164,6 +176,15 @@ export default async function QuestaoPage({
       <p className="mt-5 whitespace-pre-line text-base leading-relaxed text-foreground">
         {q.enunciado}
       </p>
+
+      {/* Stat product-derived — só renderiza com amostra real (sem dado fabricado).
+          Texto único por questão + reforça o CTA, sem revelar a resolução comentada. */}
+      {stat && (
+        <p className="mt-5 rounded-lg border border-border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+          📊 <strong className="font-semibold text-foreground">{stat.errPct}% dos alunos</strong> do
+          AprovaOAB erram esta questão. Veja se você acerta.
+        </p>
+      )}
 
       {/* Alternativas interativas (tenta responder → revela gabarito + comentário gated) */}
       <div className="mt-6">

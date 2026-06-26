@@ -77,6 +77,40 @@ export async function sendWelcomeFreeEmail(opts: {
   }
 }
 
+// Cobrança recusada (Stripe invoice.payment_failed). Aviso PROATIVO de recuperação:
+// o aluno segue com acesso Pro durante a janela de retentativas do Stripe (~2-3 sem),
+// mas pode nunca ver o banner do dashboard se não logar. A maioria das falhas é
+// recuperável (cartão vencido/sem saldo) → este e-mail é o que de fato recupera receita.
+export async function sendPaymentFailedEmail(opts: {
+  toEmail: string
+  firstName: string | null
+}): Promise<void> {
+  if (!resend) {
+    logWarning("RESEND_API_KEY não configurada, pulando email", {
+      area: "email",
+      phase: "send-payment-failed",
+    })
+    return
+  }
+
+  const greeting = opts.firstName ? `Olá, ${opts.firstName}!` : "Olá!"
+  // Mesmo destino do banner: a sessão do portal exige auth, então mandamos pro
+  // perfil, onde o botão "Gerenciar assinatura" abre o portal do Stripe.
+  const billingUrl = `${APP_URL}/dashboard/perfil`
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: opts.toEmail,
+      subject: "Sua cobrança no AprovaOAB falhou — atualize seu cartão",
+      html: buildPaymentFailedHtml({ greeting, billingUrl }),
+    })
+  } catch (err) {
+    logError(err, { area: "email", phase: "send-payment-failed" })
+    // Não propaga — webhook não deve falhar por causa de email
+  }
+}
+
 const FREE_FEATURES = [
   "10 questões comentadas por dia",
   "Treino inteligente focado nas suas dificuldades",
@@ -113,6 +147,41 @@ function buildWelcomeFreeHtml(o: {
     </p>
     <p style="margin: 24px 0 0 0; color: #9ca3af; font-size: 13px; line-height: 1.5;">
       Bons estudos!<br>
+      Time AprovaOAB
+    </p>
+  </div>
+</body>
+</html>`
+}
+
+function buildPaymentFailedHtml(o: {
+  greeting: string
+  billingUrl: string
+}): string {
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Sua cobrança falhou</title></head>
+<body style="margin: 0; padding: 32px 16px; background-color: #f9fafb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <div style="max-width: 560px; margin: 0 auto; background-color: white; border-radius: 12px; padding: 40px 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+    <h1 style="margin: 0 0 8px 0; color: #b45309; font-size: 24px; font-weight: 700;">Sua última cobrança falhou</h1>
+    <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 16px;">${o.greeting}</p>
+    <p style="margin: 0 0 16px 0; color: #1f2937; font-size: 15px; line-height: 1.6;">
+      Não conseguimos renovar sua assinatura do <strong style="color: #1f2937;">AprovaOAB</strong> —
+      normalmente é cartão vencido ou sem saldo no momento da cobrança.
+    </p>
+    <div style="margin: 0 0 28px 0; padding: 16px; background-color: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 0 8px 8px 0;">
+      <p style="margin: 0; color: #1f2937; font-size: 14px; line-height: 1.6;">
+        Seu acesso Pro <strong>continua ativo</strong> e vamos tentar cobrar de novo nos próximos dias.
+        Atualize seu cartão pra não perder o acesso.
+      </p>
+    </div>
+    <a href="${o.billingUrl}" style="display: inline-block; padding: 12px 24px; background-color: #10b981; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px;">
+      Atualizar forma de pagamento
+    </a>
+    <p style="margin: 32px 0 0 0; color: #4b5563; font-size: 14px; line-height: 1.6;">
+      Já atualizou ou pagou? Pode ignorar este aviso — a próxima tentativa deve passar normalmente.
+    </p>
+    <p style="margin: 24px 0 0 0; color: #9ca3af; font-size: 13px; line-height: 1.5;">
       Time AprovaOAB
     </p>
   </div>

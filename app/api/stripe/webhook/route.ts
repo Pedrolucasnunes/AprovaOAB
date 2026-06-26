@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import * as Sentry from "@sentry/nextjs"
 import { stripe, planoFromPriceId } from "@/lib/stripe"
 import { supabaseAdmin } from "@/lib/supabase-admin"
-import { sendWelcomeProEmail } from "@/lib/email"
+import { sendWelcomeProEmail, sendPaymentFailedEmail } from "@/lib/email"
 import { logWarning } from "@/lib/logger"
 import Stripe from "stripe"
 
@@ -118,10 +118,21 @@ export async function POST(req: NextRequest) {
               ...(isTrial ? { trial_used: true, trial_ends_at: trialEndsAt } : {}),
             })
             .eq("stripe_customer_id", customerId)
-        } else if (sub.status === "past_due" || sub.status === "unpaid") {
+        } else if (sub.status === "past_due") {
+          // Carência: cobrança falhou, mas o Stripe ainda vai retentar. Mantém o
+          // plano Pro (não pune soluço temporário) — só sinaliza o atraso.
           await supabaseAdmin
             .from("users")
             .update({ subscription_status: "past_due" })
+            .eq("stripe_customer_id", customerId)
+        } else if (sub.status === "unpaid") {
+          // Retentativas esgotadas com a config "Mark as unpaid" (o `.deleted` nunca
+          // dispara nesse caso). Rebaixa pra free defensivamente, mas PRESERVA o
+          // stripe_subscription_id: a assinatura ainda existe no Stripe e, se o aluno
+          // pagar e ela voltar a `active`, o branch acima re-promove pra Pro.
+          await supabaseAdmin
+            .from("users")
+            .update({ plano: "free", subscription_status: "canceled" })
             .eq("stripe_customer_id", customerId)
         }
         break
@@ -151,6 +162,25 @@ export async function POST(req: NextRequest) {
           .from("users")
           .update({ subscription_status: "past_due" })
           .eq("stripe_customer_id", customerId)
+
+        // E-mail de recuperação só na 1ª falha do ciclo. invoice.payment_failed
+        // dispara a cada retentativa (~4 ao longo de 2-3 semanas); o banner do
+        // dashboard cobre o estado contínuo, então não reenviamos a cada tentativa.
+        if (invoice.attempt_count === 1) {
+          const email = invoice.customer_email
+          const firstName = invoice.customer_name
+            ? invoice.customer_name.split(" ")[0]
+            : null
+          if (email) {
+            await sendPaymentFailedEmail({ toEmail: email, firstName })
+          } else {
+            logWarning("invoice.payment_failed sem customer_email, pulando email de cobrança", {
+              area: "stripe-webhook",
+              customerId,
+              event_id: event.id,
+            })
+          }
+        }
         break
       }
     }

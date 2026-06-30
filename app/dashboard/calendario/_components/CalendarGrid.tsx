@@ -11,6 +11,7 @@ import {
   parsePerformancePct,
   perfStyle,
   fmtLocalDate,
+  fmtTimeRange,
 } from "./EventDetailModal"
 import type { DayAvailability } from "./AvailabilityPanel"
 export type { DayAvailability }
@@ -121,7 +122,7 @@ function EventTooltip({ event, x, y }: { event: CalendarEvent; x: number; y: num
         </Badge>
         <Badge variant="outline" className="text-[10px] text-muted-foreground">
           <Clock className="mr-1 h-2.5 w-2.5" />
-          {event.time.slice(0, 5)} · {dur}min
+          {fmtTimeRange(event.time, dur)}
         </Badge>
         {event.is_auto && (
           <Badge variant="outline"

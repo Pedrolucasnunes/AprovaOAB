@@ -97,7 +97,7 @@ export async function getValidAccessToken(
 
 const EVENT_DURATION: Record<string, number> = {
   study:    90,
-  simulado: 240,
+  simulado: 300,   // 5h — mesma duração da 1ª fase real da OAB
   revisao:  60,
   prova:    180,
 }

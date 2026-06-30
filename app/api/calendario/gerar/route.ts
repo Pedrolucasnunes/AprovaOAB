@@ -124,7 +124,9 @@ export async function POST(req: NextRequest) {
     .lte("date", sundayStr)
 
   // 10. Gera e insere novos eventos a partir da segunda
-  const events = gerarEventos(userId, desempenho, availability, mondayStr)
+  const simuladoPreference =
+    user.user_metadata?.simulado_preference === "weekday" ? "weekday" : "weekend"
+  const events = gerarEventos(userId, desempenho, availability, mondayStr, simuladoPreference)
 
   const { data: inserted, error: insertError } = await supabase
     .from("calendar_events")

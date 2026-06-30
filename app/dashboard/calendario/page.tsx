@@ -17,7 +17,7 @@ import { EventDetailModal }                  from "./_components/EventDetailModa
 import { AvailabilityPanel }                 from "./_components/AvailabilityPanel"
 import { fmtLocalDate }                      from "./_components/EventDetailModal"
 import type { CalendarEvent }                from "./_components/EventDetailModal"
-import type { DayAvailability }              from "./_components/AvailabilityPanel"
+import type { DayAvailability, SimuladoPref } from "./_components/AvailabilityPanel"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -186,6 +186,7 @@ export default function CalendarioPage() {
   const [lastGenerated,  setLastGenerated]  = useState<string | null>(null)
   const [showRules,      setShowRules]      = useState(false)
   const [googleConnected, setGoogleConnected] = useState(false)
+  const [simuladoPref,   setSimuladoPref]   = useState<SimuladoPref>("weekend")
 
   const today     = todayStr()
   const weekStart = weekStartFor(weekOffset)
@@ -210,7 +211,11 @@ export default function CalendarioPage() {
     try {
       const res = await fetch("/api/calendario/disponibilidade")
       if (!res.ok) return
-      const { availability } = await res.json()
+      const { availability, simulado_preference } = await res.json()
+
+      if (simulado_preference === "weekday" || simulado_preference === "weekend") {
+        setSimuladoPref(simulado_preference)
+      }
 
       // Group rows by day_of_week (multiple slots per day supported)
       const next: DayAvailability[] = Array.from({ length: 7 }, () => ({
@@ -305,7 +310,7 @@ export default function CalendarioPage() {
   }
 
   // ── Save availability + generate (called from AvailabilityPanel) ──
-  async function handleSaveAndGenerate(avail: DayAvailability[]) {
+  async function handleSaveAndGenerate(avail: DayAvailability[], pref: SimuladoPref) {
     // Flatten to array of rows (multiple rows per day allowed)
     const payload = avail.flatMap((d, i) =>
       d.enabled
@@ -316,7 +321,7 @@ export default function CalendarioPage() {
     const saveRes = await fetch("/api/calendario/disponibilidade", {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ availability: payload }),
+      body:    JSON.stringify({ availability: payload, simulado_preference: pref }),
     })
 
     if (!saveRes.ok) {
@@ -325,6 +330,7 @@ export default function CalendarioPage() {
     }
 
     setAvailByDay(avail)
+    setSimuladoPref(pref)
     setShowAvailPanel(false)
 
     // Generate plan immediately after saving
@@ -455,6 +461,7 @@ export default function CalendarioPage() {
       {showAvailPanel ? (
         <AvailabilityPanel
           availability={availByDay}
+          simuladoPref={simuladoPref}
           onSaveAndGenerate={handleSaveAndGenerate}
           onClose={() => setShowAvailPanel(false)}
         />
@@ -674,7 +681,7 @@ export default function CalendarioPage() {
               <div className="space-y-1.5">
                 {[
                   { icon: BookOpen,  color: "text-primary",    label: "Dias de treino",   desc: "2 sessões/dia — Treino (90 min, 20 questões) + Revisão (60 min, 10 questões)" },
-                  { icon: FileText,  color: "text-blue-500",   label: "Simulado completo", desc: "240 min · 80 questões — alocado no dia com o maior bloco de tempo livre" },
+                  { icon: FileText,  color: "text-blue-500",   label: "Simulado completo", desc: `5h · 80 questões — ${simuladoPref === "weekend" ? "no fim de semana" : "num dia útil"}, no maior bloco de tempo livre (como a prova real)` },
                   { icon: RotateCcw, color: "text-yellow-500", label: "Revisão geral",     desc: "Consolidação da semana — no último dia disponível da sua agenda" },
                 ].map(({ icon: Icon, color, label, desc }) => (
                   <div key={label} className="flex items-start gap-3 rounded-lg border border-border/60 px-3 py-2.5">

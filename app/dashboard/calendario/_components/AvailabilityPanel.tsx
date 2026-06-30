@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
   Sparkles, X, Plus, Loader2, Clock,
-  Moon, CalendarDays, Coffee, ChevronDown,
+  Moon, CalendarDays, Coffee, ChevronDown, FileText,
 } from "lucide-react"
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -20,6 +20,9 @@ export interface DayAvailability {
   enabled: boolean
   slots:   TimeSlot[]
 }
+
+/** Quando alocar o simulado completo: num dia útil ou no fim de semana. */
+export type SimuladoPref = "weekday" | "weekend"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Time options — 06:00 → 23:30 in 30-min steps
@@ -183,11 +186,12 @@ function TimeSelect({
 // ─────────────────────────────────────────────────────────────────────────────
 interface Props {
   availability:      DayAvailability[]
-  onSaveAndGenerate: (avail: DayAvailability[]) => Promise<void>
+  simuladoPref:      SimuladoPref
+  onSaveAndGenerate: (avail: DayAvailability[], pref: SimuladoPref) => Promise<void>
   onClose:           () => void
 }
 
-export function AvailabilityPanel({ availability, onSaveAndGenerate, onClose }: Props) {
+export function AvailabilityPanel({ availability, simuladoPref, onSaveAndGenerate, onClose }: Props) {
   const [local, setLocal] = useState<DayAvailability[]>(() =>
     availability.map((d) => ({
       enabled: d.enabled,
@@ -196,6 +200,7 @@ export function AvailabilityPanel({ availability, onSaveAndGenerate, onClose }: 
         : [{ start_time: "19:00", end_time: "22:00" }],
     }))
   )
+  const [pref, setPref]     = useState<SimuladoPref>(simuladoPref)
   const [saving, setSaving] = useState(false)
 
   // ── Mutations ──────────────────────────────────────────────────
@@ -250,7 +255,7 @@ export function AvailabilityPanel({ availability, onSaveAndGenerate, onClose }: 
   // ── Save + generate ────────────────────────────────────────────
   async function handleSave() {
     setSaving(true)
-    await onSaveAndGenerate(local)
+    await onSaveAndGenerate(local, pref)
     setSaving(false)
   }
 
@@ -303,6 +308,43 @@ export function AvailabilityPanel({ availability, onSaveAndGenerate, onClose }: 
               </button>
             )
           })}
+        </div>
+
+        {/* ── Preferência do simulado ───────────────────── */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5">
+            <FileText className="h-3.5 w-3.5 text-blue-500" />
+            <span className="text-xs font-medium text-foreground">
+              Quando prefere fazer o simulado?
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {([
+              { value: "weekday", label: "Durante a semana", icon: CalendarDays },
+              { value: "weekend", label: "Fim de semana",    icon: Coffee },
+            ] as const).map(({ value, label, icon: Icon }) => {
+              const active = pref === value
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setPref(value)}
+                  className={`flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2
+                    text-xs font-medium transition-all duration-150 active:scale-95
+                    ${active
+                      ? "border-primary bg-primary/10 text-primary shadow-[0_0_0_1px_hsl(var(--primary)/0.3)]"
+                      : "border-border bg-muted/40 text-muted-foreground hover:border-primary/40 hover:text-foreground"}`}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            O simulado completo dura 5h, como a prova real — que cai num domingo. No fim de semana
+            costuma caber um bloco contínuo desse tamanho.
+          </p>
         </div>
 
         {/* ── Days ──────────────────────────────────────── */}

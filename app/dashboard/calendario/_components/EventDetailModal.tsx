@@ -33,7 +33,7 @@ export interface CalendarEvent {
 export const EVENT_DURATION_MIN: Record<string, number> = {
   study:    90,
   revisao:  60,
-  simulado: 240,
+  simulado: 300,   // 5h — mesma duração da 1ª fase real da OAB
   prova:    180,
 }
 
@@ -74,6 +74,16 @@ const MONTHS_PT   = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out"
 export function fmtLocalDate(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0")
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+/** "19:00" + 240 → "19:00 – 23:00". Soma a duração ao início e formata o intervalo. */
+export function fmtTimeRange(time: string, durationMin: number): string {
+  const start = time.slice(0, 5)
+  const [h, m] = start.split(":").map(Number)
+  const endMins = h * 60 + m + durationMin
+  const pad = (n: number) => String(n).padStart(2, "0")
+  const end = `${pad(Math.floor(endMins / 60))}:${pad(endMins % 60)}`
+  return `${start} – ${end}`
 }
 
 function fmtDate(dateStr: string) {
@@ -129,7 +139,7 @@ export function EventDetailModal({
             </Badge>
             <Badge variant="outline" className="text-[11px] text-muted-foreground">
               <Clock className="mr-1 h-3 w-3" />
-              {event.time.slice(0, 5)} · {dur} min
+              {fmtTimeRange(event.time, dur)}
             </Badge>
             {event.is_auto && (
               <Badge variant="outline"

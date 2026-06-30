@@ -79,7 +79,8 @@ export function gerarEventos(
   userId:       string,
   desempenho:   { subject_id: string; nome: string; taxa_acerto: number }[],
   availability: UserAvailability[] = [],
-  startDate?:   string   // YYYY-MM-DD — padrão: segunda da semana atual
+  startDate?:   string,                                  // YYYY-MM-DD — padrão: segunda da semana atual
+  simuladoPreference: "weekday" | "weekend" = "weekend"  // dia do simulado: dia útil ou fim de semana
 ): AgendaEvent[] {
   const { criticas, medias, boas } = classificar(desempenho)
 
@@ -180,13 +181,30 @@ export function gerarEventos(
   const hasConfig     = availability.length > 0
   const availableDays = dayInfo.filter((d) => d.hasAvail)
 
-  // Dia do simulado: dia disponível com o maior bloco contíguo livre.
-  // Desempate pela proximidade da quarta. Sem disponibilidade → quarta (índice 2).
+  // Índices são offset-da-segunda: 0=Seg … 5=Sáb, 6=Dom.
+  const isWeekend = (day: number) => day === 5 || day === 6
+  const inBucket  = (day: number) =>
+    simuladoPreference === "weekend" ? isWeekend(day) : !isWeekend(day)
+
+  // Dia do simulado: dentro do balde preferido (fim de semana ou dia útil), o dia com o maior
+  // bloco contíguo livre — o simulado de 5h precisa caber. Desempate: fim de semana prioriza
+  // domingo (mesmo dia da prova real); dia útil prioriza a quarta. Se o balde preferido não
+  // tiver disponibilidade, cai para qualquer dia disponível (nunca deixa de alocar o simulado).
+  // Sem disponibilidade nenhuma → domingo (weekend) ou quarta (weekday).
+  const fallbackDay = simuladoPreference === "weekend" ? 6 : 2
+  const tiebreak = (a: { day: number }, b: { day: number }) =>
+    simuladoPreference === "weekend"
+      ? b.day - a.day                                   // prioriza domingo (6) sobre sábado (5)
+      : Math.abs(a.day - 2) - Math.abs(b.day - 2)       // dia útil mais próximo da quarta
   const simuladoDay = !hasConfig
-    ? 2
-    : [...availableDays].sort(
-        (a, b) => b.longest - a.longest || Math.abs(a.day - 2) - Math.abs(b.day - 2)
-      )[0]?.day ?? 2
+    ? fallbackDay
+    : (() => {
+        const preferred = availableDays.filter((d) => inBucket(d.day))
+        const pool      = preferred.length ? preferred : availableDays
+        return [...pool].sort(
+          (a, b) => b.longest - a.longest || tiebreak(a, b)
+        )[0]?.day ?? fallbackDay
+      })()
 
   // Revisão geral: último dia disponível que não seja o do simulado.
   // Sem disponibilidade → domingo (índice 6). Sem outro dia livre → -1 (sem revisão geral).

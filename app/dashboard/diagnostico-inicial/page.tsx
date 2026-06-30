@@ -47,6 +47,10 @@ export default function DiagnosticoInicialPage() {
           router.replace("/dashboard?onboarding=true")
           return
         }
+        if (status === 409 && json.error === "DIAGNOSTIC_ALREADY_DONE") {
+          router.replace("/dashboard/diagnostico-inicial/resultado")
+          return
+        }
         if (json.error || !json.questions || json.questions.length === 0) {
           setLoadError(json.error ?? "Não foi possível carregar as questões.")
           setLoading(false)

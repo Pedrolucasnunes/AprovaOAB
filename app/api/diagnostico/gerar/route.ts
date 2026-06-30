@@ -18,6 +18,18 @@ export async function GET() {
   const { user, supabase, error } = await requireUser()
   if (error) return error
 
+  // Trava de 1x: quem já concluiu o diagnóstico (>= 5 respostas) não gera questões novas.
+  // Evita usar o fluxo do diagnóstico (gratuito e fora do limite de 10/dia) para farmar questões.
+  const { count: diagCount } = await supabase
+    .from("question_attempts")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .eq("is_diagnostic", true)
+
+  if ((diagCount ?? 0) >= 5) {
+    return NextResponse.json({ error: "DIAGNOSTIC_ALREADY_DONE" }, { status: 409 })
+  }
+
   const { data: userRow } = await supabase
     .from("users")
     .select("onboarding_data")

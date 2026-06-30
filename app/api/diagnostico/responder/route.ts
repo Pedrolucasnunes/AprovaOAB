@@ -54,6 +54,21 @@ export async function POST(req: NextRequest) {
     })
   }
 
+  // Backstop da trava de 1x: o diagnóstico tem 5 questões. Quem já tem 5 não grava mais
+  // (defesa server-side contra hit direto na API ou corrida do caso "abandonou em 4, reabriu").
+  const { count: diagCount } = await supabase
+    .from("question_attempts")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .eq("is_diagnostic", true)
+
+  if ((diagCount ?? 0) >= 5) {
+    return NextResponse.json(
+      { error: "Diagnóstico já concluído", completed: true },
+      { status: 409 }
+    )
+  }
+
   const { error: insertError } = await supabase
     .from("question_attempts")
     .insert({

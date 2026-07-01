@@ -343,6 +343,47 @@ export const EDICAO_3: NewsletterEdicao = {
   examDays: 75,
 }
 
+// ── Edição #4 (dados reais do banco: Processo Penal, 29% de acerto) ───────────
+export const EDICAO_4: NewsletterEdicao = {
+  numero: 4,
+  subject: "☕ Café com OAB #4 — a pegadinha de Processo Penal que 7 em cada 10 erram",
+  preheader: "O Tribunal concedeu o habeas corpus por um motivo que o advogado nem tinha pedido. Pode fazer isso?",
+  intro: [
+    "Julho chegou e já traz o primeiro marco da reta: <strong>no dia 6 sai o resultado preliminar da isenção</strong> da taxa do 47º Exame, e quem vai pagar tem até <strong>31 de julho</strong> pra quitar o boleto e garantir a vaga. Prazo perdido não volta — anota aí. ⏰",
+    "E a matéria de hoje é a que mais tem derrubado quem treina na plataforma: <strong>Processo Penal</strong>. Só 29% acertam — <strong>7 em cada 10 erram</strong>. A pegadinha da vez é de <em>habeas corpus</em>: o Tribunal pode conceder a ordem por um fundamento que o advogado nem chegou a pedir? A resposta engana muita gente boa. ⚖️",
+  ],
+  termometro:
+    "🔴 <strong>Processo Penal — 29% de acerto na plataforma.</strong> A matéria que mais derruba entre os treinos: 7 em cada 10 erram. É onde a FGV mais cobra detalhe fino — prazo, competência, nulidade — e onde se separa quem decorou de quem entendeu.",
+  questao: {
+    fonte: "FGV · Exame de Ordem XLII/2024 · das questões de Processo Penal que mais derrubam na plataforma",
+    enunciado:
+      "Amanda impetra habeas corpus em favor de Telma, que foi presa preventivamente por decisão do Juiz de Primeiro Grau, sendo acusada da prática de crime hediondo. O habeas corpus foi impetrado com o argumento de excesso de prazo. O Tribunal concedeu a ordem de habeas corpus de ofício, fundamentado na incompetência do juiz que decretou a prisão. Sobre a hipótese narrada, assinale a afirmativa correta.",
+    alternativas: [
+      { letra: "A", texto: "O Tribunal equivocou-se, uma vez que a incompetência do julgador não é fundamento para a concessão de habeas corpus." },
+      { letra: "B", texto: "O Tribunal agiu de modo correto, uma vez que é possível a concessão de habeas corpus de ofício sempre que houver constrangimento ilegal." },
+      { letra: "C", texto: "O Tribunal agiu de modo correto, pois a incompetência do Juízo é o único fundamento que admite a concessão da ordem de habeas corpus de ofício." },
+      { letra: "D", texto: "O Tribunal equivocou-se, pois fica vinculado aos argumentos apontados pelo impetrante do habeas corpus, sendo inadmissível a concessão de habeas corpus de ofício." },
+    ],
+    gabarito: "B",
+    comentario:
+      "O habeas corpus é a garantia contra qualquer coação ilegal à liberdade — e o juiz ou tribunal pode concedê-lo <strong>de ofício</strong> sempre que enxergar constrangimento ilegal, ainda que por fundamento diferente do que se pediu (CPP, art. 654, § 2º). Aqui o impetrante alegou excesso de prazo, mas o Tribunal identificou algo mais grave — a incompetência de quem decretou a prisão (CPP, art. 648, III) — e concedeu a ordem. Podia: no HC não vale a “adstrição” dos recursos comuns; o que importa é fazer cessar a ilegalidade.",
+  },
+  pegadinha:
+    "A cilada mora na letra <strong>D</strong>: parece lógico que o Tribunal só possa decidir <em>dentro</em> do que o advogado pediu. É assim nos recursos comuns — vale o <em>tantum devolutum quantum appellatum</em> (o tribunal só julga o que lhe foi devolvido). Mas <strong>habeas corpus não é recurso, é garantia</strong>: o juiz concede de ofício e não fica preso aos fundamentos do impetrante (CPP, art. 654, § 2º). E cuidado com a letra C, que enfia um <em>“único fundamento”</em> — a incompetência é <strong>uma</strong> das hipóteses de coação ilegal (art. 648), longe de ser a única. 🧠 <strong>Fixa assim:</strong> no HC, havendo ilegalidade, o tribunal corrige — pedida ou não.",
+  noticia: {
+    titulo: "📰 Tá rolando: julho é mês de prazo no 47º Exame",
+    texto:
+      "Começou a maratona de datas do <strong>47º Exame de Ordem</strong>. No dia <strong>6 de julho</strong> sai o <strong>resultado preliminar da isenção</strong> da taxa; o <strong>definitivo</strong> vem em <strong>29 de julho</strong>. Quem vai pagar tem até <strong>31 de julho</strong> pra quitar o boleto da inscrição. Depois é estudo puro até os <strong>locais de prova</strong> saírem, em <strong>31 de agosto</strong> — a 1ª fase é em <strong>6 de setembro</strong>. ⏰",
+  },
+  curiosidade: {
+    titulo: "💡 Você sabia?",
+    texto:
+      "O <strong>habeas corpus</strong> é o único instrumento do processo penal que <strong>qualquer pessoa</strong> pode impetrar — sem ser advogado e sem procuração (CPP, art. 654). Foi o que a Amanda da questão fez: pediu a ordem em favor de outra pessoa. Um parente, um amigo, o próprio preso ou o Ministério Público podem impetrar; e o juiz, como você viu, pode concedê-lo de ofício. É o remédio mais democrático do processo penal. 💪",
+  },
+  dica: "Processo Penal cai muito e vive de detalhe: prazo, competência, nulidade e — campeão de recorrência — o habeas corpus. Reserve 15 minutos hoje pras hipóteses de coação ilegal (CPP, art. 648) e pra quem pode impetrar e conceder o HC (art. 654). É base enxuta que rende ponto fácil.",
+  examDays: 67,
+}
+
 // Edição "atual" — a que o cron semanal e o /send usam por padrão. Ao montar uma
 // edição nova, atualize este ponteiro (ou edite o conteúdo acima).
-export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_3
+export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_4

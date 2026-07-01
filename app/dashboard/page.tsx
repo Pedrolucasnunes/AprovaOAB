@@ -9,12 +9,17 @@ import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   TrendingDown, TrendingUp, Target, FileText, CheckCircle2, AlertTriangle,
-  ArrowRight, Clock, Zap, ListChecks, Lightbulb, Sparkles,
+  ArrowRight, Clock, Zap, ListChecks, Lightbulb, Sparkles, X,
 } from "lucide-react"
 import Link from "next/link"
 import { getClientUser } from "@/lib/auth-client"
 
 const META = 50
+
+// Nudge discreto do diagnóstico pra quem pulou: some sozinho quando o aluno já tem
+// histórico real suficiente (aí o desempenho real é melhor sinal que as 5 do diagnóstico).
+const DIAGNOSTICO_NUDGE_MAX_RESPOSTAS = 30
+const DIAG_NUDGE_KEY = "diagnostico_nudge_dismissed"
 
 // ── Helpers ─────────────────────────────────────────────────────
 function getTextColor(taxa: number): string {
@@ -118,6 +123,16 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null)
   const [userName, setUserName] = useState<string>("")
   const [foco, setFoco] = useState<FocoDiagnostico | null>(null)
+  const [diagNudgeDismissed, setDiagNudgeDismissed] = useState(false)
+
+  useEffect(() => {
+    setDiagNudgeDismissed(localStorage.getItem(DIAG_NUDGE_KEY) === "1")
+  }, [])
+
+  function dismissDiagNudge() {
+    localStorage.setItem(DIAG_NUDGE_KEY, "1")
+    setDiagNudgeDismissed(true)
+  }
 
   useEffect(() => {
     async function fetchDashboard() {
@@ -389,6 +404,30 @@ export default function DashboardPage() {
               <span>100%</span>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── Nudge discreto: diagnóstico pendente pra quem já saiu do "novo" ── */}
+      {!isNewUser
+        && data?.temPerfilOnboarding
+        && !data?.diagnosticoCompleto
+        && (data?.resumo?.totalRespondidas ?? 0) < DIAGNOSTICO_NUDGE_MAX_RESPOSTAS
+        && !diagNudgeDismissed && (
+        <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
+          <Sparkles className="h-4 w-4 text-primary shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium">Você ainda não fez o mini-diagnóstico</p>
+            <p className="text-xs text-muted-foreground">
+              4 min pra mapear seus pontos fracos e abrir um primeiro treino direcionado.
+            </p>
+          </div>
+          <Button asChild size="sm" variant="outline" className="shrink-0">
+            <Link href="/dashboard/diagnostico-inicial">Fazer</Link>
+          </Button>
+          <button onClick={dismissDiagNudge} aria-label="Dispensar"
+            className="shrink-0 text-muted-foreground hover:text-foreground">
+            <X className="h-4 w-4" />
+          </button>
         </div>
       )}
 

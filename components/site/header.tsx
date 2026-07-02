@@ -18,6 +18,7 @@ const LINKS = [
   { href: "/#como-funciona", label: "Como funciona" },
   { href: "/#beneficios", label: "Benefícios" },
   { href: "/questoes", label: "Questões grátis", route: true },
+  { href: "/editais", label: "Editais", route: true },
   { href: "/#planos", label: "Planos" },
   { href: "/#faq", label: "FAQ" },
 ];

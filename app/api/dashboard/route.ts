@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { requireUser } from "@/lib/auth-server"
 import { inicioDoDiaBR, hojeStringBR, diaDaSemanaBR } from "@/lib/check-daily-limit"
 import { fetchAllRows, fetchByIds } from "@/lib/supabase-paginate"
+import { classificarTaxa, TAXA_CRITICA, MIN_TENTATIVAS_BANDA } from "@/lib/metrics"
 import { logError } from "@/lib/logger"
 
 export async function GET(req: NextRequest) {
@@ -47,22 +48,16 @@ export async function GET(req: NextRequest) {
   const trialEndsAt: string | null = userPlanoRow?.trial_ends_at ?? null
   const examDate: string | null = (user.user_metadata?.exam_date as string | null) ?? null
 
-  // 1. Resumo geral via desempenho_materia
-  const { data: resumo, error: resumoError } = await supabase
-    .from("desempenho_materia")
-    .select("total, acertos, taxa_acerto, subject_id")
-    .eq("user_id", userId)
-
-  if (resumoError) {
-    logError(resumoError, { area: "dashboard", userId, phase: "resumo" })
-    return NextResponse.json({ error: resumoError.message }, { status: 500 })
-  }
-
-  const totalRespondidas = resumo?.reduce((acc: number, r) => acc + (r.total ?? 0), 0) ?? 0
-  const totalAcertos = resumo?.reduce((acc: number, r) => acc + (r.acertos ?? 0), 0) ?? 0
-  const taxaGeralAcerto = totalRespondidas > 0
-    ? parseFloat(((totalAcertos / totalRespondidas) * 100).toFixed(2))
-    : 0
+  // 1. Tentativas avulsas (diagnóstico + treino + questões), direto da tabela.
+  // CUIDADO: a view desempenho_materia NÃO serve aqui — verificado no banco,
+  // ela retorna 1 linha por SIMULADO_RESPOSTA (desagregada, total sempre 1) e
+  // NÃO inclui question_attempts. Avulsas só existem nesta tabela; a
+  // agregação por matéria acontece no passo 5.5.
+  const avulsasAttempts = await fetchAllRows<{ question_id: string; acertou: boolean }>(
+    () => supabase.from("question_attempts").select("question_id, acertou").eq("user_id", userId),
+  )
+  const totalRespondidasAvulsas = avulsasAttempts.length
+  const totalAcertosAvulsas = avulsasAttempts.filter((a) => a.acertou).length
 
   // 2. Último simulado + todos os finalizados (para taxa geral OAB)
   const [
@@ -99,23 +94,8 @@ export async function GET(req: NextRequest) {
     (subjects ?? []).map((s) => [s.id, s.name])
   )
 
-  // 4. Matérias em risco
-  const { data: materiasRiscoRaw, error: riscoError } = await supabase
-    .from("materias_risco")
-    .select("subject_id, taxa")
-    .eq("user_id", userId)
-    .order("taxa", { ascending: true })
-    .limit(5)
-
-  if (riscoError) {
-    logError(riscoError, { area: "dashboard", userId, phase: "materias-risco" })
-  }
-
-  const materiasRisco = (materiasRiscoRaw ?? []).map((m) => ({
-    subject_id: m.subject_id,
-    nome: subjectMap[m.subject_id] ?? "Matéria desconhecida",
-    taxa: m.taxa,
-  }))
+  // 4. (removido) A view materias_risco agrega só respostas de simulado e não
+  //    filtra risco. A lista de risco agora sai da fusão do passo 5.5.
 
   // 5. Desempenho por matéria — apenas simulados
   const simAttempts = await fetchAllRows<{ id: string; question_id: string }>(
@@ -127,12 +107,17 @@ export async function GET(req: NextRequest) {
   let desempenhoPorMateria: {
     subject_id: string; nome: string; total: number; acertos: number; taxa_acerto: number
   }[] = []
+  // Respostas efetivamente dadas em simulados (brancos não geram linha).
+  let totalRespostasSimulado = 0
+  let totalAcertosRespostasSimulado = 0
 
   if (simAttemptIds.length > 0) {
     const simRespostas = await fetchByIds<{ question_id: string; acertou: boolean }>(
       (ids) => supabase.from("simulado_respostas").select("question_id, acertou").in("attempt_id", ids),
       simAttemptIds,
     )
+    totalRespostasSimulado = simRespostas.length
+    totalAcertosRespostasSimulado = simRespostas.filter((r) => r.acertou).length
 
     if (simRespostas.length > 0) {
       const qIds = [...new Set(simRespostas.map((r) => r.question_id))]
@@ -170,6 +155,76 @@ export async function GET(req: NextRequest) {
   const totalAcertosFinalizados  = (simuladosFinalizados ?? []).reduce((acc: number, s) => acc + (s.acertos ?? 0), 0)
   const taxaGeralSimulado = totalQuestoesFinalizados > 0
     ? parseFloat(((totalAcertosFinalizados / totalQuestoesFinalizados) * 100).toFixed(2))
+    : 0
+
+  // 5.5. Desempenho REAL por matéria = avulsas + simulados. Nenhuma view
+  // entrega isso: desempenho_materia/materias_risco cobrem SÓ respostas de
+  // simulado, e as avulsas só existem em question_attempts. Esta fusão é a
+  // base ÚNICA de: bandas/contagens dos cards (Dashboard e Agenda), lista
+  // top-5 de risco e recomendações.
+  const avulsasPorMateria = new Map<string, { total: number; acertos: number }>()
+  if (avulsasAttempts.length > 0) {
+    const qIdsAvulsas = [...new Set(avulsasAttempts.map((a) => a.question_id))]
+    const qRowsAvulsas = await fetchByIds<{ id: string; subject_id: string }>(
+      (ids) => supabase.from("questions").select("id, subject_id").in("id", ids),
+      qIdsAvulsas,
+    )
+    const subjectDaAvulsa = Object.fromEntries(qRowsAvulsas.map((q) => [q.id, q.subject_id]))
+    for (const a of avulsasAttempts) {
+      const sid = subjectDaAvulsa[a.question_id]
+      if (!sid) continue
+      const cur = avulsasPorMateria.get(sid) ?? { total: 0, acertos: 0 }
+      cur.total += 1
+      if (a.acertou) cur.acertos += 1
+      avulsasPorMateria.set(sid, cur)
+    }
+  }
+
+  const porMateria = new Map<string, { total: number; acertos: number }>()
+  for (const [sid, s] of avulsasPorMateria) porMateria.set(sid, { ...s })
+  for (const d of desempenhoPorMateria) {
+    const cur = porMateria.get(d.subject_id) ?? { total: 0, acertos: 0 }
+    cur.total += d.total
+    cur.acertos += d.acertos
+    porMateria.set(d.subject_id, cur)
+  }
+
+  const materiasTaxas = Array.from(porMateria.entries())
+    .map(([subject_id, s]) => ({
+      subject_id,
+      nome: subjectMap[subject_id] ?? "Matéria desconhecida",
+      total: s.total,
+      taxa: s.total > 0 ? parseFloat(((s.acertos / s.total) * 100).toFixed(2)) : 0,
+    }))
+    .sort((a, b) => a.taxa - b.taxa)
+
+  // Bandas/contagens dos cards: só matérias com amostra mínima — 1 erro em
+  // 1 questão não carimba a matéria como crítica.
+  const materiasPorBanda = { criticas: 0, medias: 0, boas: 0 }
+  for (const m of materiasTaxas) {
+    if (m.total < MIN_TENTATIVAS_BANDA) continue
+    const nivel = classificarTaxa(m.taxa)
+    if (nivel === "critica") materiasPorBanda.criticas++
+    else if (nivel === "media") materiasPorBanda.medias++
+    else materiasPorBanda.boas++
+  }
+  const materiasRiscoCount = materiasPorBanda.criticas
+
+  // Lista de risco (banda crítica), SEM piso de amostra: as recomendações
+  // precisam funcionar já no pós-diagnóstico (1 resposta por matéria).
+  const materiasRiscoAll = materiasTaxas.filter((m) => m.taxa < TAXA_CRITICA)
+  const materiasRisco = materiasRiscoAll
+    .slice(0, 5)
+    .map(({ subject_id, nome, taxa }) => ({ subject_id, nome, taxa }))
+
+  // Resumo geral DE VERDADE: avulsas + respostas de simulado no mesmo
+  // denominador — só questões EFETIVAMENTE respondidas ("resolvidas").
+  // Brancos de simulado não entram aqui; a nota de prova (que pontua branco
+  // como erro) é a taxaSimulados.
+  const totalRespondidas = totalRespondidasAvulsas + totalRespostasSimulado
+  const totalAcertos = totalAcertosAvulsas + totalAcertosRespostasSimulado
+  const taxaGeralAcerto = totalRespondidas > 0
+    ? parseFloat(((totalAcertos / totalRespondidas) * 100).toFixed(2))
     : 0
 
   // 6. Action cards — dados em paralelo (fuso BR)
@@ -223,7 +278,7 @@ export async function GET(req: NextRequest) {
   // Matéria em risco com prática mais antiga
   let insightMateria: { subject: string; taxa: number; diasSemTreino: number | null } | null = null
 
-  if ((materiasRiscoRaw ?? []).length > 0) {
+  if (materiasRiscoAll.length > 0) {
     if (recentAttempts && recentAttempts.length > 0) {
       const qIds = [...new Set(recentAttempts.map((a) => a.question_id))] as string[]
       const qRows = await fetchByIds<{ id: string; subject_id: string }>(
@@ -241,10 +296,10 @@ export async function GET(req: NextRequest) {
         if (!lastPractice.has(sid) || d > lastPractice.get(sid)!) lastPractice.set(sid, d)
       }
 
-      let chosen: NonNullable<typeof materiasRiscoRaw>[0] | null = null
+      let chosen: (typeof materiasRiscoAll)[0] | null = null
       let oldestDate: Date = todayDate
 
-      for (const m of materiasRiscoRaw ?? []) {
+      for (const m of materiasRiscoAll) {
         const last = lastPractice.get(m.subject_id)
         if (!last) { chosen = m; break }
         if (last < oldestDate) { oldestDate = last; chosen = m }
@@ -253,7 +308,7 @@ export async function GET(req: NextRequest) {
       if (chosen) {
         const last = lastPractice.get(chosen.subject_id)
         insightMateria = {
-          subject:       subjectMap[chosen.subject_id] ?? "Matéria desconhecida",
+          subject:       chosen.nome,
           taxa:          chosen.taxa,
           diasSemTreino: last
             ? Math.floor((todayDate.getTime() - last.getTime()) / 86400000)
@@ -261,9 +316,9 @@ export async function GET(req: NextRequest) {
         }
       }
     } else {
-      const worst = materiasRiscoRaw![0]
+      const worst = materiasRiscoAll[0]
       insightMateria = {
-        subject:       subjectMap[worst.subject_id] ?? "Matéria desconhecida",
+        subject:       worst.nome,
         taxa:          worst.taxa,
         diasSemTreino: null,
       }
@@ -301,9 +356,22 @@ export async function GET(req: NextRequest) {
   }))
 
   return NextResponse.json({
-    resumo: { totalRespondidas, totalAcertos, taxaGeralAcerto: taxaGeralSimulado },
+    // taxaGeralAcerto/totalRespondidas agora são GERAIS de verdade: avulsas
+    // (view desempenho_materia, agregada acima) + respostas de simulado, no
+    // mesmo denominador. A taxa só de simulados sai como taxaSimulados — é
+    // ela que mede "prontidão pra prova" (hero). totalSimuladosFinalizados
+    // distingue "nota 0%" de "nunca finalizou um simulado".
+    resumo: {
+      totalRespondidas,
+      totalAcertos,
+      taxaGeralAcerto,
+      taxaSimulados: taxaGeralSimulado,
+      totalSimuladosFinalizados: (simuladosFinalizados ?? []).length,
+    },
     ultimoSimulado: ultimoSimulado ?? null,
     materiasRisco,
+    materiasRiscoCount,
+    materiasPorBanda,
     desempenhoPorMateria,
     evolucao,
     actionCards,

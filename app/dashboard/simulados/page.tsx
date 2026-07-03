@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Clock, Target, BarChart2, Loader2, Trash2, AlertTriangle, ArrowRight, BarChart, Lock, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
+import { META_APROVACAO, metaTextColor, metaBarColor } from "@/lib/metrics"
 
 interface SimuladoRealizado {
   id: string
@@ -130,7 +131,7 @@ export default function SimuladosPage() {
   const melhorPercentual = simuladosRealizados.length > 0
     ? Math.max(...simuladosRealizados.map((s) => s.percentual))
     : null
-  const metaAprovacao = 50
+  const metaAprovacao = META_APROVACAO
 
   return (
     <div className="space-y-4">
@@ -150,7 +151,7 @@ export default function SimuladosPage() {
               </div>
               <p className="text-3xl font-extrabold text-foreground">
                 Último resultado:{" "}
-                <span className="text-primary">
+                <span className={metaTextColor(ultimo.percentual)}>
                   {ultimo.acertos}/{ultimo.numero_questoes} ({ultimo.percentual}%)
                 </span>
               </p>
@@ -161,7 +162,7 @@ export default function SimuladosPage() {
               </p>
               <div className="mt-4 h-2 rounded-full bg-muted overflow-hidden w-full max-w-sm">
                 <div
-                  className="h-full rounded-full bg-primary transition-all"
+                  className={`h-full rounded-full transition-all ${metaBarColor(ultimo.percentual)}`}
                   style={{ width: `${Math.min(ultimo.percentual, 100)}%` }}
                 />
               </div>
@@ -313,7 +314,6 @@ export default function SimuladosPage() {
         ) : (
           <div className="space-y-3">
             {simuladosRealizados.map((s, idx) => {
-              const aprovado = s.percentual >= metaAprovacao
               const anterior = simuladosRealizados[idx + 1]
               const delta = anterior ? +(s.percentual - anterior.percentual).toFixed(1) : null
               return (
@@ -329,14 +329,14 @@ export default function SimuladosPage() {
                     </p>
                     <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden w-full max-w-[200px]">
                       <div
-                        className={`h-full rounded-full transition-all ${aprovado ? "bg-primary" : "bg-amber-500"}`}
+                        className={`h-full rounded-full transition-all ${metaBarColor(s.percentual)}`}
                         style={{ width: `${Math.min(s.percentual, 100)}%` }}
                       />
                     </div>
                   </div>
 
                   <div className="text-right shrink-0">
-                    <p className={`text-xl font-bold ${aprovado ? "text-primary" : "text-amber-500"}`}>
+                    <p className={`text-xl font-bold ${metaTextColor(s.percentual)}`}>
                       {s.percentual}%
                     </p>
                     <p className="text-xs text-muted-foreground">{s.acertos}/{s.numero_questoes}</p>

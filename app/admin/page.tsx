@@ -136,10 +136,7 @@ export default function AdminDashboardPage() {
           <Users className="h-5 w-5 text-primary" />
         </CardHeader>
         <CardContent>
-          <span
-            className="text-5xl font-black tracking-tight text-foreground"
-            style={{ fontFamily: "'Fraunces', Georgia, serif" }}
-          >
+          <span className="font-display text-5xl font-black tracking-tight text-foreground">
             {stats.totais.usuarios.toLocaleString("pt-BR")}
           </span>
           <p className="mt-1 text-xs text-muted-foreground">Cadastrados na plataforma</p>

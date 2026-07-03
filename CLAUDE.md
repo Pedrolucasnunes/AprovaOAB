@@ -83,10 +83,18 @@ O plano **Aprovação** foi removido da vitrine: não aparece mais na landing e 
 ### Treino inteligente — algoritmo
 
 Não óbvio sem ler o código (`app/api/treino/route.ts`):
-- **70%** das questões vêm das top 3 matérias com menor taxa de acerto (view `desempenho_materia` — agregada dinamicamente de `question_attempts` + `simulado_respostas`)
+- **70%** das questões vêm das top 3 matérias com menor taxa de acerto. Priorização em cascata (filosofia: o simulado é a medição limpa): **1º** view `materias_risco` (só respostas de simulado); **2º fallback** sem dados de simulado (free/recém-chegado) → agrega `question_attempts` (avulsas + diagnóstico) por matéria e prioriza as com taxa < 40 (passo 2.5 da rota); **3º** questões gerais
 - **30%** são questões gerais
 - Exclui questões já acertadas anteriormente (simulados + treino avulso)
-- Quantidades aceitas: 10, 20 ou 30 (padrão: 10)
+- Quantidades aceitas: 5, 10, 20 ou 30 (padrão: 10). **5 = "sessão focada"**: 100% matérias em risco (sem parcela geral), com fallback pra questões gerais se o usuário ainda não tem matérias em risco
+
+### Métricas exibidas — fonte única
+
+`lib/metrics.ts` centraliza META_APROVACAO (50%), as bandas por matéria (crítica < 40, média 40–70, boa > 70), o piso de amostra MIN_TENTATIVAS_BANDA (3 respostas pra uma matéria entrar nas contagens dos cards) e os helpers de cor/label. Toda tela que classifica ou colore uma taxa de acerto importa daqui — não redeclarar thresholds.
+
+O `/api/dashboard` funde `question_attempts` (avulsas) + `simulado_respostas` por matéria em código (passo 5.5 — nenhuma view entrega isso, ver tabela acima) e devolve: `resumo.totalRespondidas`/`taxaGeralAcerto` (questões efetivamente respondidas: avulsas + respostas de simulado; brancos de simulado ficam de fora), `resumo.taxaSimulados` (nota de prova: acertos ÷ 80 por simulado, brancos contam contra — é a métrica do hero), `materiasRiscoCount`/`materiasPorBanda` (contagens com piso de amostra — os números dos cards no Dashboard e na Agenda) e `materiasRisco` (top-5 da banda crítica, sem piso — alimenta listas e recomendações, que precisam funcionar já no pós-diagnóstico).
+
+Decisão de produto: o **hero do dashboard usa `taxaSimulados`**, não a geral — treino avulso não prevê a prova (o treino puxa de propósito pras piores matérias). A taxa geral fica no stat card "Taxa de acerto geral". Quem nunca finalizou um simulado vê um convite ("faça seu primeiro simulado") no lugar da métrica, nunca um 0%.
 
 ### Agenda inteligente — comportamento
 
@@ -114,7 +122,8 @@ Onboarding (3 passos: welcome → data da prova OAB → concluído):
 |---|---|---|---|
 | `users` | tabela | `plano`, `role`, `stripe_customer_id`, `stripe_subscription_id` | Perfil e assinatura |
 | `user_metadata` (Auth) | tabela | `full_name`, `onboarding_completed`, `exam_date` | Metadata no Supabase Auth |
-| `desempenho_materia` | **view** com `GROUP BY` | `user_id`, `subject_id`, `acertos`, `total` | Base do treino inteligente e dashboard. Calculada dinamicamente — não aceita INSERT/UPDATE/DELETE direto |
+| `desempenho_materia` | **view — CUIDADO: NÃO agrega** | `user_id`, `subject_id`, `acertos`, `total` | Verificado no banco (jul/2026): retorna **1 linha por `simulado_resposta`** (`total` é sempre 1) e **NÃO inclui `question_attempts`** (avulsas ficam de fora). Quem consome precisa agregar por matéria em código (`/api/calendario/gerar` faz isso). O `/api/dashboard` **não a lê mais** — busca as tabelas direto. Não aceita INSERT/UPDATE/DELETE |
+| `materias_risco` | **view** | `user_id`, `subject_id`, `taxa` | Agregada por matéria, mas **só de respostas de simulado** e **sem filtro de risco** apesar do nome (traz até matéria com 100%). Usada só pelo treino (`/api/treino`, top 3). O dashboard não a usa mais |
 | `question_attempts` | tabela | `user_id`, `created_at` | Base do limite diário de 10 questões (free) |
 | `simulado_respostas` | tabela | vinculada a `simulado_attempts` via `attempt_id` | Respostas de simulados completos |
 | `calendar_events` | tabela | `is_auto`, `google_event_id` | `is_auto=true` = gerado pela agenda inteligente |

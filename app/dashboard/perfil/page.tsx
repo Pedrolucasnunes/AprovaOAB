@@ -53,7 +53,10 @@ export default function PerfilPage() {
       // ✅ Sem userId na chamada — API obtém do Auth
       const [dashRes, simuladosRes, usuarioRes] = await Promise.all([
         fetch("/api/dashboard"),
-        supabase.from("simulados").select("id", { count: "exact" }).eq("user_id", user.id).gt("acertos", 0),
+        // Simulados FINALIZADOS (acertos preenchido) — inclui os de nota zero,
+        // igual às telas de Simulados e Desempenho. `.gt("acertos", 0)` aqui
+        // fazia um 0/80 legítimo sumir da contagem.
+        supabase.from("simulados").select("id", { count: "exact" }).eq("user_id", user.id).not("acertos", "is", null),
         supabase
           .from("users")
           .select("plano, stripe_customer_id, trial_used, trial_ends_at, subscription_status, cancel_at_period_end")

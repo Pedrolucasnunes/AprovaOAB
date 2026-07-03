@@ -240,6 +240,8 @@ export default function QuestoesPage() {
   const [userId, setUserId] = useState<string>("")
   const [plano, setPlano] = useState<string>("free")
   const [questoesHoje, setQuestoesHoje] = useState<number>(0)
+  // Matéria mais fraca (top-1 do risco) — personaliza a copy do limite diário.
+  const [materiaFraca, setMateriaFraca] = useState<string | null>(null)
   const LIMITE_FREE = 10
   const [questoes, setQuestoes] = useState<Questao[]>([])
   const [filtros, setFiltros] = useState<Filtros>({ subjects: [], dificuldades: [], bancas: [] })
@@ -273,6 +275,7 @@ export default function QuestoesPage() {
         if (dashRes.ok) {
           setPlano(dashData.plano ?? "free")
           setQuestoesHoje(dashData.questoesHoje ?? 0)
+          setMateriaFraca(dashData.materiasRisco?.[0]?.nome ?? null)
         }
       }
       const res = await fetch("/api/questions/filtros")
@@ -602,7 +605,15 @@ export default function QuestoesPage() {
                     Você completou suas 10 questões de hoje!
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Próximo passo: monte sua agenda da semana baseada no que você acertou e errou.
+                    {materiaFraca ? (
+                      <>
+                        Seu ponto mais fraco hoje é{" "}
+                        <strong className="text-foreground">{materiaFraca}</strong> — no Pro
+                        você continuaria treinando exatamente isso agora.
+                      </>
+                    ) : (
+                      "Próximo passo: monte sua agenda da semana baseada no que você acertou e errou."
+                    )}
                   </p>
                   <p className="pt-1 text-xs text-muted-foreground">
                     Quer questões ilimitadas?{" "}

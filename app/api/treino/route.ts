@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth-server"
 import { rateLimit } from "@/lib/rate-limit"
 import { checkDailyLimit } from "@/lib/check-daily-limit"
 import { fetchAllRows, fetchByIds } from "@/lib/supabase-paginate"
+import { TAXA_CRITICA } from "@/lib/metrics"
 import { logError } from "@/lib/logger"
 
 type QuestaoTreino = {
@@ -82,19 +83,21 @@ export async function POST(req: NextRequest) {
     )
   ).map((a) => a.id)
 
-  const [simAcertou, treinoAcertou] = await Promise.all([
+  const [simAcertou, treinoAttempts] = await Promise.all([
     fetchByIds<{ question_id: string }>(
       (ids) => supabase.from("simulado_respostas").select("question_id").eq("acertou", true).in("attempt_id", ids),
       attemptIds,
     ),
-    fetchAllRows<{ question_id: string }>(
-      () => supabase.from("question_attempts").select("question_id").eq("user_id", userId).eq("acertou", true),
+    // Todas as tentativas avulsas (acertos E erros): os acertos alimentam a
+    // exclusão abaixo; os erros alimentam o fallback de priorização do 2.5.
+    fetchAllRows<{ question_id: string; acertou: boolean }>(
+      () => supabase.from("question_attempts").select("question_id, acertou").eq("user_id", userId),
     ),
   ])
 
   const idsJaAcertou = new Set<string>([
     ...simAcertou.map((r) => r.question_id),
-    ...treinoAcertou.map((r) => r.question_id),
+    ...treinoAttempts.filter((a) => a.acertou).map((r) => r.question_id),
   ])
 
   // Sorteia `n` questões de um escopo (matérias ou banco todo), excluindo ids já usados.
@@ -157,7 +160,8 @@ export async function POST(req: NextRequest) {
     }, { status: 200 })
   }
 
-  // 2. Matérias em risco
+  // 2. Matérias em risco — SIMULADO PRIMEIRO (medição limpa, no formato e
+  // peso da prova). A view materias_risco agrega só respostas de simulado.
   const { data: materiasRisco } = await supabase
     .from("materias_risco")
     .select("subject_id, taxa")
@@ -165,7 +169,37 @@ export async function POST(req: NextRequest) {
     .order("taxa", { ascending: true })
     .limit(3)
 
-  const subjectIdsRisco = (materiasRisco ?? []).map((m) => m.subject_id)
+  let subjectIdsRisco = (materiasRisco ?? []).map((m) => m.subject_id)
+
+  // 2.5. Fallback pra quem não tem simulado (free, ou Pro recém-chegado):
+  // prioriza pelas avulsas + diagnóstico (question_attempts). É o que torna o
+  // "Treino Estratégico" do free estratégico de verdade — antes, sem dados de
+  // simulado, o treino caía direto em questões gerais.
+  if (subjectIdsRisco.length === 0 && treinoAttempts.length > 0) {
+    const qIdsAvulsas = [...new Set(treinoAttempts.map((a) => a.question_id))]
+    const qRowsAvulsas = await fetchByIds<{ id: string; subject_id: string }>(
+      (ids) => supabase.from("questions").select("id, subject_id").in("id", ids),
+      qIdsAvulsas,
+    )
+    const subjectDaQuestao = Object.fromEntries(qRowsAvulsas.map((q) => [q.id, q.subject_id]))
+
+    const statsAvulsas = new Map<string, { total: number; acertos: number }>()
+    for (const a of treinoAttempts) {
+      const sid = subjectDaQuestao[a.question_id]
+      if (!sid) continue
+      const s = statsAvulsas.get(sid) ?? { total: 0, acertos: 0 }
+      s.total += 1
+      if (a.acertou) s.acertos += 1
+      statsAvulsas.set(sid, s)
+    }
+
+    subjectIdsRisco = [...statsAvulsas.entries()]
+      .map(([sid, s]) => ({ sid, taxa: (s.acertos / s.total) * 100 }))
+      .filter((m) => m.taxa < TAXA_CRITICA)
+      .sort((a, b) => a.taxa - b.taxa)
+      .slice(0, 3)
+      .map((m) => m.sid)
+  }
 
   // Fallback: sessão focada sem matérias em risco → vira distribuição padrão (100% gerais pra 5q)
   if (sessaoFocada && subjectIdsRisco.length === 0) {

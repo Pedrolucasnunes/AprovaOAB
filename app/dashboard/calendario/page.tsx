@@ -366,10 +366,7 @@ export default function CalendarioPage() {
         <div>
           <div className="flex items-center gap-2">
             <CalendarDays className="h-5 w-5 text-primary" />
-            <h1
-              className="text-2xl font-black text-foreground"
-              style={{ fontFamily: "'Fraunces', Georgia, serif" }}
-            >
+            <h1 className="font-display text-2xl font-black text-foreground">
               Agenda Inteligente
             </h1>
           </div>
@@ -578,7 +575,7 @@ export default function CalendarioPage() {
               {generating
                 ? <Loader2 className="h-4 w-4 animate-spin" />
                 : <Sparkles className="h-4 w-4" />}
-              Gerar Plano com IA
+              Gerar Plano
             </Button>
           </CardContent>
         </Card>

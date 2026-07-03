@@ -22,7 +22,9 @@ export default function DashboardLayout({
           </div>
           <ThemeToggle />
         </header>
-        <main className="flex-1 overflow-auto p-4 lg:p-6">
+        {/* pb-24 reserva espaço pro FeedbackButton fixo (bottom-6 right-6) não
+            cobrir o conteúdo do fim da página. */}
+        <main className="flex-1 overflow-auto p-4 pb-24 lg:p-6 lg:pb-24">
           {children}
         </main>
       </SidebarInset>

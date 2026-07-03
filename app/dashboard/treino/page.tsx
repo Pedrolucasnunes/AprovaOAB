@@ -17,11 +17,12 @@ import {
   AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import {
-  Dumbbell, Target, Lightbulb, Play, TrendingUp, Sparkles,
+  Dumbbell, Target, Lightbulb, Play, TrendingUp, TrendingDown, Sparkles,
   ChevronLeft, ChevronRight, CheckCircle2, XCircle, Loader2, X, AlertTriangle
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { getClientUser } from "@/lib/auth-client"
+import { META_APROVACAO, classificarTaxa, taxaLabel, metaTextColor } from "@/lib/metrics"
 
 const treinoOptions = [
   { value: "5",  label: "5",  description: "Sessão focada (5-8 min)" },
@@ -638,13 +639,8 @@ function TreinoPageInner() {
               <AlertTitle className="text-warning">Recomendação inteligente</AlertTitle>
               <AlertDescription className="text-muted-foreground">
                 Você errou várias questões sobre{" "}
-                {pioresmaterias.map((m, i) => (
-                  <span key={m.subject_id}>
-                    <strong>{m.nome}</strong>
-                    {i < pioresmaterias.length - 1 ? " e " : ""}
-                  </span>
-                ))}
-                . Recomendamos revisar estes temas antes de continuar.
+                <strong>{pioresmaterias.map((m) => m.nome.trim()).join(" e ")}</strong>.
+                {" "}Recomendamos revisar estes temas antes de continuar.
               </AlertDescription>
             </Alert>
           )}
@@ -698,8 +694,15 @@ function TreinoPageInner() {
                       </h3>
                       <p className="mt-2 text-sm text-muted-foreground">
                         Você completou suas 10 questões de hoje no plano Grátis.
+                        {materiasRisco[0] && (
+                          <>
+                            {" "}Seu ponto mais fraco é{" "}
+                            <strong className="text-foreground">{materiasRisco[0].nome}</strong> —
+                            no Pro você continuaria treinando exatamente isso agora.
+                          </>
+                        )}
                         {trialDisponivel
-                          ? " Teste o Pro grátis por 7 dias para continuar agora — sem limite diário."
+                          ? " Teste grátis por 7 dias, sem limite diário."
                           : " Volte amanhã pra continuar o plano — ou veja seu calendário agora."}
                       </p>
                     </div>
@@ -896,22 +899,22 @@ function TreinoPageInner() {
                 <div className="space-y-4">
                   {materiasRisco.map((materia) => {
                     const taxa = Number(materia.taxa)
-                    const status = taxa < 55 ? "crítico" : taxa < 70 ? "alerta" : "atenção"
+                    const nivel = classificarTaxa(taxa)
                     return (
                       <div key={materia.subject_id} className="flex items-start justify-between gap-4 rounded-lg border border-border p-4">
                         <div className="flex-1 space-y-2">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-foreground">{materia.nome}</span>
                             <Badge
-                              variant={status === "crítico" ? "destructive" : "default"}
-                              className={status === "alerta" ? "bg-warning text-warning-foreground" : status === "atenção" ? "bg-secondary text-secondary-foreground" : ""}
+                              variant={nivel === "critica" ? "destructive" : "default"}
+                              className={nivel === "media" ? "bg-warning text-warning-foreground" : nivel === "boa" ? "bg-secondary text-secondary-foreground" : ""}
                             >
-                              {status}
+                              {taxaLabel(taxa)}
                             </Badge>
                           </div>
                           <Progress
                             value={taxa}
-                            className={`h-2 ${taxa < 60 ? "[&>div]:bg-destructive" : taxa < 70 ? "[&>div]:bg-warning" : ""}`}
+                            className={`h-2 ${nivel === "critica" ? "[&>div]:bg-destructive" : nivel === "media" ? "[&>div]:bg-warning" : ""}`}
                           />
                         </div>
                         <div className="text-right">
@@ -949,7 +952,9 @@ function TreinoPageInner() {
                       <span className="text-lg font-bold text-foreground">
                         {progresso?.taxaGeralAcerto ?? 0}%
                       </span>
-                      <TrendingUp className="h-4 w-4 text-primary" />
+                      {(progresso?.taxaGeralAcerto ?? 0) >= META_APROVACAO
+                        ? <TrendingUp className={`h-4 w-4 ${metaTextColor(progresso?.taxaGeralAcerto ?? 0)}`} />
+                        : <TrendingDown className={`h-4 w-4 ${metaTextColor(progresso?.taxaGeralAcerto ?? 0)}`} />}
                     </div>
                   </div>
                 </>

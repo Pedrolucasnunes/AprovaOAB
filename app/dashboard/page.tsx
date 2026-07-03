@@ -13,8 +13,11 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { getClientUser } from "@/lib/auth-client"
-
-const META = 50
+import {
+  META_APROVACAO as META,
+  classificarTaxa, taxaTextColor, taxaBarColor,
+  metaTextColor, metaBarColor,
+} from "@/lib/metrics"
 
 // Nudge discreto do diagnóstico pra quem pulou: some sozinho quando o aluno já tem
 // histórico real suficiente (aí o desempenho real é melhor sinal que as 5 do diagnóstico).
@@ -22,21 +25,10 @@ const DIAGNOSTICO_NUDGE_MAX_RESPOSTAS = 30
 const DIAG_NUDGE_KEY = "diagnostico_nudge_dismissed"
 
 // ── Helpers ─────────────────────────────────────────────────────
-function getTextColor(taxa: number): string {
-  if (taxa <= 25) return "text-destructive"
-  if (taxa < META) return "text-amber-500"
-  return "text-primary"
-}
-
-function getBarColor(taxa: number): string {
-  if (taxa <= 25) return "bg-destructive"
-  if (taxa < META) return "bg-amber-500"
-  return "bg-primary"
-}
-
 function getRiskBadge(taxa: number) {
-  if (taxa <= 25) return <Badge variant="destructive">crítico</Badge>
-  if (taxa < META) return <Badge className="bg-amber-500/20 text-amber-500 border-amber-500/30">atenção</Badge>
+  const nivel = classificarTaxa(taxa)
+  if (nivel === "critica") return <Badge variant="destructive">crítico</Badge>
+  if (nivel === "media") return <Badge className="bg-amber-500/20 text-amber-500 border-amber-500/30">atenção</Badge>
   return <Badge className="bg-primary/10 text-primary border-primary/20">adequado</Badge>
 }
 
@@ -63,13 +55,13 @@ function DisciplinaRow({ item, index }: { item: DisciplinaItem; index?: number }
                   <div className="mt-0.5">{getRiskBadge(taxa)}</div>
                 </div>
               </div>
-              <span className={`text-sm font-semibold shrink-0 ${getTextColor(taxa)}`}>
+              <span className={`text-sm font-semibold shrink-0 ${taxaTextColor(taxa)}`}>
                 {taxa.toFixed(0)}%
               </span>
             </div>
             <div className="h-2 w-full rounded-full bg-muted/50 overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all duration-300 ${getBarColor(taxa)}`}
+                className={`h-full rounded-full transition-all duration-300 ${taxaBarColor(taxa)}`}
                 style={{ width: `${Math.min(taxa, 100)}%` }}
               />
             </div>
@@ -86,9 +78,10 @@ function DisciplinaRow({ item, index }: { item: DisciplinaItem; index?: number }
 
 // ── Interfaces ───────────────────────────────────────────────────
 interface DashboardData {
-  resumo: { totalRespondidas: number; totalAcertos: number; taxaGeralAcerto: number }
+  resumo: { totalRespondidas: number; totalAcertos: number; taxaGeralAcerto: number; taxaSimulados: number; totalSimuladosFinalizados: number }
   ultimoSimulado: { id: string; acertos: number; erros: number; percentual: number; numero_questoes: number; titulo: string; created_at: string } | null
   materiasRisco: { subject_id: string; nome: string; taxa: number }[]
+  materiasRiscoCount?: number
   desempenhoPorMateria: { subject_id: string; nome: string; total: number; acertos: number; taxa_acerto: number }[]
   evolucao: { date: string; nota: number }[]
   actionCards: {
@@ -202,7 +195,11 @@ export default function DashboardPage() {
 
   const emRisco = (data?.materiasRisco ?? []).map(m => ({ ...m, taxa_acerto: m.taxa }))
   const taxaGeral = data?.resumo?.taxaGeralAcerto ?? 0
-  const numRisco = data?.materiasRisco?.length ?? 0
+  // O hero mede prontidão pra prova → taxa DE SIMULADOS (mesmo formato da
+  // OAB). A taxa geral (treino + simulados) fica no stat card "geral".
+  const taxaSimulados = data?.resumo?.taxaSimulados ?? 0
+  const temSimuladoFinalizado = (data?.resumo?.totalSimuladosFinalizados ?? 0) > 0
+  const numRisco = data?.materiasRiscoCount ?? data?.materiasRisco?.length ?? 0
   const isNewUser = !data?.ultimoSimulado && (data?.resumo?.totalRespondidas ?? 0) === 0
 
   return (
@@ -359,8 +356,9 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ── Hero: Progresso rumo à aprovação ── */}
-      {!isNewUser && (
+      {/* ── Hero: Progresso rumo à aprovação (taxa DE SIMULADOS — é o que
+           prevê a prova; treino avulso não entra aqui de propósito) ── */}
+      {!isNewUser && temSimuladoFinalizado && (
         <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-5 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
             <div className="space-y-2 flex-1">
@@ -369,28 +367,30 @@ export default function DashboardPage() {
                 Seu progresso rumo à aprovação
               </span>
               <h2 className="text-2xl sm:text-3xl font-bold leading-tight">
-                Sua taxa de acerto é{" "}
-                <span className="text-primary">{taxaGeral.toFixed(1)}%</span>
+                Sua taxa de acerto em simulados é{" "}
+                <span className={metaTextColor(taxaSimulados)}>{taxaSimulados.toFixed(1)}%</span>
               </h2>
               <p className="text-sm text-muted-foreground">
                 Meta para aprovação:{" "}
                 <strong className="text-foreground">{META}% de acerto</strong>.{" "}
-                {taxaGeral >= META
+                {taxaSimulados >= META
                   ? "Parabéns! Você atingiu a meta."
-                  : `Faltam ${(META - taxaGeral).toFixed(1)}% para chegar lá.`}
+                  : `Faltam ${(META - taxaSimulados).toFixed(1)}% para chegar lá.`}
               </p>
             </div>
-            <div className="hidden sm:flex items-center gap-1 text-sm font-semibold text-primary shrink-0 pt-1">
-              <TrendingUp className="h-4 w-4" />
-              {taxaGeral.toFixed(1)}% / {META}%
+            <div className={`hidden sm:flex items-center gap-1 text-sm font-semibold shrink-0 pt-1 ${metaTextColor(taxaSimulados)}`}>
+              {taxaSimulados >= META
+                ? <TrendingUp className="h-4 w-4" />
+                : <TrendingDown className="h-4 w-4" />}
+              {taxaSimulados.toFixed(1)}% / {META}%
             </div>
           </div>
 
           <div className="mt-5 space-y-2">
             <div className="relative h-3 w-full rounded-full bg-primary/10 overflow-visible">
               <div
-                className="h-full rounded-full bg-primary transition-all duration-500"
-                style={{ width: `${Math.min(taxaGeral, 100)}%` }}
+                className={`h-full rounded-full transition-all duration-500 ${metaBarColor(taxaSimulados)}`}
+                style={{ width: `${Math.min(taxaSimulados, 100)}%` }}
               />
               {/* Marcador da meta */}
               <div
@@ -403,6 +403,33 @@ export default function DashboardPage() {
               <span>Meta: {META}%</span>
               <span>100%</span>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Hero (treinou mas nunca finalizou um simulado): convite, não 0% ── */}
+      {!isNewUser && !temSimuladoFinalizado && (
+        <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-5 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-2 flex-1">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/20 px-2.5 py-1 text-xs font-medium text-primary">
+                <Zap className="h-3 w-3" />
+                Seu progresso rumo à aprovação
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-bold leading-tight">
+                Faça seu primeiro simulado para medir seu nível real
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                A meta de aprovação é <strong className="text-foreground">{META}% de acerto</strong> —
+                40 de 80 questões no formato oficial. O treino prepara, mas é o simulado que
+                mostra se você passaria hoje.
+              </p>
+            </div>
+            <Button asChild size="lg" className="shrink-0 w-full sm:w-auto">
+              <Link href="/dashboard/simulados">
+                Fazer simulado <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
           </div>
         </div>
       )}
@@ -483,7 +510,7 @@ export default function DashboardPage() {
                 ? `${data.ultimoSimulado.acertos}/${data.ultimoSimulado.numero_questoes}`
                 : "—"}
             </p>
-            <p className={`mt-1 text-xs font-medium ${data?.ultimoSimulado ? getTextColor(data.ultimoSimulado.percentual) : "text-muted-foreground"}`}>
+            <p className={`mt-1 text-xs font-medium ${data?.ultimoSimulado ? metaTextColor(data.ultimoSimulado.percentual) : "text-muted-foreground"}`}>
               {data?.ultimoSimulado
                 ? `${data.ultimoSimulado.percentual}% de acerto · meta ${META}%`
                 : "Nenhum simulado ainda"}
@@ -607,7 +634,7 @@ export default function DashboardPage() {
             </div>
             <p className="text-sm font-semibold">
               {data?.ultimoSimulado
-                ? `Revise os ${data.ultimoSimulado.erros ?? (data.ultimoSimulado.numero_questoes - data.ultimoSimulado.acertos)} erros mais frequentes do último simulado`
+                ? `Revise os ${data.ultimoSimulado.erros ?? (data.ultimoSimulado.numero_questoes - data.ultimoSimulado.acertos)} erros do último simulado`
                 : emRisco.length > 0
                   ? `Foque em ${emRisco[0].nome}, sua matéria mais crítica`
                   : "Faça ao menos 10 questões por dia para manter o ritmo"}
@@ -638,6 +665,19 @@ export default function DashboardPage() {
                 <DisciplinaRow key={item.subject_id} item={item} index={i} />
               ))}
             </div>
+            {/* Sem simulado, o mapa vem só do gotejamento de avulsas — deixa a
+                confiança explícita e vende o simulado como dado, não feature. */}
+            {!temSimuladoFinalizado && (
+              <p className="mt-5 border-t border-border/60 pt-3 text-xs text-muted-foreground">
+                Estimativa baseada nas {data?.resumo?.totalRespondidas ?? 0} questões que você
+                respondeu até aqui. Um simulado completo (80 questões, peso de prova) mapeia
+                todas as matérias de uma vez —{" "}
+                <Link href="/dashboard/simulados" className="text-primary hover:underline">
+                  fazer simulado
+                </Link>
+                .
+              </p>
+            )}
           </CardContent>
         </Card>
       )}

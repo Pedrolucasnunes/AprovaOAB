@@ -415,12 +415,11 @@ export function CalendarGrid({
                 {WEEKDAYS_SHORT[dow]}
               </span>
               <div
-                className={`mt-1 flex h-8 w-8 items-center justify-center rounded-full
+                className={`font-display mt-1 flex h-8 w-8 items-center justify-center rounded-full
                   text-base font-black leading-none
                   ${isT
                     ? "bg-primary text-primary-foreground"
                     : "text-foreground"}`}
-                style={{ fontFamily: "'Fraunces', Georgia, serif" }}
               >
                 {d}
               </div>

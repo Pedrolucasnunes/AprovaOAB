@@ -28,13 +28,14 @@ export function StatsHeader() {
       .then((data) => {
         if (data.examDate) setExamDate(data.examDate)
 
-        const subjects = (data.desempenhoPorMateria ?? []) as { taxa_acerto: number }[]
-        if (subjects.length === 0) { setNoData(true); return }
-        setStats({
-          criticas: subjects.filter((s) => s.taxa_acerto < 40).length,
-          medias:   subjects.filter((s) => s.taxa_acerto >= 40 && s.taxa_acerto <= 70).length,
-          boas:     subjects.filter((s) => s.taxa_acerto > 70).length,
-        })
+        // Bandas calculadas no servidor (lib/metrics) sobre a MESMA fonte do
+        // card "Matérias em risco" do Dashboard — os números sempre batem.
+        const bandas = data.materiasPorBanda as SubjectStats | undefined
+        if (!bandas || bandas.criticas + bandas.medias + bandas.boas === 0) {
+          setNoData(true)
+          return
+        }
+        setStats(bandas)
       })
       .catch(() => {})
   }, [])
@@ -103,10 +104,7 @@ export function StatsHeader() {
             ) : daysLeft !== null ? (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">Faltam</span>
-                <span
-                  className={`text-xl font-black leading-none ${daysColor}`}
-                  style={{ fontFamily: "'Fraunces', Georgia, serif" }}
-                >
+                <span className={`font-display text-xl font-black leading-none ${daysColor}`}>
                   {daysLeft}
                 </span>
                 <span className="text-sm text-muted-foreground">

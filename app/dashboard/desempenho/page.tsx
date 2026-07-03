@@ -14,8 +14,8 @@ import {
 import { supabase } from "@/lib/supabase"
 import { getClientUser } from "@/lib/auth-client"
 import { fetchAllRows, fetchByIds } from "@/lib/supabase-paginate"
+import { META_APROVACAO as META, classificarTaxa, taxaLabel, metaTextColor } from "@/lib/metrics"
 
-const META = 50
 const LISTA_LIMITE = 6
 
 interface EvolutionPoint {
@@ -44,15 +44,18 @@ interface MateriaRisco {
 }
 
 function getRiskColor(taxa: number) {
-  if (taxa <= 25) return "bg-destructive text-destructive-foreground"
-  if (taxa < META) return "bg-amber-500 text-white"
+  const nivel = classificarTaxa(taxa)
+  if (nivel === "critica") return "bg-destructive text-destructive-foreground"
+  if (nivel === "media") return "bg-amber-500 text-white"
   return "bg-primary text-primary-foreground"
 }
 
-function getRiskLabel(taxa: number) {
-  if (taxa <= 25) return "crítico"
-  if (taxa < META) return "atenção"
-  return "adequado"
+// Cor do preenchimento do <Progress> pela banda canônica.
+function progressBarClass(taxa: number) {
+  const nivel = classificarTaxa(taxa)
+  if (nivel === "critica") return "[&>div]:bg-destructive"
+  if (nivel === "media") return "[&>div]:bg-amber-500"
+  return ""
 }
 
 export default function DesempenhoPage() {
@@ -99,7 +102,11 @@ export default function DesempenhoPage() {
     if (error) throw error
     if (!data || data.length === 0) return
 
-    const media = data.reduce((acc, s) => acc + s.percentual, 0) / data.length
+    // Taxa agrupada (soma de acertos / soma de questões), não média de
+    // percentuais — mesma fórmula da taxa de simulados do /api/dashboard.
+    const totalQuestoes = data.reduce((acc, s) => acc + (s.numero_questoes ?? 0), 0)
+    const totalAcertos = data.reduce((acc, s) => acc + (s.acertos ?? 0), 0)
+    const media = totalQuestoes > 0 ? (totalAcertos / totalQuestoes) * 100 : 0
     const melhor = data.reduce((prev, curr) => curr.percentual > prev.percentual ? curr : prev, data[0])
     const aprovados = data.filter(s => s.percentual >= META).length
 
@@ -112,19 +119,11 @@ export default function DesempenhoPage() {
       maiorPercentual: melhor.percentual,
     })
 
-    const meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
-    const porMes: Record<string, { soma: number; count: number; label: string }> = {}
-    data.forEach(s => {
-      const d = new Date(s.created_at)
-      const key = `${d.getFullYear()}-${d.getMonth()}`
-      const label = `${meses[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`
-      if (!porMes[key]) porMes[key] = { soma: 0, count: 0, label }
-      porMes[key].soma += s.percentual
-      porMes[key].count++
-    })
-    setEvolutionData(Object.entries(porMes).map(([, v]) => ({
-      date: v.label,
-      nota: parseFloat((v.soma / v.count).toFixed(1)),
+    // Um ponto por simulado (sem agregação mensal): com poucos dados, a média
+    // por mês escondia simulados e distorcia a "evolução".
+    setEvolutionData(data.map(s => ({
+      date: new Date(s.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }),
+      nota: parseFloat(Number(s.percentual).toFixed(1)),
     })))
   }
 
@@ -286,13 +285,13 @@ export default function DesempenhoPage() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Média de Acertos</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Taxa de acerto em simulados</CardTitle>
                 <Target className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-bold text-foreground">{statsSimulados.mediaAcerto}%</span>
-                  <span className={`flex items-center text-xs font-medium ${statsSimulados.mediaAcerto >= META ? "text-primary" : "text-destructive"}`}>
+                  <span className={`flex items-center text-xs font-medium ${metaTextColor(statsSimulados.mediaAcerto)}`}>
                     {statsSimulados.mediaAcerto >= META
                       ? <><TrendingUp className="mr-1 h-3 w-3" />acima da meta</>
                       : <><TrendingDown className="mr-1 h-3 w-3" />abaixo da meta</>
@@ -388,7 +387,8 @@ export default function DesempenhoPage() {
                         strokeDasharray="5 5"
                         label={{ value: `Meta ${META}%`, position: "insideTopRight", fontSize: 10, fill: "var(--muted-foreground)" }}
                       />
-                      <Area type="monotone" dataKey="nota" stroke="var(--chart-1)" strokeWidth={2} fillOpacity={1} fill="url(#colorNota2)" name="Nota" />
+                      {/* linear (não monotone): com poucos pontos, a curva suavizada inventa tendência */}
+                      <Area type="linear" dataKey="nota" stroke="var(--chart-1)" strokeWidth={2} fillOpacity={1} fill="url(#colorNota2)" name="Nota" dot={{ r: 3, fill: "var(--chart-1)" }} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -419,7 +419,7 @@ export default function DesempenhoPage() {
                 <div className="space-y-3">
                   {riscosVisiveis.map((m, i) => (
                     <div key={`${m.subject_id}-${i}`} className="flex items-center gap-4 rounded-lg border border-border p-3">
-                      <Badge className={getRiskColor(m.taxa)}>{getRiskLabel(m.taxa)}</Badge>
+                      <Badge className={getRiskColor(m.taxa)}>{taxaLabel(m.taxa)}</Badge>
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
                           <span className="font-medium text-foreground">{m.name}</span>
@@ -427,7 +427,7 @@ export default function DesempenhoPage() {
                         </div>
                         <Progress
                           value={m.taxa}
-                          className={`mt-1 h-2 ${m.taxa <= 25 ? "[&>div]:bg-destructive" : m.taxa < META ? "[&>div]:bg-amber-500" : ""}`}
+                          className={`mt-1 h-2 ${progressBarClass(m.taxa)}`}
                         />
                       </div>
                     </div>
@@ -466,7 +466,7 @@ export default function DesempenhoPage() {
               <CardContent className="space-y-2">
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-bold text-foreground">{statsQuestoes.taxaAcerto}%</span>
-                  <span className={`flex items-center text-xs font-medium ${statsQuestoes.taxaAcerto >= META ? "text-primary" : "text-destructive"}`}>
+                  <span className={`flex items-center text-xs font-medium ${metaTextColor(statsQuestoes.taxaAcerto)}`}>
                     {statsQuestoes.taxaAcerto >= META
                       ? <><TrendingUp className="mr-1 h-3 w-3" />acima da meta</>
                       : <><TrendingDown className="mr-1 h-3 w-3" />abaixo da meta</>
@@ -573,7 +573,7 @@ export default function DesempenhoPage() {
                       </div>
                       <Progress
                         value={d.acerto}
-                        className={`h-2 ${d.acerto <= 25 ? "[&>div]:bg-destructive" : d.acerto < META ? "[&>div]:bg-amber-500" : ""}`}
+                        className={`h-2 ${progressBarClass(d.acerto)}`}
                       />
                     </div>
                   ))}

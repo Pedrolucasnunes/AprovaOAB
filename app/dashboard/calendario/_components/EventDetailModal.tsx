@@ -163,8 +163,7 @@ export function EventDetailModal({
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-muted-foreground">Taxa de acerto atual</span>
                 <div className="flex items-center gap-1.5">
-                  <span className={`text-base font-black ${perf.color}`}
-                    style={{ fontFamily: "'Fraunces', Georgia, serif" }}>
+                  <span className={`font-display text-base font-black ${perf.color}`}>
                     {pct}%
                   </span>
                   {perf.label && (

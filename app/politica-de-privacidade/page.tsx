@@ -112,7 +112,7 @@ export default function PoliticaDePrivacidadePage() {
             </p>
             <p className="mt-3">
               Você pode revisar ou alterar suas preferências a qualquer momento clicando em{" "}
-              <strong className="text-foreground">"Gerenciar cookies"</strong> no rodapé do site.
+              <strong className="text-foreground">&ldquo;Gerenciar cookies&rdquo;</strong> no rodapé do site.
               Saiba mais sobre como o Google processa esses dados em{" "}
               <a
                 href="https://policies.google.com/privacy"

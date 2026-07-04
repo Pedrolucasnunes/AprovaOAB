@@ -474,7 +474,7 @@ export default function SimuladoPage({ params }: { params: Promise<{ id: string 
                 {flaggedList.length === 0 ? (
                   <p className="text-xs text-muted-foreground">
                     Nenhuma questão marcada ainda. Use o botão{" "}
-                    <span className="font-medium text-foreground">"Marcar para revisão"</span>{" "}
+                    <span className="font-medium text-foreground">&ldquo;Marcar para revisão&rdquo;</span>{" "}
                     nas questões que quiser revisar antes de finalizar.
                   </p>
                 ) : (

@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { ArrowLeft, AlertTriangle, Loader2, BookOpen, ShieldOff, ShieldCheck, Stethoscope, Target } from "lucide-react"
 import { toast } from "sonner"
+import { formatarDataBrasil, formatarDataHoraBrasil, parseDbDate } from "@/lib/datas"
 
 interface Resumo {
   hoje: number
@@ -49,7 +50,7 @@ interface UserInfo {
   email: string | null
   nome: string | null
   plano: "free" | "pro" | "aprovacao" | string
-  role: "free" | "admin" | "blocked" | string
+  role: "user" | "admin" | "blocked" | string
   subscription_status: "active" | "trialing" | "past_due" | "canceled" | null
   criado_em: string | null
   trial_ends_at: string | null
@@ -94,7 +95,7 @@ function StatusBadge({ status }: { status: UserInfo["subscription_status"] }) {
 
 function formatarData(iso: string | null): string {
   if (!iso) return "—"
-  return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
+  return formatarDataBrasil(iso)
 }
 
 export default function UsuarioAtividadePage() {
@@ -114,7 +115,8 @@ export default function UsuarioAtividadePage() {
 
   const toggleBloqueio = async () => {
     if (!data) return
-    const novoRole = data.user.role === "blocked" ? "free" : "blocked"
+    // Roles reais no banco: "user" | "admin" | "blocked" — não existe "free".
+    const novoRole = data.user.role === "blocked" ? "user" : "blocked"
     setAtualizandoRole(true)
     try {
       const res = await fetch(`/api/admin/usuarios/${id}`, {
@@ -168,7 +170,7 @@ export default function UsuarioAtividadePage() {
   const totalHoras = por_hora.reduce((acc, h) => acc + h.count, 0)
 
   const trialAtivo = user.subscription_status === "trialing" && user.trial_ends_at
-    && new Date(user.trial_ends_at) > new Date()
+    && parseDbDate(user.trial_ends_at) > new Date()
   const ehBloqueado = user.role === "blocked"
   const ehAdmin = user.role === "admin"
 
@@ -493,10 +495,7 @@ export default function UsuarioAtividadePage() {
                     </div>
                     <span className="flex-1 text-foreground">{config.label}</span>
                     <span className="text-xs text-muted-foreground shrink-0">
-                      {new Date(a.created_at).toLocaleString("pt-BR", {
-                        day: "2-digit", month: "short",
-                        hour: "2-digit", minute: "2-digit",
-                      })}
+                      {formatarDataHoraBrasil(a.created_at)}
                     </span>
                   </div>
                 )

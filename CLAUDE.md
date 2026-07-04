@@ -48,12 +48,16 @@ if (error) return error
 ### Tabela `users` (Supabase)
 
 Campos relevantes além do Auth padrão:
-- `role`: `"free"` | `"blocked"` | `"admin"`
+- `role`: `"user"` | `"blocked"` | `"admin"` — verificado no banco (jul/2026): o role padrão é `"user"`, **não** `"free"` (free/pago é o campo `plano`, não o `role`)
 - `plano`: `"free"` | `"pro"` | `"aprovacao"`
 - `stripe_customer_id`: string | null
 - `stripe_subscription_id`: string | null
 
 O campo `plano` é atualizado **exclusivamente pelo webhook do Stripe** (`/api/stripe/webhook`), nunca diretamente pelo cliente.
+
+### Datas do banco — CUIDADO com timezone
+
+As colunas `timestamp` do schema público (`question_attempts`, `simulados`, `users`…) são **sem time zone**, gravando hora UTC — o PostgREST devolve strings **sem offset** (ex.: `"2026-06-18T22:22:34.677157"`). Um `new Date()` cru interpreta isso como hora *local* (no navegador em Brasília: mostra a hora UTC como se fosse local, 3h adiantada; no Vercel o servidor é UTC). **Sempre parsear com `parseDbDate` e formatar/bucketar com os helpers de `lib/datas.ts`** (`formatarDataHoraBrasil`, `ymdBrasil`, `horaBrasil`, `inicioDoDiaBrasil`, `tempoRelativo`). As datas da Auth API (`last_sign_in_at` etc.) já vêm com `Z` e passam intactas pelo `parseDbDate`.
 
 ### Stripe
 

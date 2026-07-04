@@ -12,6 +12,7 @@ import {
   Tooltip, CartesianGrid,
 } from "recharts"
 import { toast } from "sonner"
+import { tempoRelativo } from "@/lib/datas"
 
 interface UsuarioRecente {
   id: string
@@ -32,21 +33,6 @@ interface AdminStats {
   questoesPorDisciplina: { name: string; questoes: number }[]
   simuladosPorDia: { date: string; total: number }[]
   usuariosRecentes: UsuarioRecente[]
-}
-
-function tempoRelativo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime()
-  const min = Math.floor(diff / 60_000)
-  if (min < 1) return "agora"
-  if (min < 60) return `há ${min} min`
-  const h = Math.floor(min / 60)
-  if (h < 24) return `há ${h}h`
-  const d = Math.floor(h / 24)
-  if (d < 30) return `há ${d}d`
-  const meses = Math.floor(d / 30)
-  if (meses < 12) return `há ${meses} ${meses === 1 ? "mês" : "meses"}`
-  const anos = Math.floor(d / 365)
-  return `há ${anos} ${anos === 1 ? "ano" : "anos"}`
 }
 
 function PlanoBadge({ plano }: { plano: string }) {

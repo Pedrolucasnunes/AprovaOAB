@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/lib/auth-server"
+import { TZ_BRASIL, parseDbDate } from "@/lib/datas"
 import { supabaseAdmin } from "@/lib/supabase-admin"
 import { fetchAllRows } from "@/lib/supabase-paginate"
 import { NextResponse } from "next/server"
@@ -61,15 +62,18 @@ export async function GET() {
     .gte("created_at", seteDiasAtras.toISOString())
     .order("created_at", { ascending: true })
 
+  // Rótulo do dia no fuso de Brasília (servidor roda em UTC no Vercel).
+  const labelDia = (d: Date) =>
+    d.toLocaleDateString("pt-BR", { timeZone: TZ_BRASIL, day: "2-digit", month: "short" })
+
   const contagemPorDia = new Map<string, number>()
   for (let i = 0; i < 7; i++) {
     const d = new Date(seteDiasAtras)
     d.setDate(seteDiasAtras.getDate() + i)
-    const key = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })
-    contagemPorDia.set(key, 0)
+    contagemPorDia.set(labelDia(d), 0)
   }
   for (const s of simuladosRecentes ?? []) {
-    const key = new Date(s.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })
+    const key = labelDia(parseDbDate(s.created_at))
     if (contagemPorDia.has(key)) {
       contagemPorDia.set(key, (contagemPorDia.get(key) ?? 0) + 1)
     }

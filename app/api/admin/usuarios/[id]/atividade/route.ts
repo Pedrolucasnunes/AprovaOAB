@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/lib/auth-server"
+import { horaBrasil, inicioDoDiaBrasil, parseDbDate, ymdBrasil } from "@/lib/datas"
 import { supabaseAdmin } from "@/lib/supabase-admin"
 import { NextRequest, NextResponse } from "next/server"
 
@@ -15,8 +16,7 @@ export async function GET(
   since.setDate(since.getDate() - 30)
   const sinceISO = since.toISOString()
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  const today = inicioDoDiaBrasil()
 
   const weekAgo = new Date()
   weekAgo.setDate(weekAgo.getDate() - 7)
@@ -81,30 +81,30 @@ export async function GET(
       .eq("is_diagnostic", false),
   ])
 
-  // Preenche últimos 30 dias com zero
+  // Preenche últimos 30 dias com zero (dias do calendário de Brasília)
   const dayMap: Record<string, { questoes: number; simulados: number }> = {}
   for (let i = 29; i >= 0; i--) {
     const d = new Date()
     d.setDate(d.getDate() - i)
-    dayMap[d.toISOString().slice(0, 10)] = { questoes: 0, simulados: 0 }
+    dayMap[ymdBrasil(d)] = { questoes: 0, simulados: 0 }
   }
 
   questoes?.forEach((q) => {
-    const key = q.created_at.slice(0, 10)
+    const key = ymdBrasil(parseDbDate(q.created_at))
     if (dayMap[key]) dayMap[key].questoes++
   })
 
   simulados?.forEach((s) => {
-    const key = s.created_at.slice(0, 10)
+    const key = ymdBrasil(parseDbDate(s.created_at))
     if (dayMap[key]) dayMap[key].simulados++
   })
 
   const por_dia = Object.entries(dayMap).map(([data, counts]) => ({ data, ...counts }))
 
-  // Distribuição por hora do dia
+  // Distribuição por hora do dia (fuso de Brasília)
   const horaMap: number[] = Array(24).fill(0)
   questoes?.forEach((q) => {
-    const hora = new Date(q.created_at).getHours()
+    const hora = horaBrasil(parseDbDate(q.created_at))
     horaMap[hora]++
   })
   const por_hora = horaMap.map((count, hora) => ({ hora, count }))
@@ -112,15 +112,15 @@ export async function GET(
   // Máximo de questões em qualquer janela de 1 hora exata
   const horaWindowMap: Record<string, number> = {}
   questoes?.forEach((q) => {
-    const d = new Date(q.created_at)
-    d.setMinutes(0, 0, 0)
+    const d = parseDbDate(q.created_at)
+    d.setUTCMinutes(0, 0, 0)
     const key = d.toISOString()
     horaWindowMap[key] = (horaWindowMap[key] ?? 0) + 1
   })
   const max_por_hora = Math.max(0, ...Object.values(horaWindowMap))
 
-  const hoje = questoes?.filter((q) => new Date(q.created_at) >= today).length ?? 0
-  const semana = questoes?.filter((q) => new Date(q.created_at) >= weekAgo).length ?? 0
+  const hoje = questoes?.filter((q) => parseDbDate(q.created_at) >= today).length ?? 0
+  const semana = questoes?.filter((q) => parseDbDate(q.created_at) >= weekAgo).length ?? 0
 
   // Últimas 20 atividades combinadas com tipo refinado
   const ultimas = [
@@ -133,7 +133,7 @@ export async function GET(
       tipo: "simulado" as const,
     })) ?? []),
   ]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .sort((a, b) => parseDbDate(b.created_at).getTime() - parseDbDate(a.created_at).getTime())
     .slice(0, 20)
 
   return NextResponse.json({
@@ -142,7 +142,7 @@ export async function GET(
       email: authUser?.user?.email ?? null,
       nome: authUser?.user?.user_metadata?.full_name ?? null,
       plano: usuario?.plano ?? "free",
-      role: usuario?.role ?? "free",
+      role: usuario?.role ?? "user",
       subscription_status: usuario?.subscription_status ?? null,
       criado_em: usuario?.created_at ?? null,
       trial_ends_at: usuario?.trial_ends_at ?? null,

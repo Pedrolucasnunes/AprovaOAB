@@ -14,7 +14,7 @@ import {
 import { supabase } from "@/lib/supabase"
 import { getClientUser } from "@/lib/auth-client"
 import { fetchAllRows, fetchByIds } from "@/lib/supabase-paginate"
-import { META_APROVACAO as META, classificarTaxa, taxaLabel, metaTextColor } from "@/lib/metrics"
+import { META_APROVACAO as META, MIN_TENTATIVAS_BANDA, classificarTaxa, taxaLabel, metaTextColor } from "@/lib/metrics"
 
 const LISTA_LIMITE = 6
 
@@ -41,6 +41,7 @@ interface MateriaRisco {
   subject_id: string
   name: string
   taxa: number
+  questoes: number
 }
 
 function getRiskColor(taxa: number) {
@@ -234,6 +235,7 @@ export default function DesempenhoPage() {
         subject_id,
         name: v.name,
         taxa: v.total > 0 ? parseFloat(((v.acertos / v.total) * 100).toFixed(1)) : 0,
+        questoes: v.total,
       })).sort((a, b) => a.taxa - b.taxa)
     )
   }
@@ -423,7 +425,13 @@ export default function DesempenhoPage() {
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
                           <span className="font-medium text-foreground">{m.name}</span>
-                          <span className="text-sm font-medium text-foreground">{m.taxa}%</span>
+                          <span className="text-sm font-medium text-foreground">
+                            {m.taxa}%{" "}
+                            <span className="text-xs font-normal text-muted-foreground">
+                              ({m.questoes} {m.questoes === 1 ? "questão" : "questões"}
+                              {m.questoes < MIN_TENTATIVAS_BANDA ? " · poucos dados" : ""})
+                            </span>
+                          </span>
                         </div>
                         <Progress
                           value={m.taxa}
@@ -568,7 +576,11 @@ export default function DesempenhoPage() {
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-foreground">{d.name}</span>
                         <span className="text-muted-foreground">
-                          {d.acerto}% <span className="text-xs">({d.questoes} questões)</span>
+                          {d.acerto}%{" "}
+                          <span className="text-xs">
+                            ({d.questoes} {d.questoes === 1 ? "questão" : "questões"}
+                            {d.questoes < MIN_TENTATIVAS_BANDA ? " · poucos dados" : ""})
+                          </span>
                         </span>
                       </div>
                       <Progress

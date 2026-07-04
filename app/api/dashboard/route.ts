@@ -215,7 +215,7 @@ export async function GET(req: NextRequest) {
   const materiasRiscoAll = materiasTaxas.filter((m) => m.taxa < TAXA_CRITICA)
   const materiasRisco = materiasRiscoAll
     .slice(0, 5)
-    .map(({ subject_id, nome, taxa }) => ({ subject_id, nome, taxa }))
+    .map(({ subject_id, nome, taxa, total }) => ({ subject_id, nome, taxa, total }))
 
   // Resumo geral DE VERDADE: avulsas + respostas de simulado no mesmo
   // denominador — só questões EFETIVAMENTE respondidas ("resolvidas").

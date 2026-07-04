@@ -14,7 +14,7 @@ import {
 import Link from "next/link"
 import { getClientUser } from "@/lib/auth-client"
 import {
-  META_APROVACAO as META,
+  META_APROVACAO as META, MIN_TENTATIVAS_BANDA,
   classificarTaxa, taxaTextColor, taxaBarColor,
   metaTextColor, metaBarColor,
 } from "@/lib/metrics"
@@ -36,6 +36,7 @@ function getRiskBadge(taxa: number) {
 interface DisciplinaItem {
   nome: string
   taxa_acerto: number
+  total?: number // nº de respostas por trás da taxa (marca "poucos dados")
 }
 
 function DisciplinaRow({ item, index }: { item: DisciplinaItem; index?: number }) {
@@ -52,7 +53,14 @@ function DisciplinaRow({ item, index }: { item: DisciplinaItem; index?: number }
                 )}
                 <div className="flex flex-col min-w-0">
                   <span className="text-sm text-foreground truncate max-w-[180px]">{item.nome}</span>
-                  <div className="mt-0.5">{getRiskBadge(taxa)}</div>
+                  <div className="mt-0.5 flex items-center gap-1.5">
+                    {getRiskBadge(taxa)}
+                    {item.total !== undefined && item.total < MIN_TENTATIVAS_BANDA && (
+                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                        poucos dados · {item.total} {item.total === 1 ? "questão" : "questões"}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
               <span className={`text-sm font-semibold shrink-0 ${taxaTextColor(taxa)}`}>
@@ -80,7 +88,7 @@ function DisciplinaRow({ item, index }: { item: DisciplinaItem; index?: number }
 interface DashboardData {
   resumo: { totalRespondidas: number; totalAcertos: number; taxaGeralAcerto: number; taxaSimulados: number; totalSimuladosFinalizados: number }
   ultimoSimulado: { id: string; acertos: number; erros: number; percentual: number; numero_questoes: number; titulo: string; created_at: string } | null
-  materiasRisco: { subject_id: string; nome: string; taxa: number }[]
+  materiasRisco: { subject_id: string; nome: string; taxa: number; total?: number }[]
   materiasRiscoCount?: number
   desempenhoPorMateria: { subject_id: string; nome: string; total: number; acertos: number; taxa_acerto: number }[]
   evolucao: { date: string; nota: number }[]

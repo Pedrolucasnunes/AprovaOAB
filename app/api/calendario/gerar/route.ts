@@ -7,6 +7,8 @@ import {
   deleteGoogleEvent,
 } from "@/lib/services/googleCalendar"
 import { rateLimit } from "@/lib/rate-limit"
+import { fetchAllRows, fetchByIds } from "@/lib/supabase-paginate"
+import { TAXA_CRITICA, TAXA_BOA } from "@/lib/metrics"
 import { logError } from "@/lib/logger"
 
 export async function POST(req: NextRequest) {
@@ -20,11 +22,19 @@ export async function POST(req: NextRequest) {
 
   const userId = user.id
 
-  // 1. Busca desempenho por matéria
-  const { data: desempenhoRaw } = await supabase
-    .from("desempenho_materia")
-    .select("subject_id, acertos, total")
-    .eq("user_id", userId)
+  // 1. Busca desempenho por matéria. A view desempenho_materia cobre SÓ
+  // respostas de simulado (1 linha por resposta) — as avulsas/diagnóstico
+  // (question_attempts) entram na fusão do passo 3, senão a agenda do free
+  // (que não faz simulado) caía sempre no fallback "tudo 50%".
+  const [{ data: desempenhoRaw }, avulsasAttempts] = await Promise.all([
+    supabase
+      .from("desempenho_materia")
+      .select("subject_id, acertos, total")
+      .eq("user_id", userId),
+    fetchAllRows<{ question_id: string; acertou: boolean }>(
+      () => supabase.from("question_attempts").select("question_id, acertou").eq("user_id", userId),
+    ),
+  ])
 
   // 2. Busca nomes das matérias
   const { data: subjects } = await supabase
@@ -35,7 +45,7 @@ export async function POST(req: NextRequest) {
     (subjects ?? []).map((s: { id: string; name: string }) => [s.id, s.name])
   )
 
-  // 3. Agrupa por subject_id e calcula taxa
+  // 3. Agrupa por subject_id e calcula taxa (simulados + avulsas)
   const grouped = new Map<string, { acertos: number; total: number }>()
 
   for (const r of desempenhoRaw ?? []) {
@@ -48,6 +58,23 @@ export async function POST(req: NextRequest) {
         acertos: r.acertos ?? 0,
         total:   r.total   ?? 0,
       })
+    }
+  }
+
+  if (avulsasAttempts.length > 0) {
+    const qIds = [...new Set(avulsasAttempts.map((a) => a.question_id))]
+    const qRows = await fetchByIds<{ id: string; subject_id: string }>(
+      (ids) => supabase.from("questions").select("id, subject_id").in("id", ids),
+      qIds,
+    )
+    const subjectDaQuestao = Object.fromEntries(qRows.map((q) => [q.id, q.subject_id]))
+    for (const a of avulsasAttempts) {
+      const sid = subjectDaQuestao[a.question_id]
+      if (!sid) continue
+      const existing = grouped.get(sid) ?? { acertos: 0, total: 0 }
+      existing.total += 1
+      if (a.acertou) existing.acertos += 1
+      grouped.set(sid, existing)
     }
   }
 
@@ -170,9 +197,9 @@ export async function POST(req: NextRequest) {
     count:        inserted?.length ?? 0,
     googleSynced,
     stats: {
-      criticas: desempenho.filter((d) => d.taxa_acerto < 40).length,
-      medias:   desempenho.filter((d) => d.taxa_acerto >= 40 && d.taxa_acerto <= 70).length,
-      boas:     desempenho.filter((d) => d.taxa_acerto > 70).length,
+      criticas: desempenho.filter((d) => d.taxa_acerto < TAXA_CRITICA).length,
+      medias:   desempenho.filter((d) => d.taxa_acerto >= TAXA_CRITICA && d.taxa_acerto <= TAXA_BOA).length,
+      boas:     desempenho.filter((d) => d.taxa_acerto > TAXA_BOA).length,
     },
   })
 }

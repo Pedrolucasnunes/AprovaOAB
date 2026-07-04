@@ -483,7 +483,7 @@ export default function SimuladoPage({ params }: { params: Promise<{ id: string 
                       const index = questoes.findIndex((x) => x.id === q.id)
                       return (
                         <button key={q.id} onClick={() => setCurrentQuestion(index)}
-                          className="w-full text-left rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3 hover:bg-yellow-500/10 transition-colors">
+                          className="w-full cursor-pointer text-left rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3 hover:bg-yellow-500/10 transition-colors">
                           <div className="flex items-center justify-between gap-2 mb-1">
                             <span className="text-xs font-medium text-yellow-500">Q{index + 1}</span>
                             <Badge variant="secondary" className="text-xs">{q.subject_name}</Badge>

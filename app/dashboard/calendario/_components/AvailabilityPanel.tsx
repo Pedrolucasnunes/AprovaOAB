@@ -280,7 +280,7 @@ export function AvailabilityPanel({ availability, simuladoPref, onSaveAndGenerat
           <button
             type="button"
             onClick={onClose}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md
+            className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md
               text-muted-foreground transition-all duration-150
               hover:bg-muted/70 hover:text-foreground active:scale-90"
           >
@@ -298,7 +298,7 @@ export function AvailabilityPanel({ availability, simuladoPref, onSaveAndGenerat
                 key={p.label}
                 type="button"
                 onClick={() => applyPreset(p)}
-                className="flex items-center gap-1.5 rounded-full border border-border bg-muted/50
+                className="flex cursor-pointer items-center gap-1.5 rounded-full border border-border bg-muted/50
                   px-3 py-1.5 text-xs text-foreground transition-all duration-150
                   hover:border-primary hover:bg-primary/20 hover:text-primary hover:shadow-[0_0_0_1px_hsl(var(--primary)/0.3)]
                   hover:scale-[1.04] active:scale-95"
@@ -329,7 +329,7 @@ export function AvailabilityPanel({ availability, simuladoPref, onSaveAndGenerat
                   key={value}
                   type="button"
                   onClick={() => setPref(value)}
-                  className={`flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2
+                  className={`flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border px-3 py-2
                     text-xs font-medium transition-all duration-150 active:scale-95
                     ${active
                       ? "border-primary bg-primary/10 text-primary shadow-[0_0_0_1px_hsl(var(--primary)/0.3)]"
@@ -360,7 +360,7 @@ export function AvailabilityPanel({ availability, simuladoPref, onSaveAndGenerat
               {/* ── Header row — entire row is one button ──── */}
               <button
                 type="button"
-                className={`w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg
+                className={`w-full flex cursor-pointer items-center gap-3 px-4 py-3 text-left rounded-lg
                   transition-all duration-150 select-none
                   ${day.enabled
                     ? "hover:bg-primary/[0.06]"
@@ -433,7 +433,7 @@ export function AvailabilityPanel({ availability, simuladoPref, onSaveAndGenerat
                         type="button"
                         title="Remover horário"
                         onClick={() => removeSlot(i, si)}
-                        className="mb-0.5 flex h-8 w-8 items-center justify-center rounded-md
+                        className="mb-0.5 flex h-8 w-8 cursor-pointer items-center justify-center rounded-md
                           text-muted-foreground/40 transition-all duration-150
                           hover:bg-red-500/20 hover:text-red-400 hover:scale-110
                           active:scale-90"
@@ -447,7 +447,7 @@ export function AvailabilityPanel({ availability, simuladoPref, onSaveAndGenerat
                   <button
                     type="button"
                     onClick={() => addSlot(i)}
-                    className="group mt-1 flex items-center gap-2 rounded-md px-2 py-1.5
+                    className="group mt-1 flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5
                       text-xs text-primary/60 transition-all duration-150
                       hover:bg-primary/[0.06] hover:text-primary active:scale-95"
                   >

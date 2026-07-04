@@ -452,7 +452,7 @@ export default function DashboardPage() {
             <Link href="/dashboard/diagnostico-inicial">Fazer</Link>
           </Button>
           <button onClick={dismissDiagNudge} aria-label="Dispensar"
-            className="shrink-0 text-muted-foreground hover:text-foreground">
+            className="shrink-0 cursor-pointer text-muted-foreground hover:text-foreground">
             <X className="h-4 w-4" />
           </button>
         </div>

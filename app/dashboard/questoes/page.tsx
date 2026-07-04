@@ -132,7 +132,7 @@ function Alternativas({ questao, resposta, onSelecionar, compact }: {
             key={alt.letra}
             disabled={verificada}
             onClick={() => !verificada && onSelecionar(alt.letra)}
-            className={`w-full flex items-start gap-3 rounded-lg border ${compact ? "px-3 py-2.5" : "px-4 py-3"} text-left transition-all duration-150 ${
+            className={`w-full flex items-start gap-3 rounded-lg border ${compact ? "px-3 py-2.5" : "px-4 py-3"} text-left transition-all duration-150 cursor-pointer disabled:cursor-default ${
               isCorreto
                 ? "border-primary/40 bg-primary/8"
                 : isErrado
@@ -442,7 +442,7 @@ export default function QuestoesPage() {
           <div className="flex justify-end p-4 sm:p-6">
             <button
               onClick={() => setModoFoco(false)}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="cursor-pointer text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               Sair do modo foco
             </button>

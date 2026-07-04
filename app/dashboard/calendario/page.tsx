@@ -127,7 +127,7 @@ function MobileList({
                     <button
                       key={e.id}
                       onClick={() => onEventClick(e)}
-                      className={`w-full text-left flex gap-3 rounded-lg border border-l-4
+                      className={`w-full cursor-pointer text-left flex gap-3 rounded-lg border border-l-4
                         bg-card hover:bg-muted/40 transition-colors p-3 ${cfg.borderL}
                         ${isPast ? "opacity-50" : ""}`}
                     >
@@ -478,7 +478,7 @@ export default function CalendarioPage() {
                 <>
                   {" "}
                   <button
-                    className="text-primary underline underline-offset-2 hover:no-underline"
+                    className="cursor-pointer text-primary underline underline-offset-2 hover:no-underline"
                     onClick={() => setShowAvailPanel(true)}
                   >
                     Configure seus horários

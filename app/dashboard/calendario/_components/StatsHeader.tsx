@@ -118,7 +118,7 @@ export function StatsHeader() {
             ) : (
               <button
                 onClick={startEdit}
-                className="text-sm text-primary hover:underline underline-offset-2"
+                className="cursor-pointer text-sm text-primary hover:underline underline-offset-2"
               >
                 Definir data da prova
               </button>

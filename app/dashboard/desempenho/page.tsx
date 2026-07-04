@@ -253,7 +253,7 @@ export default function DesempenhoPage() {
         <p className="text-sm">{error}</p>
         <button
           onClick={() => { setError(null); setLoading(true); window.location.reload() }}
-          className="text-sm text-primary underline underline-offset-2"
+          className="cursor-pointer text-sm text-primary underline underline-offset-2"
         >
           Tentar novamente
         </button>

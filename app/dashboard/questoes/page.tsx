@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, type ReactNode } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -168,12 +168,13 @@ function Alternativas({ questao, resposta, onSelecionar, compact }: {
   )
 }
 
-function QuestaoCardExplorar({ questao, resposta, onSelecionar, onVerificar, onReset }: {
+function QuestaoCardExplorar({ questao, resposta, onSelecionar, onVerificar, onReset, aviso }: {
   questao: Questao
   resposta: RespostaState
   onSelecionar: (letra: string) => void
   onVerificar: () => void
   onReset: () => void
+  aviso?: ReactNode
 }) {
   return (
     <Card className="overflow-hidden">
@@ -212,6 +213,7 @@ function QuestaoCardExplorar({ questao, resposta, onSelecionar, onVerificar, onR
             onSelecionar={onSelecionar}
             compact
           />
+          {aviso}
           <div className="flex justify-end pt-1">
             {!resposta.verificada ? (
               <Button
@@ -261,22 +263,26 @@ export default function QuestoesPage() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [pendingLastIndex, setPendingLastIndex] = useState(false)
   const [respostas, setRespostas] = useState<Record<string, RespostaState>>({})
+  const [limiteAtingido, setLimiteAtingido] = useState(false)
+
+  // Contador e plano via /api/dashboard — mesma fonte que o backend usa para
+  // aplicar o limite (meia-noite de São Paulo, exclui questões de diagnóstico).
+  const refreshStatus = useCallback(async () => {
+    const res = await fetch("/api/dashboard")
+    const data = await res.json()
+    if (!res.ok) return null
+    setPlano(data.plano ?? "free")
+    setQuestoesHoje(data.questoesHoje ?? 0)
+    setMateriaFraca(data.materiasRisco?.[0]?.nome ?? null)
+    return data
+  }, [])
 
   useEffect(() => {
     async function init() {
       const user = await getClientUser()
       if (user) {
         setUserId(user.id)
-
-        // Contador e plano via /api/dashboard — mesma fonte que o backend usa para
-        // aplicar o limite (meia-noite de São Paulo, exclui questões de diagnóstico).
-        const dashRes = await fetch("/api/dashboard")
-        const dashData = await dashRes.json()
-        if (dashRes.ok) {
-          setPlano(dashData.plano ?? "free")
-          setQuestoesHoje(dashData.questoesHoje ?? 0)
-          setMateriaFraca(dashData.materiasRisco?.[0]?.nome ?? null)
-        }
+        await refreshStatus()
       }
       const res = await fetch("/api/questions/filtros")
       const data = await res.json()
@@ -284,7 +290,7 @@ export default function QuestoesPage() {
       setLoadingFiltros(false)
     }
     init()
-  }, [])
+  }, [refreshStatus])
 
   const fetchQuestoes = useCallback(async () => {
     setLoading(true)
@@ -346,7 +352,7 @@ export default function QuestoesPage() {
     })
   }
 
-  const handleVerificar = async (questaoId: string, selecionada: string) => {
+  const handleVerificar = async (questaoId: string, selecionada: string, aposRefresh = false) => {
     if (!userId || !selecionada) return
 
     setRespostas((prev) => ({
@@ -362,7 +368,14 @@ export default function QuestoesPage() {
     const data = await res.json()
 
     if (res.status === 403 && data.limiteDiario) {
-      setQuestoesHoje(LIMITE_FREE)
+      // Re-consulta o servidor antes de assumir o bloqueio: se o plano mudou no
+      // meio da sessão (upgrade), destrava e reenvia sem exigir reload da página.
+      const status = aposRefresh ? null : await refreshStatus()
+      if (status && (status.plano ?? "free") !== "free") {
+        return handleVerificar(questaoId, selecionada, true)
+      }
+      setLimiteAtingido(true)
+      setQuestoesHoje((prev) => Math.max(prev, LIMITE_FREE))
       setRespostas((prev) => ({
         ...prev,
         [questaoId]: { ...(prev[questaoId] ?? emptyResposta), verificando: false },
@@ -410,27 +423,42 @@ export default function QuestoesPage() {
     }
   }
 
+  // Feedback no ponto do clique quando o limite bloqueia a resposta — o banner
+  // do topo não é visível no modo foco (overlay) nem explica que nada foi salvo.
+  const avisoLimite = limiteAtingido && plano === "free" ? (
+    <p className="mt-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-foreground">
+      Você atingiu as 10 questões de hoje do plano Grátis — esta resposta não foi registrada.{" "}
+      <Link href="/#planos" className="text-primary underline underline-offset-2">
+        Conheça o Pro
+      </Link>{" "}
+      para continuar agora, ou volte amanhã.
+    </p>
+  ) : null
+
   const NavBar = () => (
-    <div className="flex items-center justify-between pt-2">
-      <Button variant="ghost" onClick={handleAnterior} disabled={isFirst || loading} className="gap-1.5">
-        <ChevronLeft className="h-4 w-4" />
-        Anterior
-      </Button>
-      {!respostaAtual.verificada ? (
-        <Button
-          onClick={() => handleVerificar(questaoAtual.id, respostaAtual.selecionada)}
-          disabled={!respostaAtual.selecionada || respostaAtual.verificando}
-        >
-          {respostaAtual.verificando
-            ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Verificando...</>
-            : "Responder"
-          }
+    <div>
+      {avisoLimite}
+      <div className="flex items-center justify-between pt-2">
+        <Button variant="ghost" onClick={handleAnterior} disabled={isFirst || loading} className="gap-1.5">
+          <ChevronLeft className="h-4 w-4" />
+          Anterior
         </Button>
-      ) : (
-        <Button onClick={handleProxima} disabled={isLast || loading}>
-          Próxima →
-        </Button>
-      )}
+        {!respostaAtual.verificada ? (
+          <Button
+            onClick={() => handleVerificar(questaoAtual.id, respostaAtual.selecionada)}
+            disabled={!respostaAtual.selecionada || respostaAtual.verificando}
+          >
+            {respostaAtual.verificando
+              ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Verificando...</>
+              : "Responder"
+            }
+          </Button>
+        ) : (
+          <Button onClick={handleProxima} disabled={isLast || loading}>
+            Próxima →
+          </Button>
+        )}
+      </div>
     </div>
   )
 
@@ -703,6 +731,7 @@ export default function QuestoesPage() {
                     onSelecionar={(l) => handleSelecionar(questao.id, l)}
                     onVerificar={() => handleVerificar(questao.id, r.selecionada)}
                     onReset={() => handleReset(questao.id)}
+                    aviso={avisoLimite}
                   />
                 )
               })}

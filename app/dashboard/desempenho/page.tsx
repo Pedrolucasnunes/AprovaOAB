@@ -15,6 +15,7 @@ import { supabase } from "@/lib/supabase"
 import { getClientUser } from "@/lib/auth-client"
 import { fetchAllRows, fetchByIds } from "@/lib/supabase-paginate"
 import { META_APROVACAO as META, MIN_TENTATIVAS_BANDA, classificarTaxa, taxaLabel, metaTextColor } from "@/lib/metrics"
+import { TZ_BRASIL, parseDbDate, ymdBrasil } from "@/lib/datas"
 
 const LISTA_LIMITE = 6
 
@@ -123,7 +124,7 @@ export default function DesempenhoPage() {
     // Um ponto por simulado (sem agregação mensal): com poucos dados, a média
     // por mês escondia simulados e distorcia a "evolução".
     setEvolutionData(data.map(s => ({
-      date: new Date(s.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }),
+      date: parseDbDate(s.created_at).toLocaleDateString("pt-BR", { timeZone: TZ_BRASIL, day: "2-digit", month: "short" }),
       nota: parseFloat(Number(s.percentual).toFixed(1)),
     })))
   }
@@ -147,11 +148,13 @@ export default function DesempenhoPage() {
     for (let i = 6; i >= 0; i--) {
       const dia = new Date(hoje)
       dia.setDate(hoje.getDate() - i)
-      const dateStr = dia.toLocaleDateString("en-CA")
-      const doDia = data.filter(q => new Date(q.created_at).toLocaleDateString("en-CA") === dateStr)
+      // Dia do calendário de Brasília — created_at é naive UTC (ver lib/datas.ts);
+      // sem isso, questão respondida depois das 21h cai no dia UTC seguinte e some.
+      const dateStr = ymdBrasil(dia)
+      const doDia = data.filter(q => ymdBrasil(parseDbDate(q.created_at)) === dateStr)
       const acertosDia = doDia.filter(q => q.acertou).length
       semana.push({
-        dia: dias[dia.getDay()],
+        dia: dias[new Date(`${dateStr}T12:00:00Z`).getUTCDay()],
         questoes: doDia.length,
         acertos: acertosDia,
         erros: doDia.length - acertosDia,

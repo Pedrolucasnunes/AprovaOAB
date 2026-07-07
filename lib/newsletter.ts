@@ -384,6 +384,48 @@ export const EDICAO_4: NewsletterEdicao = {
   examDays: 67,
 }
 
+// ── Edição #5 (dados reais do banco: Direito Administrativo, 36% de acerto) ───
+export const EDICAO_5: NewsletterEdicao = {
+  numero: 5,
+  subject: "☕ Café com OAB #5 — improbidade culposa: a pegadinha da lei que mudou",
+  preheader:
+    "A FGV cobra a Lei de Improbidade nova de quem estudou pela antiga. E atenção: o recurso da isenção do 47º é hoje.",
+  intro: [
+    "Semana de prazo curto: saiu ontem (6/7) o <strong>resultado preliminar da isenção</strong> da taxa do 47º Exame, no portal da FGV. Teve o pedido negado? O <strong>recurso é HOJE</strong>, terça (7/7), até 23h59 de Brasília. Depois disso, é boleto até 31 de julho. ⏰",
+    "E a matéria de hoje é das que mais derrubam quem treina na plataforma: <strong>Direito Administrativo</strong> — só 36% acertam, <strong>quase 2 em cada 3 erram</strong>. A pegadinha da vez é cruel de propósito: a FGV cobra a <em>Lei de Improbidade reformada</em> apostando que você estudou pela redação antiga. Quem decorou o resumo de 2020 marca a errada com toda a confiança do mundo. ⚖️",
+  ],
+  termometro:
+    "🔴 <strong>Direito Administrativo — 36% de acerto na plataforma.</strong> Quase 2 em cada 3 erram. É a matéria em que a lei seca mais mudou nos últimos anos — improbidade reformada (Lei 14.230/2021), licitações novas (Lei 14.133/2021) — e onde material desatualizado custa mais caro.",
+  questao: {
+    fonte: "FGV · Exame de Ordem XLIII/2024 · das questões de Administrativo que mais derrubam na plataforma",
+    enunciado:
+      "Januário, ex-prefeito do Município Imaginário, teve conhecimento de um inquérito civil que tem por objeto avaliar condutas praticadas no exercício de seu mandato que se enquadram como atos de improbidade e que causaram prejuízo ao erário. Em razão disso, ele procurou você, na qualidade de advogada(o), para definir uma estratégia de defesa, destacando que tem provas de que atuou de forma culposa. Considerando o fato de a conduta ter sido culposa, à luz do disposto na Lei nº 8.429/1992, com a redação conferida pela Lei nº 14.230/2021, assinale a opção que apresenta, corretamente, a orientação jurídica prestada.",
+    alternativas: [
+      { letra: "A", texto: "O fato é determinante para a estratégia de defesa, na medida em que os atos de improbidade não mais podem ser caracterizados na modalidade culposa." },
+      { letra: "B", texto: "O fato é importante para a estratégia de defesa, para fins de redução da pena, pois os atos de improbidade que ocasionam prejuízo ao erário admitem a modalidade culposa." },
+      { letra: "C", texto: "O fato é desinfluente para a respectiva estratégia de defesa, em um primeiro momento, pois os atos de improbidade admitem tanto a modalidade culposa quanto a dolosa." },
+      { letra: "D", texto: "O fato não tem muita relevância para a estratégia de defesa, na medida em que a responsabilização por improbidade administrativa é objetiva." },
+    ],
+    gabarito: "A",
+    comentario:
+      "A Lei 14.230/2021 reescreveu a Lei de Improbidade (Lei 8.429/92): agora <strong>todo ato de improbidade exige dolo</strong> — a vontade livre e consciente de alcançar o resultado ilícito (art. 1º, §§ 1º a 3º). A modalidade culposa, que existia para os atos que causam prejuízo ao erário, foi extinta. Se Januário tem provas de que agiu apenas com culpa, a conduta não configura mais improbidade — e o STF confirmou que a extinção vale inclusive para fatos anteriores ainda sem condenação definitiva (Tema 1.199). Determinante para a defesa.",
+  },
+  pegadinha:
+    "A cilada da letra <strong>B</strong> é que ela já foi verdade: até 2021, o art. 10 da Lei 8.429/92 admitia improbidade <strong>culposa</strong> nos atos que causam prejuízo ao erário — quem decorou isso marca B sem piscar. A Lei 14.230/2021 mudou o jogo: improbidade agora é <strong>só dolosa</strong>, em todas as modalidades (enriquecimento ilícito, prejuízo ao erário, violação de princípios). E a letra D erra por outro clássico: responsabilidade por improbidade nunca foi objetiva. 🧠 <strong>Fixa assim:</strong> improbidade sem dolo não é improbidade — o dano culposo pode ser cobrado por outras vias, mas não pelas sanções da Lei de Improbidade.",
+  noticia: {
+    titulo: "📰 Tá rolando: recurso da isenção é hoje; Edital Complementar vem dia 24",
+    texto:
+      "O <strong>resultado preliminar da isenção</strong> da taxa do 47º Exame saiu em <strong>6 de julho</strong>, no portal da FGV. Quem foi indeferido pode <strong>recorrer só hoje, 7 de julho</strong> (até 23h59, horário de Brasília). O resultado <strong>definitivo</strong> sai em <strong>29 de julho</strong> e, sem isenção, o boleto (R$ 350) vence em <strong>31 de julho</strong>. Nos próximos marcos: <strong>Edital Complementar em 24 de julho</strong>, locais de prova em <strong>31 de agosto</strong> e 1ª fase em <strong>6 de setembro</strong>. ⏰",
+  },
+  curiosidade: {
+    titulo: "💡 Você sabia?",
+    texto:
+      "<strong>Improbidade administrativa não é crime.</strong> A ação de improbidade é <strong>cível</strong>: as sanções são perda da função pública, suspensão dos direitos políticos, multa e proibição de contratar com o poder público — “sem prejuízo da ação penal cabível”, como diz a própria Constituição (art. 37, § 4º). Ou seja: o mesmo fato pode gerar ação de improbidade E processo criminal, em trilhos separados. É por isso que ninguém “vai preso por improbidade” — mas pode perder o cargo e os direitos políticos. 😉",
+  },
+  dica: "Administrativo é a matéria em que resumo velho mais derruba: improbidade (Lei 14.230/2021) e licitações (Lei 14.133/2021) mudaram de corpo inteiro. Reserve 15 minutos hoje pro art. 1º, §§ 1º a 3º, da Lei 8.429/92 na redação nova — e desconfie de qualquer material anterior a 2021.",
+  examDays: 61,
+}
+
 // Edição "atual" — a que o cron semanal e o /send usam por padrão. Ao montar uma
 // edição nova, atualize este ponteiro (ou edite o conteúdo acima).
-export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_4
+export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_5

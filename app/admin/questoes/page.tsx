@@ -111,6 +111,9 @@ export default function AdminQuestoesPage() {
   const [deletando, setDeletando] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 
+  // Exportar CSV
+  const [exportando, setExportando] = useState(false)
+
   // Modal importar CSV
   const [importModalOpen, setImportModalOpen] = useState(false)
   const [csvPreview, setCsvPreview] = useState<QuestaoCSV[]>([])
@@ -179,6 +182,30 @@ export default function AdminQuestoesPage() {
     } else {
       toast.error("Erro ao salvar questão")
     }
+  }
+
+  const exportar = async () => {
+    setExportando(true)
+    const params = new URLSearchParams()
+    if (busca) params.set("busca", busca)
+    if (banca !== "todas") params.set("banca", banca)
+
+    const res = await fetch(`/api/admin/questoes/exportar?${params}`)
+    setExportando(false)
+    if (!res.ok) {
+      toast.error("Erro ao exportar questões")
+      return
+    }
+
+    const hoje = new Date().toISOString().slice(0, 10)
+    const slug = banca !== "todas" ? `_${banca.replace(/[^\p{L}\p{N}]+/gu, "-")}` : ""
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `questoes${slug}_${hoje}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   const deletar = async (id: string) => {
@@ -265,6 +292,12 @@ export default function AdminQuestoesPage() {
           <p className="text-muted-foreground">Adicione, edite e gerencie o banco de questões</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={exportar} disabled={exportando}>
+            {exportando
+              ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              : <Download className="mr-2 h-4 w-4" />
+            } Exportar CSV
+          </Button>
           <Button variant="outline" onClick={() => { setImportModalOpen(true); setCsvStep("upload"); setCsvPreview([]) }}>
             <Upload className="mr-2 h-4 w-4" /> Importar CSV
           </Button>

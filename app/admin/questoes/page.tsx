@@ -99,6 +99,8 @@ export default function AdminQuestoesPage() {
   const [pagination, setPagination] = useState({ total: 0, page: 1, totalPages: 0 })
   const [loading, setLoading] = useState(true)
   const [busca, setBusca] = useState("")
+  const [banca, setBanca] = useState("todas")
+  const [bancas, setBancas] = useState<string[]>([])
   const [page, setPage] = useState(1)
 
   // Modal criar/editar
@@ -119,19 +121,24 @@ export default function AdminQuestoesPage() {
   useEffect(() => {
     supabase.from("subjects").select("id, name").order("name")
       .then(({ data }) => setSubjects(data ?? []))
+    // Mesma fonte de bancas do banco de questões do aluno
+    fetch("/api/questions/filtros")
+      .then((res) => res.json())
+      .then((data) => setBancas(data.bancas ?? []))
   }, [])
 
   const fetchQuestoes = useCallback(async () => {
     setLoading(true)
     const params = new URLSearchParams({ page: String(page) })
     if (busca) params.set("busca", busca)
+    if (banca !== "todas") params.set("banca", banca)
 
     const res = await fetch(`/api/admin/questoes?${params}`)
     const data = await res.json()
     setQuestoes(data.questions ?? [])
     setPagination(data.pagination ?? { total: 0, page: 1, totalPages: 0 })
     setLoading(false)
-  }, [page, busca])
+  }, [page, busca, banca])
 
   useEffect(() => { fetchQuestoes() }, [fetchQuestoes])
 
@@ -286,14 +293,27 @@ export default function AdminQuestoesPage() {
         <CardHeader>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle>Banco de Questões</CardTitle>
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Buscar questão..."
-                value={busca}
-                onChange={(e) => { setBusca(e.target.value); setPage(1) }}
-                className="pl-10"
-              />
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <Select value={banca} onValueChange={(v) => { setBanca(v); setPage(1) }}>
+                <SelectTrigger className="w-full sm:w-72">
+                  <SelectValue placeholder="Exame/Banca" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todos os exames</SelectItem>
+                  {bancas.map((b) => (
+                    <SelectItem key={b} value={b}>{b}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar questão..."
+                  value={busca}
+                  onChange={(e) => { setBusca(e.target.value); setPage(1) }}
+                  className="pl-10"
+                />
+              </div>
             </div>
           </div>
         </CardHeader>

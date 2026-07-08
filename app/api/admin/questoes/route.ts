@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const page = Math.max(1, Number(searchParams.get("page") ?? "1"))
   const busca = searchParams.get("busca") ?? ""
+  const banca = searchParams.get("banca") ?? ""
   const limit = 20
   const offset = (page - 1) * limit
 
@@ -25,6 +26,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Busca muito longa (máx 200 caracteres)" }, { status: 400 })
     }
     query = query.ilike("enunciado", `%${busca}%`)
+  }
+
+  if (banca) {
+    query = query.eq("banca", banca)
   }
 
   query = query.range(offset, offset + limit - 1).order("created_at", { ascending: false })

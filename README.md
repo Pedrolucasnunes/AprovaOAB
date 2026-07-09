@@ -37,6 +37,10 @@ Projeto solo: produto, código, conteúdo e operação.
 
 ![Simulado no padrão FGV](docs/screenshots/simulado.png)
 
+**Treino Estratégico** — sessões montadas pelos erros do aluno (~70% nas matérias mais fracas)
+
+![Treino Estratégico](docs/screenshots/treino.png)
+
 **Desempenho** — evolução das notas e disciplinas em risco por banda
 
 ![Desempenho por matéria](docs/screenshots/desempenho.png)
@@ -44,6 +48,11 @@ Projeto solo: produto, código, conteúdo e operação.
 **Agenda inteligente** — semana de estudos gerada automaticamente pelo desempenho
 
 ![Agenda inteligente](docs/screenshots/agenda.png)
+
+**Newsletter Café com OAB** — edição semanal com dados reais da plataforma: termômetro de erros, questão comentada da FGV e notícia verificada da semana
+
+<img src="docs/screenshots/newsletter.png" alt="Newsletter Café com OAB" width="440">
+
 
 ## Funcionalidades
 

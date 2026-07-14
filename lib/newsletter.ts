@@ -426,6 +426,48 @@ export const EDICAO_5: NewsletterEdicao = {
   examDays: 61,
 }
 
+// ── Edição #6 (dados reais do banco: Direito Ambiental, 38% de acerto) ────────
+export const EDICAO_6: NewsletterEdicao = {
+  numero: 6,
+  subject: "☕ Café com OAB #6 — EIA × EIV: a pegadinha de Ambiental que ninguém acertou",
+  preheader:
+    "O estudo municipal dispensa o EIA? Ninguém acertou essa na plataforma. E o Edital Complementar do 47º sai dia 24.",
+  intro: [
+    "Semana de calendário cheio: o <strong>Edital Complementar do 47º Exame</strong> — que regula o reaproveitamento da 1ª fase pra quem passou na objetiva do 46 — sai dia <strong>24 de julho</strong>. Quem fez a 2ª fase do 46 também tem data: o <strong>padrão de respostas definitivo sai hoje</strong>, terça (14/7), com recursos de <strong>15 a 17</strong>. E o boleto do 47 vence <strong>31 de julho</strong> — prazo perdido não volta. ⏰",
+    "A matéria de hoje é a que mais derruba entre as que ainda não passaram por aqui: <strong>Direito Ambiental</strong> — só 38% acertam, <strong>6 em cada 10 erram</strong>. A pegadinha da vez é a sopa de letrinhas favorita da FGV: o empreendimento precisa de <em>EIA</em>, mas a lei municipal exige <em>EIV</em>… um estudo dispensa o outro? Na plataforma, <strong>ninguém acertou</strong> essa. ⚖️",
+  ],
+  termometro:
+    "🔴 <strong>Direito Ambiental — 38% de acerto na plataforma.</strong> 6 em cada 10 erram. É a matéria das siglas — EIA, EIV, RIMA, APP, LC 140 — e a FGV cobra exatamente a fronteira entre elas: quem licencia o quê, qual estudo serve pra quê e quando um NÃO substitui o outro.",
+  questao: {
+    fonte: "FGV · Exame de Ordem XLIV/2024 · a questão de Ambiental que ninguém acertou na plataforma",
+    enunciado:
+      "A sociedade empresária Empreendedorix deseja construir um grande shopping center em terreno situado na área urbana do Município Delta, que contribuirá para incrementar o comércio na localidade, mas surtirá efeitos na qualidade de vida da população e no meio ambiente do entorno, razão pela qual a atividade se enquadra entre aquelas para as quais é necessária a elaboração de Estudo de Impacto Ambiental (EIA). Ocorre que o Município Delta tem legislação local que define que tal empreendimento privado depende de elaboração de Estudo Prévio de Impacto de Vizinhança (EIV), para obter as licenças ou autorizações de construção, ampliação ou funcionamento a cargo do Poder Público local. Em razão disso, os representantes da sociedade empresária Empreendedorix procuram você, como advogado(a), para esclarecer as peculiaridades do instrumento previsto na referida legislação municipal. Considerando os fatos narrados, assinale a afirmativa correta.",
+    alternativas: [
+      { letra: "A", texto: "O EIV, diferentemente do EIA, não pode ser enquadrado como instrumento da Política Nacional do Meio Ambiente." },
+      { letra: "B", texto: "A realização do EIV não substitui a elaboração e a aprovação do EIA, requeridas nos termos da legislação ambiental." },
+      { letra: "C", texto: "O EIV será executado de forma a contemplar seus efeitos positivos, mas não precisa apontar os efeitos negativos do empreendimento, diante de seus objetivos legítimos." },
+      { letra: "D", texto: "Independentemente de previsão na lei municipal, o EIV seria necessário, considerando o grande empreendimento a ser realizado pela sociedade Empreendedorix." },
+    ],
+    gabarito: "B",
+    comentario:
+      "O Estatuto da Cidade é expresso: <strong>a elaboração do EIV não substitui o EIA</strong> (Lei 10.257/2001, art. 38). São estudos de trilhos diferentes — o <strong>EIV</strong> olha a vizinhança (adensamento populacional, tráfego, valorização imobiliária, paisagem urbana; art. 37), enquanto o <strong>EIA</strong> olha a degradação ambiental significativa e tem assento na própria Constituição (art. 225, § 1º, IV). Um shopping desse porte pode precisar dos <strong>dois, cumulativamente</strong>: o EIV pra licença urbanística municipal e o EIA pro licenciamento ambiental.",
+  },
+  pegadinha:
+    "A letra <strong>D</strong> seduz pelo instinto protetor: “empreendimento grande → EIV obrigatório, com ou sem lei”. Errado — o EIV é criatura da lei municipal: é a <strong>lei do Município</strong> que define quais empreendimentos dependem dele (Estatuto da Cidade, art. 36). Sem previsão local, não há EIV exigível. E a letra <strong>A</strong> derruba até os finalistas: o EIV nasce no Estatuto da Cidade, mas cabe no gênero <em>“avaliação de impactos ambientais”</em>, que é instrumento da Política Nacional do Meio Ambiente (Lei 6.938/81, art. 9º, III) — dizer que ele “não pode ser enquadrado” é falso. 🧠 <strong>Fixa assim:</strong> EIV e EIA <strong>não se substituem</strong> (art. 38) — cada um no seu trilho, e o empreendimento pode ter que apresentar os dois.",
+  noticia: {
+    titulo: "📰 Tá rolando: Edital Complementar dia 24 e semana decisiva pro 46",
+    texto:
+      "O cronograma oficial da OAB confirma: o <strong>Edital Complementar</strong> do 47º Exame — reaproveitamento da 1ª fase pra quem passou na objetiva do 46 — sai em <strong>24 de julho</strong>, com inscrições de <strong>31/7 a 7/8</strong>. Pra quem fez a 2ª fase do 46: o <strong>padrão de respostas definitivo</strong> sai <strong>hoje (14/7)</strong>, recursos de <strong>15 a 17/7</strong> e <strong>resultado final em 29/7</strong> — mesmo dia do resultado definitivo da isenção do 47. E atenção: o <strong>boleto de inscrição (R$ 350) vence 31 de julho</strong>. Depois disso, locais de prova em <strong>31/8</strong> e 1ª fase em <strong>6/9</strong>. ⏰",
+  },
+  curiosidade: {
+    titulo: "💡 Você sabia?",
+    texto:
+      "A Constituição de 1988 foi a <strong>primeira da história do Brasil</strong> a dedicar um capítulo inteiro ao meio ambiente — daí o apelido de <strong>“Constituição Verde”</strong>. O art. 225 declarou o meio ambiente equilibrado <em>“bem de uso comum do povo”</em> e, no § 1º, IV, constitucionalizou o <strong>EIA</strong>: estudo prévio de impacto ambiental, exigível para obra ou atividade potencialmente causadora de <strong>significativa</strong> degradação. Ou seja: o EIA da questão de hoje não é detalhe de lei ordinária — é mandamento constitucional. 😉",
+  },
+  dica: "Ambiental vive de fronteira entre siglas: EIA × EIV × RIMA e a LC 140/2011 (quem licencia o quê). Reserve 15 minutos hoje pros arts. 36 a 38 do Estatuto da Cidade e pro art. 225, § 1º, IV, da Constituição — essa dupla resolve boa parte das questões de estudo de impacto.",
+  examDays: 54,
+}
+
 // Edição "atual" — a que o cron semanal e o /send usam por padrão. Ao montar uma
 // edição nova, atualize este ponteiro (ou edite o conteúdo acima).
-export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_5
+export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_6

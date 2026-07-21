@@ -468,6 +468,48 @@ export const EDICAO_6: NewsletterEdicao = {
   examDays: 54,
 }
 
+// ── Edição #7 (dados reais do banco: Processo Civil, 37% de acerto) ───────────
+export const EDICAO_7: NewsletterEdicao = {
+  numero: 7,
+  subject: "☕ Café com OAB #7 — O \"recurso\" que a Fazenda ganha sem pedir",
+  preheader:
+    "Só 1 em cada 4 acertou essa de remessa necessária na plataforma. E os recursos da 2ª fase do 46 já fecharam — resultado final sai dia 29.",
+  intro: [
+    "Semana de transição no calendário: os recursos contra o padrão de respostas da <strong>2ª fase do 46º Exame</strong> fecharam <strong>sexta (17/7)</strong> — agora é aguardar o <strong>resultado final, em 29 de julho</strong>. Enquanto isso, o <strong>Edital Complementar do 47º</strong> (reaproveitamento da 1ª fase pra quem passou na objetiva do 46) sai <strong>quinta (24/7)</strong>, com inscrições de 31/7 a 7/8. E o boleto do 47 (R$ 350) vence <strong>31 de julho</strong> — sem prorrogação. ⏰",
+    "A matéria de hoje é <strong>Processo Civil</strong> — 37% de acerto na plataforma, quase <strong>2 em cada 3 erram</strong>. E tem uma questão específica que só <strong>1 em cada 4</strong> acertou: a diferença entre um recurso de verdade e a <em>remessa necessária</em> — aquele reexame que o Tribunal faz de ofício quando a Fazenda Pública perde, mesmo que ela não recorra de nada. ⚖️",
+  ],
+  termometro:
+    "🔴 <strong>Processo Civil — 37% de acerto na plataforma.</strong> Quase 2 em cada 3 erram. A matéria concentra os institutos que mais confundem quem estuda por resumo: prazos, natureza da decisão (interlocutória × sentença) e as exceções que a lei processual empilha em cima da regra geral.",
+  questao: {
+    fonte: "FGV · Exame de Ordem XLIII/2024 · a questão de Processo Civil que só 1 em cada 4 acertou na plataforma",
+    enunciado:
+      "Maria ajuizou ação em face da União, com pedido de condenação desta à entrega de remédios, por ser portadora de grave doença cardíaca. Após o regular processamento, o Juízo da Vara Federal competente proferiu sentença de procedência condenando a União a entregar o medicamento solicitado. A Fazenda Pública foi vencida e, na hipótese, foi aplicado pelo Juiz o instituto da remessa necessária, com o envio do processo ao Tribunal Regional Federal, embora a União não tenha apelado da sentença. Acerca da remessa necessária, segundo o ordenamento jurídico brasileiro, assinale a afirmativa correta.",
+    alternativas: [
+      { letra: "A", texto: "Aplica-se a remessa necessária quando a sentença estiver fundada em entendimento firmado em incidente de assunção de competência." },
+      { letra: "B", texto: "Aplica-se a remessa necessária quando a condenação ou o proveito econômico obtido na causa for de valor certo e líquido inferior a mil salários mínimos para a União." },
+      { letra: "C", texto: "Não se aplica a remessa necessária aos casos de competência de Juizados Especiais da Fazenda Pública, mas pode ser aplicada às sentenças de ações ajuizadas em Varas Federais." },
+      { letra: "D", texto: "Como a União não interpôs o recurso de apelação no prazo legal, o Juiz não poderá ordenar a remessa do processo para o reexame necessário no Tribunal, independentemente do valor dos remédios." },
+    ],
+    gabarito: "C",
+    comentario:
+      "A remessa necessária (art. 496 do CPC) é <strong>condição de eficácia da sentença</strong>, não um recurso — o juiz manda o processo pro Tribunal de ofício sempre que a Fazenda Pública perde, <strong>haja ou não apelação da parte</strong>. A Lei 12.153/2009, no art. 11, exclui expressamente esse reexame nos Juizados Especiais da Fazenda Pública — mas ele continua valendo em pleno vigor nas Varas Federais comuns, como no caso de Maria. É exatamente isso que a letra C descreve.",
+  },
+  pegadinha:
+    "A letra <strong>D</strong> é a armadilha mais comum: parece lógico achar que \"se a União não recorreu, o juiz não pode mandar o processo pro Tribunal sozinho\". Errado — a remessa necessária é <strong>automática e independe de apelação</strong>; ela existe justamente pros casos em que a Fazenda não recorre. A letra <strong>B</strong> inverte o critério do art. 496, § 3º: a remessa necessária <strong>não se aplica</strong> quando o valor é inferior a mil salários mínimos pra União (é dispensa, não obrigação) — o texto trocou \"dispensa\" por \"aplica-se\". E a letra <strong>A</strong> inverte o § 4º: quando a sentença segue entendimento de incidente de assunção de competência (ou súmula de tribunal superior), a remessa necessária <strong>é dispensada</strong>, não obrigatória. 🧠 <strong>Fixa assim:</strong> remessa necessária roda por conta própria — o recurso da parte é personagem secundário nessa história.",
+  noticia: {
+    titulo: "📰 Tá rolando: recursos da 2ª fase do 46 fecharam, resultado final sai dia 29",
+    texto:
+      "O cronograma oficial da OAB confirma: o <strong>padrão de respostas definitivo</strong> da 2ª fase do 46º Exame saiu dia 14/7 e o prazo de <strong>recursos (15 a 17/7) já se encerrou</strong> — agora é aguardar o <strong>resultado final em 29 de julho</strong>, mesmo dia do resultado definitivo da isenção do 47. Pra quem mira o 47º: o <strong>Edital Complementar</strong> (reaproveitamento da 1ª fase pra quem passou na objetiva do 46) sai <strong>quinta (24/7)</strong>, com inscrições de <strong>31/7 a 7/8</strong>. E o <strong>boleto de inscrição do 47 (R$ 350) vence 31 de julho</strong> — depois disso, sai do ar. ⏰",
+  },
+  curiosidade: {
+    titulo: "💡 Você sabia?",
+    texto:
+      "A remessa necessária é <strong>bem mais velha</strong> do que o CPC de 2015 — suas raízes estão nas <strong>Ordenações Filipinas de 1603</strong>, quando o instituto nasceu no processo penal português como proteção ao réu diante dos amplos poderes do juiz inquisidor. Só em <strong>1831</strong>, já no Brasil independente, uma lei (art. 90) estendeu a ideia ao processo civil — mas trocou o protegido: agora quem ganhava o reexame automático era a <strong>Fazenda Nacional</strong> sempre que perdia uma causa. Quase <strong>200 anos depois</strong>, a lógica de proteger o interesse público contra sentenças desfavoráveis à Fazenda continua de pé no art. 496 do CPC. 😉",
+  },
+  dica: "Processo Civil pune quem decora regra geral e esquece exceção. Reserve 15 minutos hoje pro art. 496, §§ 3º e 4º, do CPC (quando a remessa necessária é dispensada) e pro art. 11 da Lei 12.153/2009 (Juizados Especiais da Fazenda Pública) — essa dupla resolve a maioria das pegadinhas de remessa necessária.",
+  examDays: 47,
+}
+
 // Edição "atual" — a que o cron semanal e o /send usam por padrão. Ao montar uma
 // edição nova, atualize este ponteiro (ou edite o conteúdo acima).
-export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_6
+export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_7

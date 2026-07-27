@@ -510,6 +510,48 @@ export const EDICAO_7: NewsletterEdicao = {
   examDays: 47,
 }
 
+// ── Edição #8 (dados reais do banco: Direito Internacional, 45% de acerto) ────
+export const EDICAO_8: NewsletterEdicao = {
+  numero: 8,
+  subject: "☕ Café com OAB #8 — o refúgio \"não é só seu\": só 44% acertaram essa de Internacional",
+  preheader:
+    "O cliente foge por perseguição religiosa e quer trazer a esposa. Precisa de juiz pra isso? E a repescagem do 46 já saiu — custa R$ 175.",
+  intro: [
+    "O <strong>Edital Complementar do 47º Exame</strong> saiu na quinta (24/7): quem passou na objetiva do 46 mas não foi bem na 2ª fase (ou faltou, ou foi eliminado) pode pedir <strong>repescagem</strong> pagando uma taxa de <strong>R$ 175</strong> — inscrições de <strong>31/7 a 7/8</strong>. Enquanto isso, o <strong>resultado final da 2ª fase do 46</strong> sai depois de amanhã, quarta (29/7). E o alerta que não pode passar batido: o <strong>boleto do 47 (R$ 350) vence sexta, dia 31/7</strong> — restam só 3 dias. ⏰",
+    "A matéria de hoje é <strong>Direito Internacional</strong> — 45% de acerto na plataforma, <strong>mais da metade erra</strong>. A pegadinha da vez mexe com um medo real de quem foge do próprio país: o refúgio protege só quem pediu, ou a família que veio junto também? Na plataforma, só <strong>44% acertaram</strong>. ⚖️",
+  ],
+  termometro:
+    "🔴 <strong>Direito Internacional — 45% de acerto na plataforma.</strong> Mais da metade erra. É a matéria que mistura tratado internacional com lei interna — Convenção de 1951, Lei 9.474/97, nacionalidade, extradição — e a FGV adora testar se você sabe onde uma completa a outra.",
+  questao: {
+    fonte: "FGV · Exame de Ordem XXXIX/2023 · só 44% acertaram na plataforma",
+    enunciado:
+      "Você atua, como advogado(a), em um caso em que seu cliente é um estrangeiro indocumentado que vive no Brasil. Isso ocorreu porque ele teve de fugir às pressas do país de origem, porque estava sendo perseguido por motivos religiosos. Ele gostaria de permanecer no Brasil e trazer a esposa. Assim, com base no que dispõe a Lei nº 9.474/97 que trata da implementação do Estatuto dos Refugiados no Brasil, assinale a afirmativa correta.",
+    alternativas: [
+      { letra: "A", texto: "A perseguição por motivos religiosos não faz parte dos tipos de perseguição abrangidos no conceito de refugiado e, assim, ele deve regularizar sua documentação de estrangeiro ou deixar o país." },
+      { letra: "B", texto: "A perseguição por motivos religiosos se enquadra no conceito de refugiado e ele pode pedir refúgio no Brasil, mas o refúgio é ato personalíssimo e não se estende à sua esposa." },
+      { letra: "C", texto: "A situação condiz com a possibilidade de reconhecimento da condição de refugiado e os efeitos dessa condição são extensivos à esposa." },
+      { letra: "D", texto: "A perseguição religiosa é motivo para que o governo brasileiro o declare refugiado e a extensão dessa condição à esposa depende de decisão judicial e não administrativa." },
+    ],
+    gabarito: "C",
+    comentario:
+      "A Lei 9.474/97 é expressa: os efeitos da condição de refugiado <strong>se estendem ao cônjuge</strong>, aos ascendentes e descendentes, e aos demais membros do grupo familiar que dele dependam economicamente, desde que estejam em território nacional (art. 2º). A perseguição por motivo religioso está entre as hipóteses clássicas de refúgio (art. 1º, I, herdado da Convenção de 1951) — e o reconhecimento, uma vez concedido, não fica preso a quem fez o pedido: puxa a família junto, por força de lei, sem processo à parte pra cada dependente.",
+  },
+  pegadinha:
+    "A letra <strong>B</strong> é a armadilha mais sedutora: soa lógico achar que o refúgio, ligado à história pessoal de quem fugiu, não passa pra mais ninguém — como se fosse parecido com o asilo político, mais individual. Errado: o <strong>art. 2º da Lei 9.474/97</strong> estende os efeitos ao cônjuge e a quem dependa economicamente do refugiado, automaticamente. A letra <strong>D</strong> inventa uma etapa que a lei não pede — não existe decisão judicial nesse trâmite, é ato do <strong>CONARE</strong>, órgão administrativo. E a letra <strong>A</strong> tropeça na base: perseguição religiosa está no rol clássico de motivos de refúgio desde a Convenção de 1951, incorporada pelo art. 1º, I. 🧠 <strong>Fixa assim:</strong> reconhecido o refúgio, a proteção sai andando com a família — cônjuge, ascendente, descendente e dependente econômico, no mesmo ato.",
+  noticia: {
+    titulo: "📰 Tá rolando: repescagem sai por R$ 175, resultado final da 2ª fase do 46 é quarta",
+    texto:
+      "O <strong>Edital Complementar</strong> do 47º Exame foi publicado <strong>quinta (24/7)</strong>: quem foi aprovado na 1ª fase do 46 mas não passou (ou faltou, ou foi eliminado) na 2ª pode pedir <strong>repescagem</strong> pagando uma taxa de <strong>R$ 175</strong>, com inscrições entre <strong>31/7 e 7/8</strong>. Enquanto isso, quem fez a 2ª fase do 46 aguarda o <strong>resultado final</strong>, previsto pra depois de amanhã, <strong>quarta (29/7)</strong>. E fica o alerta: o <strong>boleto de inscrição do 47º (R$ 350) vence sexta, 31 de julho</strong> — só resta essa semana pra quitar. ⏰",
+  },
+  curiosidade: {
+    titulo: "💡 Você sabia?",
+    texto:
+      "O Brasil foi o <strong>primeiro país do Cone Sul</strong> a ratificar a Convenção de 1951 sobre o Estatuto dos Refugiados, e a Lei 9.474/97 criou o <strong>CONARE</strong> — o comitê que decide os pedidos de refúgio no país. O mais curioso: por lei, o próprio <strong>ACNUR</strong> (a agência da ONU pra refugiados) tem assento fixo nas reuniões do CONARE, com <strong>direito a voz — mas sem voto</strong> (art. 14). A ONU senta à mesa de um órgão do governo brasileiro pra opinar sobre decisões que ela mesma ajudou a inspirar, mas quem decide, no fim, é o Brasil. 😉",
+  },
+  dica: "Internacional cai pouco mas rende ponto fácil pra quem sabe a estrutura: motivos de refúgio (art. 1º), efeitos que se estendem à família (art. 2º) e o papel do CONARE (art. 14) resolvem boa parte das questões da Lei 9.474/97. Reserve 15 minutos hoje nesses três artigos.",
+  examDays: 40,
+}
+
 // Edição "atual" — a que o cron semanal e o /send usam por padrão. Ao montar uma
 // edição nova, atualize este ponteiro (ou edite o conteúdo acima).
-export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_7
+export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_8

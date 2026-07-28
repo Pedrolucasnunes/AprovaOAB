@@ -43,10 +43,6 @@ export default function DiagnosticoInicialPage() {
     fetch("/api/diagnostico/gerar")
       .then((r) => r.json().then((json) => ({ status: r.status, json })))
       .then(({ status, json }) => {
-        if (status === 400 && json.error === "ONBOARDING_REQUIRED") {
-          router.replace("/dashboard?onboarding=true")
-          return
-        }
         if (status === 409 && json.error === "DIAGNOSTIC_ALREADY_DONE") {
           router.replace("/dashboard/diagnostico-inicial/resultado")
           return

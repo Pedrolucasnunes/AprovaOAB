@@ -12,7 +12,10 @@ interface QuestionRow {
   subject_id: string
 }
 
-const BASELINE_SUBJECTS = ["Ética", "Direito Constitucional"]
+// Nomes exatos da tabela `subjects` — "Ética" sozinho não casa com nada
+// (o registro é "Ética Profissional") e o baseline silenciosamente virava
+// só Constitucional.
+const BASELINE_SUBJECTS = ["Ética Profissional", "Direito Constitucional"]
 
 export async function GET() {
   const { user, supabase, error } = await requireUser()
@@ -36,14 +39,11 @@ export async function GET() {
     .eq("id", user.id)
     .single()
 
+  // Sem dificuldades declaradas o diagnóstico ainda roda: as 5 questões saem
+  // inteiras do baseline (Ética + Constitucional) e do sorteio geral. Exigir o
+  // onboarding aqui travava 33 dos 57 usuários — o wizard só persistia no
+  // último passo, então quem saía no meio nunca mais conseguia entrar.
   const dificuldades: string[] = userRow?.onboarding_data?.dificuldades ?? []
-
-  if (dificuldades.length === 0) {
-    return NextResponse.json(
-      { error: "ONBOARDING_REQUIRED" },
-      { status: 400 },
-    )
-  }
 
   // Conjunto de já respondidas — paginado (usuário ativo passa de 1000 registros).
   const attemptIds = (

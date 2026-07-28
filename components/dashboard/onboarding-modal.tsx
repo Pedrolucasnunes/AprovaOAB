@@ -65,7 +65,42 @@ export function OnboardingModal() {
       .then(({ data }) => {
         if (data) setSubjects(data)
       })
+
+    // Retoma de onde parou: cada passo é gravado na hora, então quem fechou no
+    // meio volta com o que já respondeu preenchido em vez de recomeçar do zero.
+    fetch("/api/user/onboarding")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        if (!json) return
+        const d = json.onboarding_data
+        if (d?.nivel) setNivel(d.nivel)
+        if (Array.isArray(d?.dificuldades)) setDificuldades(d.dificuldades)
+        if (d?.tempo_diario) setTempo(d.tempo_diario)
+
+        if (typeof json.exam_date === "string") {
+          const [ano, mes] = json.exam_date.split("-")
+          setYear(ano)
+          setMonth(MONTHS[Number(mes) - 1] ?? "")
+        }
+
+        // O último campo presente diz até onde ele chegou. `exam_date` sozinho
+        // não serve de marco: "ainda não sei a data" grava null igual a não ter
+        // respondido — por isso quem tem `tempo_diario` já passou desse passo.
+        if (d?.tempo_diario) setStep("diagnostico-cta")
+        else if (d?.dificuldades?.length) setStep("exam-date")
+        else if (d?.nivel) setStep("dificuldades")
+      })
+      .catch(() => {})
   }, [searchParams])
+
+  /** Grava o passo atual sem bloquear a navegação — o save final é que é awaited. */
+  function salvarParcial(patch: Record<string, unknown>) {
+    void fetch("/api/user/onboarding", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    }).catch(() => {})
+  }
 
   function toggleDificuldade(id: string) {
     setDificuldades((prev) => {
@@ -75,17 +110,20 @@ export function OnboardingModal() {
     })
   }
 
-  function buildPayload() {
+  function computeExamDate(): string | null {
     const monthIndex = MONTHS.indexOf(month) + 1
-    const examDate = noDate || !month
-      ? null
-      : `${year}-${String(monthIndex).padStart(2, "0")}`
+    return noDate || !month ? null : `${year}-${String(monthIndex).padStart(2, "0")}`
+  }
 
+  // Só manda o que tem valor: o schema recusa `null`/`[]` nesses campos, e o
+  // save final não pode falhar por causa de um passo que o usuário pulou.
+  function buildPayload() {
     return {
-      exam_date: examDate,
-      nivel,
-      dificuldades,
-      tempo_diario: tempo,
+      exam_date: computeExamDate(),
+      ...(nivel ? { nivel } : {}),
+      ...(dificuldades.length > 0 ? { dificuldades } : {}),
+      ...(tempo ? { tempo_diario: tempo } : {}),
+      completo: true,
     }
   }
 
@@ -126,19 +164,10 @@ export function OnboardingModal() {
     router.replace("/dashboard")
   }
 
-  async function handleDismiss() {
-    setSaving(true)
-    const res = await fetch("/api/user/onboarding", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ exam_date: null }),
-    }).catch(() => null)
-    setSaving(false)
-
-    if (!res || !res.ok) {
-      toast.error("Não foi possível salvar. Tente de novo.")
-      return
-    }
+  // Fechar não grava mais nada: cada passo já foi salvo na hora. O POST antigo
+  // mandava `{ exam_date: null }` só pra ter um corpo válido — e apagava a data
+  // de quem já tinha escolhido uma.
+  function handleDismiss() {
     setIsOpen(false)
     router.replace("/dashboard")
   }
@@ -215,7 +244,10 @@ export function OnboardingModal() {
               <Button
                 className="flex-1"
                 disabled={!nivel}
-                onClick={() => setStep("dificuldades")}
+                onClick={() => {
+                  salvarParcial({ nivel })
+                  setStep("dificuldades")
+                }}
               >
                 Continuar
               </Button>
@@ -270,7 +302,10 @@ export function OnboardingModal() {
               <Button
                 className="flex-1"
                 disabled={dificuldades.length === 0}
-                onClick={() => setStep("exam-date")}
+                onClick={() => {
+                  salvarParcial({ dificuldades })
+                  setStep("exam-date")
+                }}
               >
                 Continuar
               </Button>
@@ -331,7 +366,10 @@ export function OnboardingModal() {
               <Button
                 className="flex-1"
                 disabled={!noDate && !month}
-                onClick={() => setStep("tempo")}
+                onClick={() => {
+                  salvarParcial({ exam_date: computeExamDate() })
+                  setStep("tempo")
+                }}
               >
                 Continuar
               </Button>
@@ -376,7 +414,10 @@ export function OnboardingModal() {
               <Button
                 className="flex-1"
                 disabled={!tempo}
-                onClick={() => setStep("diagnostico-cta")}
+                onClick={() => {
+                  salvarParcial({ tempo_diario: tempo })
+                  setStep("diagnostico-cta")
+                }}
               >
                 Continuar
               </Button>

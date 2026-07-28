@@ -304,7 +304,7 @@ export default function DashboardPage() {
             <div className="flex-1">
               <p className="font-semibold">Comece pelo diagnóstico</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Você ainda não fez seu mini-diagnóstico — 4 minutos pra mapear seus primeiros padrões.
+                Você ainda não mediu seu nível — cerca de 15 minutos nas 8 matérias mais pesadas da prova.
               </p>
               <Button asChild size="sm" className="mt-3">
                 <Link href="/dashboard/diagnostico-inicial">

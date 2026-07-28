@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useEffect, useRef, useState, Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Sparkles, Check, X } from "lucide-react"
 
@@ -24,10 +24,37 @@ interface FeedbackState {
   explicacao: string | null
 }
 
+// useSearchParams exige boundary de Suspense pra página não quebrar no
+// prerender estático — mesmo padrão de app/dashboard/treino/page.tsx.
 export default function DiagnosticoInicialPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background">
+          <div className="text-center">
+            <Sparkles className="mx-auto h-8 w-8 animate-pulse text-primary" />
+            <p className="mt-3 text-sm text-muted-foreground">Preparando suas questões...</p>
+          </div>
+        </div>
+      }
+    >
+      <DiagnosticoInicialInner />
+    </Suspense>
+  )
+}
+
+function DiagnosticoInicialInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const modulo = searchParams.get("modulo") ?? "m1"
+
   const [questions, setQuestions] = useState<Question[]>([])
   const [idx, setIdx] = useState(0)
+  // Posição no módulo INTEIRO. A sessão pode ter começado antes: `questions` só
+  // traz o que falta, então o progresso não pode sair do índice local.
+  const [posicaoInicial, setPosicaoInicial] = useState(0)
+  const [total, setTotal] = useState(0)
+  const [retomando, setRetomando] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
 
@@ -40,19 +67,26 @@ export default function DiagnosticoInicialPage() {
   const submittingRef = useRef(false)
 
   useEffect(() => {
-    fetch("/api/diagnostico/gerar")
+    fetch(`/api/diagnostico/sessao?modulo=${encodeURIComponent(modulo)}`)
       .then((r) => r.json().then((json) => ({ status: r.status, json })))
       .then(({ status, json }) => {
-        if (status === 409 && json.error === "DIAGNOSTIC_ALREADY_DONE") {
+        if (status === 409 && json.error === "MODULO_CONCLUIDO") {
           router.replace("/dashboard/diagnostico-inicial/resultado")
           return
         }
         if (json.error || !json.questions || json.questions.length === 0) {
-          setLoadError(json.error ?? "Não foi possível carregar as questões.")
+          setLoadError(
+            json.error === "SEM_QUESTOES_DISPONIVEIS"
+              ? "Você já respondeu todas as questões disponíveis deste módulo."
+              : "Não foi possível carregar as questões.",
+          )
           setLoading(false)
           return
         }
         setQuestions(json.questions)
+        setPosicaoInicial(json.posicao ?? 0)
+        setTotal(json.total ?? json.questions.length)
+        setRetomando(Boolean(json.retomando))
         setLoading(false)
         startedAtRef.current = performance.now()
       })
@@ -60,7 +94,7 @@ export default function DiagnosticoInicialPage() {
         setLoadError("Erro ao carregar diagnóstico.")
         setLoading(false)
       })
-  }, [router])
+  }, [router, modulo])
 
   function selecionar(alt: Alt) {
     if (feedback) return
@@ -85,17 +119,21 @@ export default function DiagnosticoInicialPage() {
           resposta: selecionada,
           time_spent_ms: timeSpent,
           changed_answer: changedAnswer,
+          modulo,
         }),
       })
       const json = await res.json()
+
       if (!res.ok) {
+        // A sessão do servidor é a verdade. Se a tela dessincronizou, recarrega
+        // em vez de insistir numa questão que o servidor não espera.
+        if (json.error === "FORA_DE_ORDEM" || json.error === "MODULO_CONCLUIDO") {
+          window.location.reload()
+        }
         return
       }
-      setFeedback({
-        correta: json.correta,
-        acertou: json.acertou,
-        explicacao: json.explicacao,
-      })
+
+      setFeedback({ correta: json.correta, acertou: json.acertou, explicacao: json.explicacao })
     } finally {
       submittingRef.current = false
       setSubmitting(false)
@@ -137,7 +175,8 @@ export default function DiagnosticoInicialPage() {
   }
 
   const q = questions[idx]
-  const progress = ((idx + (feedback ? 1 : 0)) / questions.length) * 100
+  const numeroAtual = posicaoInicial + idx + 1
+  const progress = ((posicaoInicial + idx + (feedback ? 1 : 0)) / Math.max(total, 1)) * 100
   const alternativas: { letra: Alt; texto: string }[] = [
     { letra: "A", texto: q.alternativa_a },
     { letra: "B", texto: q.alternativa_b },
@@ -153,7 +192,7 @@ export default function DiagnosticoInicialPage() {
           <div className="flex items-center justify-between mb-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
               <Sparkles className="h-3 w-3" />
-              Análise inicial · Questão {idx + 1} de {questions.length}
+              Questão {numeroAtual} de {total}
             </span>
             <span className="text-xs text-muted-foreground">{q.subject_name}</span>
           </div>
@@ -164,7 +203,9 @@ export default function DiagnosticoInicialPage() {
             />
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
-            Analisando seu padrão...
+            {retomando && idx === 0
+              ? `Retomando de onde você parou — faltam ${questions.length}.`
+              : "Pode fechar quando quiser: seu progresso fica salvo."}
           </p>
         </div>
 
@@ -246,7 +287,7 @@ export default function DiagnosticoInicialPage() {
             </Button>
           ) : (
             <Button className="w-full" size="lg" onClick={proxima}>
-              {idx + 1 >= questions.length ? "Ver análise inicial" : "Próxima questão"}
+              {idx + 1 >= questions.length ? "Ver meu mapa" : "Próxima questão"}
             </Button>
           )}
         </div>

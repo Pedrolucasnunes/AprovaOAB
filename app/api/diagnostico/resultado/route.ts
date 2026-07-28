@@ -1,221 +1,143 @@
 import { NextResponse } from "next/server"
 import { requireUser } from "@/lib/auth-server"
+import { getDiagnosticoConfig } from "@/lib/config"
+import { coberturaDeSubjects } from "@/lib/exames"
+import { logError } from "@/lib/logger"
+import { classificarTaxa, type NivelTaxa } from "@/lib/metrics"
+import { recomputarResultados } from "@/lib/services/diagnostico"
+import { supabaseAdmin } from "@/lib/supabase-admin"
 
-interface Card {
-  tipo: "materia" | "tempo" | "seguranca"
-  titulo: string
-  texto: string
-  tom: "ok" | "atencao" | "critico"
-}
+// Resultado do diagnóstico: o que foi medido, o que NÃO foi, e quanto da prova
+// isso representa.
+//
+// Declarar a cobertura é o produto, não detalhe de copy. 8 matérias com 2
+// questões cada não "medem o candidato"; medem 63% da prova de forma rasa. Dizer
+// isso faz a ferramenta parecer rigorosa em vez de incompleta — e cria, dentro
+// do produto, o motivo pra voltar amanhã (o Módulo 2), que hoje não existe em
+// lugar nenhum.
+//
+// Tem que funcionar com o Módulo 2 nunca feito: ele é opcional, não pré-requisito.
 
-interface PlanoDia {
-  label: string
-  atividade: string
-  subject_id: string | null
+interface MateriaMedida {
+  subject_id: string
+  nome: string
+  acertos: number
+  total: number
+  descartadas: number
+  taxa: number
+  nivel: NivelTaxa
 }
 
 export async function GET() {
-  const { user, supabase, error } = await requireUser()
+  const { user, error } = await requireUser()
   if (error) return error
 
-  const { data: userRow } = await supabase
-    .from("users")
-    .select("onboarding_data")
-    .eq("id", user.id)
-    .single()
+  const config = await getDiagnosticoConfig()
 
-  const dificuldades: string[] = userRow?.onboarding_data?.dificuldades ?? []
+  const [{ data: resultados }, { data: sessoes }, { data: subjects }] = await Promise.all([
+    supabaseAdmin
+      .from("diagnostic_subject_results")
+      .select("subject_id, modulo, acertos, total, descartadas")
+      .eq("user_id", user.id),
+    supabaseAdmin
+      .from("diagnostic_sessions")
+      .select("modulo, status, posicao, question_ids")
+      .eq("user_id", user.id),
+    supabaseAdmin.from("subjects").select("id, name"),
+  ])
 
-  const { data: attempts } = await supabase
-    .from("question_attempts")
-    .select("question_id, acertou, time_spent_ms, changed_answer")
-    .eq("user_id", user.id)
-    .eq("is_diagnostic", true)
-    .order("created_at", { ascending: true })
+  const nomePorId = new Map((subjects ?? []).map((s) => [s.id as string, s.name as string]))
+  let linhas = resultados ?? []
 
-  if (!attempts || attempts.length < 5) {
-    return NextResponse.json({ completed: false })
+  // Sem linhas consolidadas, duas situações muito diferentes:
+  //   1. nunca fez diagnóstico  -> completed: false
+  //   2. fez, mas o mapa nunca foi gravado -> consolida agora
+  //
+  // O caso 2 é a regra, não a exceção: os 28 usuários com diagnóstico legado
+  // (m0) nunca passaram por uma conclusão de módulo, que é onde o responder
+  // chama o recompute. Também cobre falha de consolidação no POST, que é
+  // logada e segue — a leitura conserta.
+  if (linhas.length === 0) {
+    const { count } = await supabaseAdmin
+      .from("question_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("is_diagnostic", true)
+
+    if ((count ?? 0) === 0) {
+      return NextResponse.json({ completed: false })
+    }
+
+    try {
+      linhas = await recomputarResultados(user.id)
+    } catch (err) {
+      logError(err, { area: "diagnostico-resultado-recompute", userId: user.id })
+    }
   }
 
-  const ultimas = attempts.slice(-5)
-  const questionIds = ultimas.map((a) => a.question_id)
-
-  const { data: questions } = await supabase
-    .from("questions")
-    .select("id, subject_id")
-    .in("id", questionIds)
-
-  const subjectIds = [...new Set((questions ?? []).map((q) => q.subject_id))]
-
-  const { data: subjectsData } = await supabase
-    .from("subjects")
-    .select("id, name")
-    .in("id", subjectIds.length > 0 ? subjectIds : ["null"])
-
-  const subjectMap = Object.fromEntries((subjectsData ?? []).map((s) => [s.id, s.name]))
-  const questionSubjectMap = Object.fromEntries((questions ?? []).map((q) => [q.id, q.subject_id]))
-
-  // ── Card 1: confirmação/refutação de matéria declarada ──
-  const cards: Card[] = []
-  const porMateria: Record<string, { acertos: number; total: number }> = {}
-
-  for (const a of ultimas) {
-    const sId = questionSubjectMap[a.question_id]
-    if (!sId) continue
-    if (!porMateria[sId]) porMateria[sId] = { acertos: 0, total: 0 }
-    porMateria[sId].total++
-    if (a.acertou) porMateria[sId].acertos++
-  }
-
-  let card1: Card | null = null
-
-  for (const dificuldadeId of dificuldades) {
-    const stat = porMateria[dificuldadeId]
-    if (!stat || stat.total === 0) continue
-    const taxa = stat.acertos / stat.total
-    const nome = subjectMap[dificuldadeId] ?? "essa matéria"
-    if (taxa < 0.5) {
-      card1 = {
-        tipo: "materia",
-        titulo: "Matéria confirmada",
-        texto: `Você indicou ${nome} como difícil. Confirmamos: ${stat.acertos}/${stat.total} acertos no diagnóstico. Foco aqui.`,
-        tom: "critico",
+  const medidas: MateriaMedida[] = linhas
+    .map((r) => {
+      const taxa = (r.acertos / r.total) * 100
+      return {
+        subject_id: r.subject_id,
+        nome: nomePorId.get(r.subject_id) ?? "Matéria",
+        acertos: r.acertos,
+        total: r.total,
+        descartadas: r.descartadas,
+        taxa,
+        nivel: classificarTaxa(taxa),
       }
-      break
+    })
+    .sort((a, b) => a.taxa - b.taxa)
+
+  const medidasIds = new Set(medidas.map((m) => m.subject_id))
+  const naoMedidas = (subjects ?? [])
+    .filter((s) => !medidasIds.has(s.id as string))
+    .map((s) => ({ subject_id: s.id as string, nome: s.name as string }))
+    .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
+
+  const cobertura = await coberturaDeSubjects(
+    medidas.map((m) => m.subject_id),
+    config.janelaEdicoes,
+  )
+
+  const statusPorModulo = new Map((sessoes ?? []).map((s) => [s.modulo as string, s]))
+  const modulos = config.modulos.map((m) => {
+    const s = statusPorModulo.get(m.id)
+    const medidasDoModulo = medidas.filter((x) => m.subjects.includes(x.subject_id)).length
+    return {
+      id: m.id,
+      label: m.label,
+      materias: m.subjects.length,
+      questoes: m.subjects.length * m.questoesPorMateria,
+      status: (s?.status as string | undefined) ?? "nao_iniciado",
+      posicao: (s?.posicao as number | undefined) ?? 0,
+      total: (s?.question_ids as string[] | undefined)?.length ?? m.subjects.length * m.questoesPorMateria,
+      materiasMedidas: medidasDoModulo,
     }
-  }
+  })
 
-  if (!card1) {
-    for (const dificuldadeId of dificuldades) {
-      const stat = porMateria[dificuldadeId]
-      if (!stat || stat.total === 0) continue
-      if (stat.acertos === stat.total) {
-        const nome = subjectMap[dificuldadeId] ?? "essa matéria"
-        card1 = {
-          tipo: "materia",
-          titulo: "Surpresa positiva",
-          texto: `Você indicou ${nome} como difícil, mas acertou ${stat.acertos}/${stat.total}. Pode estar mais preparado do que pensa.`,
-          tom: "ok",
-        }
-        break
-      }
-    }
-  }
-
-  if (!card1) {
-    const piorMateria = Object.entries(porMateria).sort(
-      ([, a], [, b]) => a.acertos / a.total - b.acertos / b.total,
-    )[0]
-    if (piorMateria) {
-      const [sId, stat] = piorMateria
-      const nome = subjectMap[sId] ?? "uma matéria"
-      card1 = {
-        tipo: "materia",
-        titulo: "Ponto de atenção",
-        texto: `${nome}: ${stat.acertos}/${stat.total} acertos no diagnóstico inicial. Vale dedicar mais tempo aqui.`,
-        tom: stat.acertos / stat.total < 0.5 ? "critico" : "atencao",
-      }
-    }
-  }
-
-  if (card1) cards.push(card1)
-
-  // ── Card 2: padrão de tempo ──
-  const temposValidos = ultimas
-    .map((a) => a.time_spent_ms)
-    .filter((t): t is number => typeof t === "number" && t > 0)
-
-  if (temposValidos.length > 0) {
-    const mediaMs = temposValidos.reduce((s, t) => s + t, 0) / temposValidos.length
-    const mediaS = Math.round(mediaMs / 1000)
-
-    let cardTempo: Card
-    if (mediaS < 30) {
-      cardTempo = {
-        tipo: "tempo",
-        titulo: "Leitura ágil",
-        texto: `Tempo médio ~${mediaS}s. Padrão rápido — atenção pra não perder detalhes em questões longas.`,
-        tom: "atencao",
-      }
-    } else if (mediaS <= 90) {
-      cardTempo = {
-        tipo: "tempo",
-        titulo: "Ritmo equilibrado",
-        texto: `Tempo médio ~${mediaS}s/questão. Bom equilíbrio entre leitura e decisão.`,
-        tom: "ok",
-      }
-    } else {
-      cardTempo = {
-        tipo: "tempo",
-        titulo: "Leitura cuidadosa",
-        texto: `Tempo médio ~${mediaS}s/questão. Bom pra precisão — atenção pra prova de 5h, vai precisar acelerar.`,
-        tom: "atencao",
-      }
-    }
-    cards.push(cardTempo)
-  }
-
-  // ── Card 3: hesitação ──
-  const trocas = ultimas.filter((a) => a.changed_answer).length
-  let cardSeg: Card
-  if (trocas === 0) {
-    cardSeg = {
-      tipo: "seguranca",
-      titulo: "Confiança nas escolhas",
-      texto: "Você não trocou de alternativa em nenhuma questão — sinal de segurança no que escolheu.",
-      tom: "ok",
-    }
-  } else if (trocas <= 2) {
-    cardSeg = {
-      tipo: "seguranca",
-      titulo: "Hesitação normal",
-      texto: `Trocou de alternativa em ${trocas}/5 — hesitação esperada nas primeiras questões.`,
-      tom: "ok",
-    }
-  } else {
-    cardSeg = {
-      tipo: "seguranca",
-      titulo: "Insegurança na interpretação",
-      texto: `Trocou de alternativa em ${trocas}/5 — sinal de insegurança em interpretação. Vamos trabalhar isso.`,
-      tom: "atencao",
-    }
-  }
-  cards.push(cardSeg)
-
-  // ── Mini-plano ──
-  const materiasOrdenadas = Object.entries(porMateria)
-    .sort(([, a], [, b]) => a.acertos / a.total - b.acertos / b.total)
-    .map(([sId]) => ({ id: sId, nome: subjectMap[sId] ?? "Geral" }))
-
-  const maisFraca = materiasOrdenadas[0] ?? null
-  const segundaFraca = materiasOrdenadas[1] ?? maisFraca
-
-  const plano: PlanoDia[] = [
-    {
-      label: "Hoje",
-      atividade: maisFraca
-        ? `5 questões de ${maisFraca.nome}`
-        : "5 questões de revisão",
-      subject_id: maisFraca?.id ?? null,
-    },
-    {
-      label: "Amanhã",
-      atividade: "Revisão rápida + 5 questões mistas",
-      subject_id: null,
-    },
-    {
-      label: "+2 dias",
-      atividade: segundaFraca
-        ? `5 questões de ${segundaFraca.nome}`
-        : "5 questões mistas",
-      subject_id: segundaFraca?.id ?? null,
-    },
-  ]
+  // Chegamos aqui só se o usuário TEM tentativas de diagnóstico. Zero matérias
+  // medidas significa que todas as respostas vieram rápidas demais. Estado
+  // próprio, em vez de uma tela vazia sem explicação nem saída.
+  //
+  // Não exige sessão concluída de propósito: os usuários legados (m0) não têm
+  // sessão nenhuma, e 8 dos 28 caem exatamente aqui.
+  const proximo = modulos.find((m) => m.status !== "concluida") ?? null
 
   return NextResponse.json({
     completed: true,
-    cards,
-    plano,
-    foco: maisFraca,
+    estado: medidas.length === 0 ? "nada_medido" : "ok",
+    medidas,
+    naoMedidas,
+    cobertura: {
+      percentual: Math.round(cobertura.percentual),
+      edicoes: cobertura.edicoes.length,
+      questoesNaJanela: cobertura.questoesNaJanela,
+    },
+    descartadasTotal: medidas.reduce((s, m) => s + m.descartadas, 0),
+    modulos,
+    proximoModulo: proximo ? { id: proximo.id, label: proximo.label, questoes: proximo.questoes } : null,
+    foco: medidas[0] ? { id: medidas[0].subject_id, nome: medidas[0].nome } : null,
   })
 }

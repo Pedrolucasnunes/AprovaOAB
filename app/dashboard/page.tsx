@@ -14,7 +14,7 @@ import {
 import Link from "next/link"
 import { getClientUser } from "@/lib/auth-client"
 import {
-  META_APROVACAO as META, MIN_TENTATIVAS_BANDA,
+  META_APROVACAO as META, MIN_TENTATIVAS_BANDA, MIN_RESPOSTAS_TAXA_GERAL,
   classificarTaxa, taxaTextColor, taxaBarColor,
   metaTextColor, metaBarColor,
 } from "@/lib/metrics"
@@ -86,7 +86,9 @@ function DisciplinaRow({ item, index }: { item: DisciplinaItem; index?: number }
 
 // ── Interfaces ───────────────────────────────────────────────────
 interface DashboardData {
-  resumo: { totalRespondidas: number; totalAcertos: number; taxaGeralAcerto: number; taxaSimulados: number; totalSimuladosFinalizados: number }
+  // taxaGeralAcerto é null enquanto não houver amostra suficiente de treino
+  // (MIN_RESPOSTAS_TAXA_GERAL). O diagnóstico não entra nessa conta.
+  resumo: { totalRespondidas: number; totalAcertos: number; taxaGeralAcerto: number | null; taxaSimulados: number; totalSimuladosFinalizados: number }
   ultimoSimulado: { id: string; acertos: number; erros: number; percentual: number; numero_questoes: number; titulo: string; created_at: string } | null
   materiasRisco: { subject_id: string; nome: string; taxa: number; total?: number }[]
   materiasRiscoCount?: number
@@ -203,7 +205,7 @@ export default function DashboardPage() {
   const ins  = ac?.insightMateria
 
   const emRisco = (data?.materiasRisco ?? []).map(m => ({ ...m, taxa_acerto: m.taxa }))
-  const taxaGeral = data?.resumo?.taxaGeralAcerto ?? 0
+  const taxaGeral = data?.resumo?.taxaGeralAcerto ?? null
   // O hero mede prontidão pra prova → taxa DE SIMULADOS (mesmo formato da
   // OAB). A taxa geral (treino + simulados) fica no stat card "geral".
   const taxaSimulados = data?.resumo?.taxaSimulados ?? 0
@@ -561,12 +563,24 @@ export default function DashboardPage() {
                 <Target className="h-4 w-4 text-primary" />
               </div>
             </div>
-            <p className="mt-2 text-2xl font-bold">{taxaGeral.toFixed(1)}%</p>
-            <p className={`mt-1 text-xs font-medium ${taxaGeral >= META ? "text-primary" : "text-muted-foreground"}`}>
-              {taxaGeral >= META
-                ? "Meta atingida!"
-                : `Faltam ${(META - taxaGeral).toFixed(1)}% para a meta`}
-            </p>
+            {taxaGeral === null ? (
+              <>
+                <p className="mt-2 text-2xl font-bold text-muted-foreground">—</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Responda {MIN_RESPOSTAS_TAXA_GERAL} questões de treino pra essa taxa significar
+                  alguma coisa. O diagnóstico não conta aqui — ele é régua, não treino.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="mt-2 text-2xl font-bold">{taxaGeral.toFixed(1)}%</p>
+                <p className={`mt-1 text-xs font-medium ${taxaGeral >= META ? "text-primary" : "text-muted-foreground"}`}>
+                  {taxaGeral >= META
+                    ? "Meta atingida!"
+                    : `Faltam ${(META - taxaGeral).toFixed(1)}% para a meta`}
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 

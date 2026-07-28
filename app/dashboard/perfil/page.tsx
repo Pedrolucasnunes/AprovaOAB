@@ -27,7 +27,12 @@ export default function PerfilPage() {
   const [dataCadastro, setDataCadastro] = useState("")
   const [novaSenha, setNovaSenha] = useState("")
   const [confirmarSenha, setConfirmarSenha] = useState("")
-  const [stats, setStats] = useState({ simuladosFeitos: 0, questoesResolvidas: 0, taxaAcerto: 0 })
+  // taxaAcerto null = sem amostra de treino suficiente (o diagnóstico não conta).
+  const [stats, setStats] = useState<{
+    simuladosFeitos: number
+    questoesResolvidas: number
+    taxaAcerto: number | null
+  }>({ simuladosFeitos: 0, questoesResolvidas: 0, taxaAcerto: null })
   const [plano, setPlano] = useState<"free" | "pro" | "aprovacao">("free")
   const [stripeCustomerId, setStripeCustomerId] = useState<string | null>(null)
   const [abrindoPortal, setAbrindoPortal] = useState(false)
@@ -70,7 +75,7 @@ export default function PerfilPage() {
         setStats({
           simuladosFeitos: simuladosRes.count ?? 0,
           questoesResolvidas: dashData.resumo?.totalRespondidas ?? 0,
-          taxaAcerto: dashData.resumo?.taxaGeralAcerto ?? 0,
+          taxaAcerto: dashData.resumo?.taxaGeralAcerto ?? null,
         })
       }
 
@@ -380,7 +385,7 @@ export default function PerfilPage() {
               {[
                 { icon: Trophy, value: stats.simuladosFeitos, label: "Simulados realizados" },
                 { icon: BookOpen, value: stats.questoesResolvidas.toLocaleString("pt-BR"), label: "Questões resolvidas" },
-                { icon: Target, value: `${stats.taxaAcerto}%`, label: "Taxa de acerto geral" },
+                { icon: Target, value: stats.taxaAcerto === null ? "—" : `${stats.taxaAcerto}%`, label: "Taxa de acerto geral" },
               ].map(({ icon: Icon, value, label }) => (
                 <div key={label} className="flex items-center gap-4">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">

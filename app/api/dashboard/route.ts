@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { requireUser } from "@/lib/auth-server"
 import { inicioDoDiaBR, hojeStringBR, diaDaSemanaBR } from "@/lib/check-daily-limit"
 import { fetchAllRows, fetchByIds } from "@/lib/supabase-paginate"
-import { classificarTaxa, TAXA_CRITICA, MIN_TENTATIVAS_BANDA } from "@/lib/metrics"
+import { classificarTaxa, TAXA_CRITICA, MIN_TENTATIVAS_BANDA, MIN_RESPOSTAS_TAXA_GERAL } from "@/lib/metrics"
 import { logError } from "@/lib/logger"
 import { supabaseAdmin } from "@/lib/supabase-admin"
 
@@ -77,11 +77,30 @@ export async function GET(req: NextRequest) {
   // ela retorna 1 linha por SIMULADO_RESPOSTA (desagregada, total sempre 1) e
   // NÃO inclui question_attempts. Avulsas só existem nesta tabela; a
   // agregação por matéria acontece no passo 5.5.
-  const avulsasAttempts = await fetchAllRows<{ question_id: string; acertou: boolean }>(
-    () => supabase.from("question_attempts").select("question_id, acertou").eq("user_id", userId),
+  const avulsasAttempts = await fetchAllRows<{
+    question_id: string
+    acertou: boolean
+    is_diagnostic: boolean
+  }>(
+    () => supabase
+      .from("question_attempts")
+      .select("question_id, acertou, is_diagnostic")
+      .eq("user_id", userId),
   )
-  const totalRespondidasAvulsas = avulsasAttempts.length
-  const totalAcertosAvulsas = avulsasAttempts.filter((a) => a.acertou).length
+
+  // A agregação POR MATÉRIA (passo 5.5) usa TODAS as tentativas, diagnóstico
+  // incluído — é justamente ele que mede as matérias, e tirá-lo dali cegaria o
+  // treino direcionado.
+  //
+  // Já a TAXA GERAL exclui o diagnóstico. Ele é régua, não treino: sai de
+  // propósito nas 8 matérias mais pesadas, em dificuldade média/difícil, e o
+  // candidato faz frio no primeiro dia. Misturado, ele empurra a taxa pra baixo
+  // (36% de acerto no diagnóstico contra 49% no treino) e, com o módulo em 16
+  // questões, passa a dominar o número de todo usuário novo. É o mesmo motivo
+  // pelo qual o hero usa taxaSimulados em vez da geral.
+  const avulsasTreino = avulsasAttempts.filter((a) => !a.is_diagnostic)
+  const totalRespondidasAvulsas = avulsasTreino.length
+  const totalAcertosAvulsas = avulsasTreino.filter((a) => a.acertou).length
 
   // 2. Último simulado + todos os finalizados (para taxa geral OAB)
   const [
@@ -247,9 +266,11 @@ export async function GET(req: NextRequest) {
   // como erro) é a taxaSimulados.
   const totalRespondidas = totalRespondidasAvulsas + totalRespostasSimulado
   const totalAcertos = totalAcertosAvulsas + totalAcertosRespostasSimulado
-  const taxaGeralAcerto = totalRespondidas > 0
+  // `null` abaixo do piso de amostra: a tela mostra convite, não um número.
+  // 2 respostas viram "0%" ou "100%", que é ruído com cara de métrica.
+  const taxaGeralAcerto = totalRespondidas >= MIN_RESPOSTAS_TAXA_GERAL
     ? parseFloat(((totalAcertos / totalRespondidas) * 100).toFixed(2))
-    : 0
+    : null
 
   // 6. Action cards — dados em paralelo (fuso BR)
   const todayDate   = new Date()

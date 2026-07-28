@@ -19,6 +19,15 @@ export const TAXA_BOA = 70 // acima disso: boa; entre as duas: média
 // recomendação NÃO usam esse piso — recomendar a partir de 1 erro é ok.
 export const MIN_TENTATIVAS_BANDA = 3
 
+// Amostra mínima pra exibir a TAXA GERAL de acerto. Abaixo disso o dashboard
+// mostra convite em vez de número, no mesmo padrão de quem nunca fez simulado.
+// 10 = o limite diário do plano free, ou seja, "um dia de estudo".
+//
+// O piso existe porque a taxa geral passou a excluir o diagnóstico: sem ele,
+// quem tinha 5 do diagnóstico + 2 de treino errados sairia de "43%" para "0%",
+// trocando um número enganoso por outro. 2 respostas não são uma taxa.
+export const MIN_RESPOSTAS_TAXA_GERAL = 10
+
 export type NivelTaxa = "critica" | "media" | "boa"
 
 export function classificarTaxa(taxa: number): NivelTaxa {

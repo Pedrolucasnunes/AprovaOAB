@@ -58,7 +58,7 @@ interface TreinoAtivo {
 
 interface Progresso {
   totalRespondidas: number
-  taxaGeralAcerto: number
+  taxaGeralAcerto: number | null
 }
 
 interface ResumoTreino {
@@ -948,14 +948,20 @@ function TreinoPageInner() {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Taxa de acerto</span>
-                    <div className="flex items-center gap-1">
-                      <span className="text-lg font-bold text-foreground">
-                        {progresso?.taxaGeralAcerto ?? 0}%
-                      </span>
-                      {(progresso?.taxaGeralAcerto ?? 0) >= META_APROVACAO
-                        ? <TrendingUp className={`h-4 w-4 ${metaTextColor(progresso?.taxaGeralAcerto ?? 0)}`} />
-                        : <TrendingDown className={`h-4 w-4 ${metaTextColor(progresso?.taxaGeralAcerto ?? 0)}`} />}
-                    </div>
+                    {/* null = ainda sem amostra de treino suficiente. Mostrar
+                        "0%" aqui seria trocar um número enganoso por outro. */}
+                    {progresso?.taxaGeralAcerto == null ? (
+                      <span className="text-sm text-muted-foreground">amostra insuficiente</span>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <span className="text-lg font-bold text-foreground">
+                          {progresso.taxaGeralAcerto}%
+                        </span>
+                        {progresso.taxaGeralAcerto >= META_APROVACAO
+                          ? <TrendingUp className={`h-4 w-4 ${metaTextColor(progresso.taxaGeralAcerto)}`} />
+                          : <TrendingDown className={`h-4 w-4 ${metaTextColor(progresso.taxaGeralAcerto)}`} />}
+                      </div>
+                    )}
                   </div>
                 </>
               )}

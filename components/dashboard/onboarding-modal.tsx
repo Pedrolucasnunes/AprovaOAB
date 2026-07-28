@@ -186,12 +186,14 @@ export function OnboardingModal() {
               <h2 className="text-2xl font-bold text-foreground">
                 Vamos criar seu diagnóstico
               </h2>
+              {/* ~15 min = 16 questões × 56s (mediana medida). Se mudar
+                  questoesPorMateria no app_config, revisar este número. */}
               <p className="text-sm text-muted-foreground text-pretty">
-                Em 4 minutos vamos identificar:
+                Em cerca de 15 minutos vamos medir:
               </p>
               <ul className="text-sm text-foreground text-left space-y-1 mx-auto inline-block">
-                <li>• suas matérias críticas</li>
-                <li>• seus padrões de erro</li>
+                <li>• as 8 matérias mais pesadas da prova</li>
+                <li>• onde você está mais fraco entre elas</li>
                 <li>• por onde começar a estudar</li>
               </ul>
             </div>

@@ -5,6 +5,7 @@ import { coberturaDeSubjects } from "@/lib/exames"
 import { logError } from "@/lib/logger"
 import { classificarTaxa, type NivelTaxa } from "@/lib/metrics"
 import { recomputarResultados } from "@/lib/services/diagnostico"
+import { fetchAllRows, fetchByIds } from "@/lib/supabase-paginate"
 import { supabaseAdmin } from "@/lib/supabase-admin"
 
 // Resultado do diagnóstico: o que foi medido, o que NÃO foi, e quanto da prova
@@ -91,10 +92,41 @@ export async function GET() {
     .sort((a, b) => a.taxa - b.taxa)
 
   const medidasIds = new Set(medidas.map((m) => m.subject_id))
-  const naoMedidas = (subjects ?? [])
+
+  // Duas situações bem diferentes que a tela precisa separar:
+  //   "perguntamos e não deu pra medir" (respostas rápidas demais)
+  //   "ainda não perguntamos nada"
+  // Juntar as duas numa lista só faz a segunda parecer culpa do usuário e a
+  // primeira desaparecer.
+  const tentadas = await fetchAllRows<{ question_id: string; time_spent_ms: number | null }>(() =>
+    supabaseAdmin
+      .from("question_attempts")
+      .select("question_id, time_spent_ms")
+      .eq("user_id", user.id)
+      .eq("is_diagnostic", true),
+  )
+
+  // O total de descartes NÃO pode sair da soma das linhas medidas: matéria com
+  // todas as respostas descartadas não tem linha, e os descartes dela sumiriam
+  // da conta. Era o que fazia a tela dizer "3 respostas" quando foram 13.
+  const descartadasTotal = tentadas.filter(
+    (a) => a.time_spent_ms !== null && a.time_spent_ms < config.minTempoRespostaMs,
+  ).length
+
+  const questoesTentadas = await fetchByIds<{ id: string; subject_id: string }>(
+    (ids) => supabaseAdmin.from("questions").select("id, subject_id").in("id", ids),
+    [...new Set(tentadas.map((a) => a.question_id))],
+  )
+  const subjectsTentados = new Set(questoesTentadas.map((q) => q.subject_id))
+
+  const porNome = (a: { nome: string }, b: { nome: string }) => a.nome.localeCompare(b.nome, "pt-BR")
+  const naoMedidasBase = (subjects ?? [])
     .filter((s) => !medidasIds.has(s.id as string))
     .map((s) => ({ subject_id: s.id as string, nome: s.name as string }))
-    .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
+
+  const naoMedidasTentadas = naoMedidasBase.filter((s) => subjectsTentados.has(s.subject_id)).sort(porNome)
+  const naoMedidasNovas = naoMedidasBase.filter((s) => !subjectsTentados.has(s.subject_id)).sort(porNome)
+  const naoMedidas = [...naoMedidasTentadas, ...naoMedidasNovas]
 
   const cobertura = await coberturaDeSubjects(
     medidas.map((m) => m.subject_id),
@@ -104,16 +136,19 @@ export async function GET() {
   const statusPorModulo = new Map((sessoes ?? []).map((s) => [s.modulo as string, s]))
   const modulos = config.modulos.map((m) => {
     const s = statusPorModulo.get(m.id)
-    const medidasDoModulo = medidas.filter((x) => m.subjects.includes(x.subject_id)).length
+    const pendentes = m.subjects.filter((id) => !medidasIds.has(id))
     return {
       id: m.id,
       label: m.label,
       materias: m.subjects.length,
-      questoes: m.subjects.length * m.questoesPorMateria,
+      // Quantas questões FALTAM, não o tamanho nominal do módulo. Numa
+      // repescagem o usuário responde só as matérias pendentes.
+      questoes: pendentes.length * m.questoesPorMateria,
       status: (s?.status as string | undefined) ?? "nao_iniciado",
       posicao: (s?.posicao as number | undefined) ?? 0,
       total: (s?.question_ids as string[] | undefined)?.length ?? m.subjects.length * m.questoesPorMateria,
-      materiasMedidas: medidasDoModulo,
+      materiasMedidas: m.subjects.length - pendentes.length,
+      materiasPendentes: pendentes.length,
     }
   })
 
@@ -123,19 +158,25 @@ export async function GET() {
   //
   // Não exige sessão concluída de propósito: os usuários legados (m0) não têm
   // sessão nenhuma, e 8 dos 28 caem exatamente aqui.
-  const proximo = modulos.find((m) => m.status !== "concluida") ?? null
+  // O próximo módulo é o que tem matéria PENDENTE, não o que não foi concluído.
+  // Antes, um Módulo 1 respondido inteiro mas com 5 matérias sem medir contava
+  // como concluído, e a tela oferecia o Módulo 2 — que não cobre nenhuma delas.
+  const proximo = modulos.find((m) => m.materiasPendentes > 0) ?? null
 
   return NextResponse.json({
     completed: true,
     estado: medidas.length === 0 ? "nada_medido" : "ok",
     medidas,
     naoMedidas,
+    naoMedidasTentadas,
+    naoMedidasNovas,
     cobertura: {
       percentual: Math.round(cobertura.percentual),
       edicoes: cobertura.edicoes.length,
       questoesNaJanela: cobertura.questoesNaJanela,
     },
-    descartadasTotal: medidas.reduce((s, m) => s + m.descartadas, 0),
+    descartadasTotal,
+    respostasTotal: tentadas.length,
     modulos,
     proximoModulo: proximo ? { id: proximo.id, label: proximo.label, questoes: proximo.questoes } : null,
     foco: medidas[0] ? { id: medidas[0].subject_id, nome: medidas[0].nome } : null,

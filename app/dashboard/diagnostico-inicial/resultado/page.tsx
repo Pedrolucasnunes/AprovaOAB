@@ -27,13 +27,23 @@ interface ModuloStatus {
   materiasMedidas: number
 }
 
+interface Materia {
+  subject_id: string
+  nome: string
+}
+
 interface ResultadoData {
   completed: boolean
   estado: "ok" | "nada_medido"
   medidas: MateriaMedida[]
-  naoMedidas: { subject_id: string; nome: string }[]
+  naoMedidas: Materia[]
+  /** Perguntamos, mas as respostas não valeram (rápidas demais). */
+  naoMedidasTentadas: Materia[]
+  /** Ainda não perguntamos nada. */
+  naoMedidasNovas: Materia[]
   cobertura: { percentual: number; edicoes: number; questoesNaJanela: number }
   descartadasTotal: number
+  respostasTotal: number
   modulos: ModuloStatus[]
   proximoModulo: { id: string; label: string; questoes: number } | null
   foco: { id: string; nome: string } | null
@@ -43,7 +53,6 @@ export default function ResultadoPage() {
   const router = useRouter()
   const [data, setData] = useState<ResultadoData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [refazendo, setRefazendo] = useState(false)
 
   useEffect(() => {
     fetch("/api/diagnostico/resultado")
@@ -59,17 +68,6 @@ export default function ResultadoPage() {
       .catch(() => router.replace("/dashboard"))
   }, [router])
 
-  async function refazerModulo(moduloId: string) {
-    setRefazendo(true)
-    const res = await fetch("/api/diagnostico/sessao", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ modulo: moduloId, reset: true }),
-    }).catch(() => null)
-    setRefazendo(false)
-    if (res?.ok) router.replace(`/dashboard/diagnostico-inicial?modulo=${moduloId}`)
-  }
-
   if (loading || !data) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-background">
@@ -84,11 +82,9 @@ export default function ResultadoPage() {
   // Concluiu o módulo mas nenhuma resposta durou tempo suficiente pra valer.
   // Dizer isso é melhor do que mostrar um mapa vazio sem explicação.
   if (data.estado === "nada_medido") {
-    // Só existe sessão pra resetar se o usuário passou por um módulo novo. Quem
-    // vem do diagnóstico legado (m0) não tem sessão — pra esse, o caminho é
-    // simplesmente fazer o Módulo 1, não "refazer" nada.
-    const paraRefazer = data.modulos.find((m) => m.status === "concluida" && m.materiasMedidas === 0)
-    const paraComecar = data.proximoModulo
+    // A rota de sessão já reabre sozinha o módulo com matérias pendentes, então
+    // aqui é só um link — não precisa de reset explícito.
+    const paraRefazer = data.proximoModulo
     return (
       <div className="fixed inset-0 z-50 overflow-auto bg-background">
         <div className="mx-auto max-w-2xl px-4 py-8 sm:py-12">
@@ -100,23 +96,14 @@ export default function ResultadoPage() {
               {data.descartadasTotal} em menos de 3 segundos. Preferimos admitir isso a te entregar
               um diagnóstico inventado.
             </p>
-            {paraRefazer ? (
-              <Button
-                className="mt-5 w-full"
-                size="lg"
-                disabled={refazendo}
-                onClick={() => refazerModulo(paraRefazer.id)}
-              >
-                <RotateCcw className="mr-2 h-4 w-4" />
-                {refazendo ? "Preparando..." : `Refazer o ${paraRefazer.label}`}
-              </Button>
-            ) : paraComecar ? (
+            {paraRefazer && (
               <Button asChild className="mt-5 w-full" size="lg">
-                <Link href={`/dashboard/diagnostico-inicial?modulo=${paraComecar.id}`}>
-                  Fazer o {paraComecar.label} ({paraComecar.questoes} questões)
+                <Link href={`/dashboard/diagnostico-inicial?modulo=${paraRefazer.id}`}>
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Refazer com calma ({paraRefazer.questoes} questões)
                 </Link>
               </Button>
-            ) : null}
+            )}
             <Button asChild variant="ghost" className="mt-2 w-full">
               <Link href="/dashboard">Ir pro dashboard</Link>
             </Button>
@@ -172,7 +159,7 @@ export default function ResultadoPage() {
 
           {data.descartadasTotal > 0 && (
             <p className="mt-5 border-t border-border pt-4 text-xs text-muted-foreground">
-              {data.descartadasTotal}{" "}
+              {data.descartadasTotal} de {data.respostasTotal}{" "}
               {data.descartadasTotal === 1 ? "resposta ficou" : "respostas ficaram"} de fora da conta
               por terem sido enviadas em menos de 3 segundos — rápido demais pra ter sido leitura.
             </p>
@@ -186,10 +173,35 @@ export default function ResultadoPage() {
               Faltam {naoMedidas.length} {naoMedidas.length === 1 ? "matéria" : "matérias"} pro seu
               mapa ficar completo
             </p>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              {naoMedidas.map((m) => m.nome).join(" · ")}
-            </p>
-            <p className="mt-3 text-xs text-muted-foreground">
+
+            {/* Perguntamos e não deu pra medir — culpa da pressa, não do usuário
+                não ter chegado lá. É uma situação diferente da de baixo. */}
+            {data.naoMedidasTentadas.length > 0 && (
+              <div className="mt-4">
+                <p className="text-xs font-medium text-amber-500">
+                  Perguntamos, mas não deu pra medir ({data.naoMedidasTentadas.length})
+                </p>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                  {data.naoMedidasTentadas.map((m) => m.nome).join(" · ")}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  As respostas dessas vieram rápidas demais. Dá pra refazer só elas.
+                </p>
+              </div>
+            )}
+
+            {data.naoMedidasNovas.length > 0 && (
+              <div className="mt-4">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Ainda não perguntamos ({data.naoMedidasNovas.length})
+                </p>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                  {data.naoMedidasNovas.map((m) => m.nome).join(" · ")}
+                </p>
+              </div>
+            )}
+
+            <p className="mt-4 text-xs text-muted-foreground">
               Enquanto não medirmos, não dizemos nada sobre elas — nem que estão boas, nem que estão
               ruins.
             </p>
@@ -198,7 +210,8 @@ export default function ResultadoPage() {
               <div className="mt-5 flex flex-col gap-2 sm:flex-row">
                 <Button asChild className="flex-1">
                   <Link href={`/dashboard/diagnostico-inicial?modulo=${proximoModulo.id}`}>
-                    Fazer agora ({proximoModulo.questoes} questões)
+                    {proximoModulo.label} — {proximoModulo.questoes}{" "}
+                    {proximoModulo.questoes === 1 ? "questão" : "questões"}
                   </Link>
                 </Button>
                 <Button asChild variant="outline" className="flex-1">

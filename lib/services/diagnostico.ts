@@ -17,6 +17,28 @@ export interface ResultadoMateria {
   descartadas: number
 }
 
+/** Matérias que já têm medição válida — linha em diagnostic_subject_results. */
+export async function subjectsMedidos(userId: string): Promise<Set<string>> {
+  const { data } = await supabaseAdmin
+    .from("diagnostic_subject_results")
+    .select("subject_id")
+    .eq("user_id", userId)
+  return new Set((data ?? []).map((r) => r.subject_id as string))
+}
+
+/**
+ * Matérias do módulo que ainda não têm medição.
+ *
+ * "Medida" = tem ao menos uma resposta válida, não "tem as N questões que o
+ * módulo promete". Perseguir profundidade total faria o módulo pedir mais
+ * questões toda vez que uma resposta caísse no filtro de tempo, e o usuário
+ * nunca sairia dele. A tela já é explícita sobre a medição ser rasa.
+ */
+export async function materiasPendentes(userId: string, subjects: string[]): Promise<string[]> {
+  const medidos = await subjectsMedidos(userId)
+  return subjects.filter((s) => !medidos.has(s))
+}
+
 /**
  * Recalcula e grava o mapa por matéria do usuário.
  *

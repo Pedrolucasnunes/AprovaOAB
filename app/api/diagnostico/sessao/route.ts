@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { requireUser } from "@/lib/auth-server"
 import { getDiagnosticoConfig, getModulo, type ModuloDiagnostico } from "@/lib/config"
 import { EVENTOS, track } from "@/lib/events"
+import { materiasPendentes } from "@/lib/services/diagnostico"
 import { fetchAllRows, fetchByIds } from "@/lib/supabase-paginate"
 import { supabaseAdmin } from "@/lib/supabase-admin"
 
@@ -142,11 +143,21 @@ export async function GET(req: NextRequest) {
     .eq("modulo", moduloId)
     .maybeSingle()
 
-  if (existente?.status === "concluida") {
-    return NextResponse.json({ error: "MODULO_CONCLUIDO", modulo: moduloId }, { status: 409 })
-  }
+  // Responder as 16 questões não é o mesmo que medir as 8 matérias: se todas as
+  // respostas de uma matéria caírem no filtro de tempo, ela fica sem medição.
+  // O módulo só está pronto quando não sobra matéria pendente.
+  const pendentes = await materiasPendentes(user.id, modulo.subjects)
 
-  if (existente) {
+  if (existente?.status === "concluida") {
+    if (pendentes.length === 0) {
+      return NextResponse.json({ error: "MODULO_CONCLUIDO", modulo: moduloId }, { status: 409 })
+    }
+    // Módulo respondido inteiro, mas com matérias sem medir. Refaz só o que
+    // falta — sem isso essas matérias não teriam caminho de volta, porque o
+    // módulo já consta como concluído. As respostas antigas seguem em
+    // question_attempts; a sessão é só o artefato de trabalho.
+    await supabaseAdmin.from("diagnostic_sessions").delete().eq("id", existente.id)
+  } else if (existente) {
     return NextResponse.json({
       modulo: moduloId,
       label: modulo.label,
@@ -158,7 +169,10 @@ export async function GET(req: NextRequest) {
   }
 
   const { exigirExplicacao } = await getDiagnosticoConfig()
-  const questionIds = await sortearQuestoes(modulo, exigirExplicacao, await idsJaRespondidas(user.id))
+  // Sorteia só pras matérias pendentes: numa primeira passada são todas, numa
+  // repescagem são só as que ficaram sem medição.
+  const alvo = { ...modulo, subjects: pendentes }
+  const questionIds = await sortearQuestoes(alvo, exigirExplicacao, await idsJaRespondidas(user.id))
 
   if (questionIds.length === 0) {
     return NextResponse.json({ error: "SEM_QUESTOES_DISPONIVEIS" }, { status: 409 })
@@ -177,7 +191,8 @@ export async function GET(req: NextRequest) {
   void track(user.id, EVENTOS.DIAGNOSTICO_MODULO_INICIADO, {
     modulo: moduloId,
     total: questionIds.length,
-    materias: modulo.subjects.length,
+    materias: pendentes.length,
+    repescagem: pendentes.length < modulo.subjects.length,
   })
 
   return NextResponse.json({
@@ -188,49 +203,4 @@ export async function GET(req: NextRequest) {
     retomando: false,
     questions: await questoesDaSessao(criada as SessaoRow),
   })
-}
-
-/**
- * Refazer um módulo. Só liberado quando ele foi concluído e não produziu
- * NENHUMA matéria medida — o caso de quem clicou em tudo rápido demais. Sem
- * isso o usuário fica num beco: módulo concluído, tela de resultado vazia e
- * nenhum caminho de volta.
- */
-export async function POST(req: NextRequest) {
-  const { user, error } = await requireUser()
-  if (error) return error
-
-  const body = await req.json().catch(() => null)
-  const moduloId = typeof body?.modulo === "string" ? body.modulo : "m1"
-  if (body?.reset !== true) {
-    return NextResponse.json({ error: "Ação inválida" }, { status: 400 })
-  }
-
-  const modulo = await getModulo(moduloId)
-  if (!modulo) return NextResponse.json({ error: "MODULO_DESCONHECIDO" }, { status: 404 })
-
-  const { data: sessao } = await supabaseAdmin
-    .from("diagnostic_sessions")
-    .select("id, status")
-    .eq("user_id", user.id)
-    .eq("modulo", moduloId)
-    .maybeSingle()
-
-  if (!sessao || sessao.status !== "concluida") {
-    return NextResponse.json({ error: "MODULO_NAO_CONCLUIDO" }, { status: 409 })
-  }
-
-  const { count } = await supabaseAdmin
-    .from("diagnostic_subject_results")
-    .select("subject_id", { count: "exact", head: true })
-    .eq("user_id", user.id)
-    .in("subject_id", modulo.subjects)
-
-  if ((count ?? 0) > 0) {
-    return NextResponse.json({ error: "MODULO_JA_MEDIDO" }, { status: 409 })
-  }
-
-  await supabaseAdmin.from("diagnostic_sessions").delete().eq("id", sessao.id)
-
-  return NextResponse.json({ ok: true })
 }

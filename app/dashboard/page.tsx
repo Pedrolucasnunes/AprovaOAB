@@ -100,6 +100,7 @@ interface DashboardData {
   onboardingCompleto?: boolean
   temPerfilOnboarding?: boolean
   diagnosticoCompleto?: boolean
+  diagnosticoEmAndamento?: { modulo: string; posicao: number; total: number } | null
   questoesHoje?: number
   plano?: "free" | "pro" | "aprovacao"
   subscriptionStatus?: "active" | "past_due" | "canceled"
@@ -302,13 +303,24 @@ export default function DashboardPage() {
               <Sparkles className="h-4 w-4 text-primary" />
             </div>
             <div className="flex-1">
-              <p className="font-semibold">Comece pelo diagnóstico</p>
+              <p className="font-semibold">
+                {data?.diagnosticoEmAndamento ? "Continue seu diagnóstico" : "Comece pelo diagnóstico"}
+              </p>
               <p className="text-sm text-muted-foreground mt-1">
-                Você ainda não mediu seu nível — cerca de 15 minutos nas 8 matérias mais pesadas da prova.
+                {data?.diagnosticoEmAndamento
+                  ? `Você parou na questão ${data.diagnosticoEmAndamento.posicao + 1} de ${data.diagnosticoEmAndamento.total}. Suas respostas ficaram salvas.`
+                  : "Você ainda não mediu seu nível — cerca de 15 minutos nas 8 matérias mais pesadas da prova."}
               </p>
               <Button asChild size="sm" className="mt-3">
-                <Link href="/dashboard/diagnostico-inicial">
-                  Fazer agora <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                <Link
+                  href={
+                    data?.diagnosticoEmAndamento
+                      ? `/dashboard/diagnostico-inicial?modulo=${data.diagnosticoEmAndamento.modulo}`
+                      : "/dashboard/diagnostico-inicial"
+                  }
+                >
+                  {data?.diagnosticoEmAndamento ? "Continuar" : "Fazer agora"}{" "}
+                  <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                 </Link>
               </Button>
             </div>
@@ -451,13 +463,27 @@ export default function DashboardPage() {
         <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
           <Sparkles className="h-4 w-4 text-primary shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium">Você ainda não fez o mini-diagnóstico</p>
+            <p className="text-sm font-medium">
+              {data?.diagnosticoEmAndamento
+                ? `Diagnóstico parado na questão ${data.diagnosticoEmAndamento.posicao + 1} de ${data.diagnosticoEmAndamento.total}`
+                : "Você ainda não mediu seu nível"}
+            </p>
             <p className="text-xs text-muted-foreground">
-              4 min pra mapear seus pontos fracos e abrir um primeiro treino direcionado.
+              {data?.diagnosticoEmAndamento
+                ? "Suas respostas ficaram salvas — dá pra continuar de onde parou."
+                : "Cerca de 15 minutos nas 8 matérias mais pesadas da prova."}
             </p>
           </div>
           <Button asChild size="sm" variant="outline" className="shrink-0">
-            <Link href="/dashboard/diagnostico-inicial">Fazer</Link>
+            <Link
+              href={
+                data?.diagnosticoEmAndamento
+                  ? `/dashboard/diagnostico-inicial?modulo=${data.diagnosticoEmAndamento.modulo}`
+                  : "/dashboard/diagnostico-inicial"
+              }
+            >
+              {data?.diagnosticoEmAndamento ? "Continuar" : "Fazer"}
+            </Link>
           </Button>
           <button onClick={dismissDiagNudge} aria-label="Dispensar"
             className="shrink-0 cursor-pointer text-muted-foreground hover:text-foreground">

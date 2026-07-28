@@ -4,6 +4,7 @@ import { inicioDoDiaBR, hojeStringBR, diaDaSemanaBR } from "@/lib/check-daily-li
 import { fetchAllRows, fetchByIds } from "@/lib/supabase-paginate"
 import { classificarTaxa, TAXA_CRITICA, MIN_TENTATIVAS_BANDA } from "@/lib/metrics"
 import { logError } from "@/lib/logger"
+import { supabaseAdmin } from "@/lib/supabase-admin"
 
 export async function GET(req: NextRequest) {
   const { user, supabase, error } = await requireUser()
@@ -39,7 +40,30 @@ export async function GET(req: NextRequest) {
   const temPerfilOnboarding =
     Array.isArray(userRow?.onboarding_data?.dificuldades) &&
     userRow.onboarding_data.dificuldades.length > 0
-  const diagnosticoCompleto = (diagnosticAttemptsCount ?? 0) >= 5
+  // Estado do diagnóstico vem da SESSÃO, não da contagem de tentativas.
+  // Com o módulo em 16 questões, o antigo `count >= 5` marcava "concluído" com
+  // o usuário na questão 6 — o banner sumia no meio do diagnóstico.
+  // diagnostic_sessions tem RLS sem policies: leitura só via supabaseAdmin.
+  const { data: sessoesDiag } = await supabaseAdmin
+    .from("diagnostic_sessions")
+    .select("modulo, status, posicao, question_ids")
+    .eq("user_id", userId)
+
+  const sessoes = sessoesDiag ?? []
+  const emAndamento = sessoes.find((s) => s.status === "em_andamento") ?? null
+
+  // Quem fez o diagnóstico de 5 questões antes dos módulos não tem sessão
+  // nenhuma — pra esses, a contagem antiga continua sendo o sinal correto.
+  const legadoConcluido = sessoes.length === 0 && (diagnosticAttemptsCount ?? 0) >= 5
+
+  const diagnosticoCompleto = sessoes.some((s) => s.status === "concluida") || legadoConcluido
+  const diagnosticoEmAndamento = emAndamento
+    ? {
+        modulo: emAndamento.modulo as string,
+        posicao: emAndamento.posicao as number,
+        total: (emAndamento.question_ids as string[]).length,
+      }
+    : null
   const questoesHoje = questoesHojeCount ?? 0
   const plano: "free" | "pro" | "aprovacao" = userPlanoRow?.plano ?? "free"
   const subscriptionStatus: "active" | "trialing" | "past_due" | "canceled" =
@@ -378,6 +402,7 @@ export async function GET(req: NextRequest) {
     onboardingCompleto,
     temPerfilOnboarding,
     diagnosticoCompleto,
+    diagnosticoEmAndamento,
     questoesHoje,
     plano,
     subscriptionStatus,

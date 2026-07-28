@@ -665,8 +665,8 @@ function TreinoPageInner() {
                       </h3>
                       <p className="mt-2 text-sm text-muted-foreground">
                         O treino estratégico foca nas suas matérias mais fracas — mas
-                        pra isso, precisamos saber quais são. Faça o mini-diagnóstico
-                        (5 questões, ~4 min) e o sistema te direciona daqui.
+                        pra isso, precisamos saber quais são. Faça o diagnóstico
+                        (16 questões, ~15 min) e o sistema te direciona daqui.
                       </p>
                     </div>
                     <Button asChild className="w-full sm:w-auto">

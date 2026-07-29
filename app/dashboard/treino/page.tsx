@@ -39,6 +39,7 @@ interface MateriasRisco {
   nome: string
   taxa: number
   total?: number
+  acertos?: number
   /** Tem amostra de treino pra carimbar a banda (ver /api/dashboard). */
   rotulavel?: boolean
 }
@@ -896,7 +897,10 @@ function TreinoPageInner() {
                 <Target className="h-5 w-5 text-primary" />
                 Matérias para treinar
               </CardTitle>
-              <CardDescription>Baseado no seu desempenho nos últimos 30 dias</CardDescription>
+              {/* NÃO é "últimos 30 dias": o placar por matéria não tem janela
+                  nenhuma — é histórico completo, diagnóstico incluído. A frase
+                  antiga descrevia um recorte que nunca existiu no código. */}
+              <CardDescription>Baseado em todo o seu histórico de respostas</CardDescription>
             </CardHeader>
             <CardContent>
               {loadingDados ? (
@@ -932,12 +936,31 @@ function TreinoPageInner() {
                           </div>
                           <Progress
                             value={taxa}
-                            className={`h-2 ${nivel === "critica" ? "[&>div]:bg-destructive" : nivel === "media" ? "[&>div]:bg-warning" : ""}`}
+                            // Trilho neutro quando não há nada pra preencher: o
+                            // padrão é bg-primary/20, que num verde a 20% lê
+                            // como barra cheia justamente no caso de 0%.
+                            className={`h-2 ${taxa === 0 ? "bg-muted" : ""} ${nivel === "critica" ? "[&>div]:bg-destructive" : nivel === "media" ? "[&>div]:bg-warning" : ""}`}
                           />
                         </div>
                         <div className="text-right">
-                          <p className="text-lg font-bold text-foreground">{taxa.toFixed(0)}%</p>
-                          <p className="text-xs text-muted-foreground">de acerto</p>
+                          {/* Sem amostra pra rotular, mostra o placar cru em vez
+                              da taxa. "0%" apoiado em 1 resposta é a mesma
+                              afirmação que o badge acabou de recusar. */}
+                          {materia.rotulavel === false && materia.total !== undefined ? (
+                            <>
+                              <p className="text-lg font-bold text-foreground">
+                                {materia.acertos ?? 0}/{materia.total}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {materia.total === 1 ? "questão até aqui" : "questões até aqui"}
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <p className="text-lg font-bold text-foreground">{taxa.toFixed(0)}%</p>
+                              <p className="text-xs text-muted-foreground">de acerto</p>
+                            </>
+                          )}
                         </div>
                       </div>
                     )

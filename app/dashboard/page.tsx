@@ -37,6 +37,7 @@ interface DisciplinaItem {
   nome: string
   taxa_acerto: number
   total?: number // nº de respostas por trás da taxa (marca "poucos dados")
+  acertos?: number // com `total`, permite mostrar o placar cru sem afirmar taxa
   /**
    * Tem amostra de TREINO suficiente pra carimbar a banda. O diagnóstico mede 2
    * questões por matéria: serve pra ordenar por onde começar, não pra afirmar
@@ -74,9 +75,18 @@ function DisciplinaRow({ item, index }: { item: DisciplinaItem; index?: number }
                   </div>
                 </div>
               </div>
-              <span className={`text-sm font-semibold shrink-0 ${taxaTextColor(taxa)}`}>
-                {taxa.toFixed(0)}%
-              </span>
+              {/* Sem amostra pra rotular, placar cru em vez de taxa — mesmo
+                  motivo do badge "medindo": não afirmar em número o que
+                  recusamos afirmar em palavra. */}
+              {item.rotulavel === false && item.total !== undefined ? (
+                <span className="text-sm font-semibold shrink-0 text-muted-foreground">
+                  {item.acertos ?? 0}/{item.total}
+                </span>
+              ) : (
+                <span className={`text-sm font-semibold shrink-0 ${taxaTextColor(taxa)}`}>
+                  {taxa.toFixed(0)}%
+                </span>
+              )}
             </div>
             <div className="h-2 w-full rounded-full bg-muted/50 overflow-hidden">
               <div
@@ -88,7 +98,14 @@ function DisciplinaRow({ item, index }: { item: DisciplinaItem; index?: number }
         </TooltipTrigger>
         <TooltipContent side="top">
           <p className="font-medium">{item.nome}</p>
-          <p className="text-xs text-muted-foreground">{taxa.toFixed(1)}% de acerto</p>
+          {item.rotulavel === false && item.total !== undefined ? (
+            <p className="text-xs text-muted-foreground">
+              {item.acertos ?? 0} de {item.total} {item.total === 1 ? "questão" : "questões"} — amostra
+              pequena demais pra virar taxa
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">{taxa.toFixed(1)}% de acerto</p>
+          )}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -101,7 +118,7 @@ interface DashboardData {
   // (MIN_RESPOSTAS_TAXA_GERAL). O diagnóstico não entra nessa conta.
   resumo: { totalRespondidas: number; totalAcertos: number; taxaGeralAcerto: number | null; taxaSimulados: number; totalSimuladosFinalizados: number }
   ultimoSimulado: { id: string; acertos: number; erros: number; percentual: number; numero_questoes: number; titulo: string; created_at: string } | null
-  materiasRisco: { subject_id: string; nome: string; taxa: number; total?: number; rotulavel?: boolean }[]
+  materiasRisco: { subject_id: string; nome: string; taxa: number; total?: number; acertos?: number; rotulavel?: boolean }[]
   materiasRiscoCount?: number
   desempenhoPorMateria: { subject_id: string; nome: string; total: number; acertos: number; taxa_acerto: number }[]
   evolucao: { date: string; nota: number }[]

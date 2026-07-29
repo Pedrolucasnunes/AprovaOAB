@@ -227,6 +227,10 @@ export async function GET(req: NextRequest) {
       subject_id: p.subject_id,
       nome: subjectMap[p.subject_id] ?? "Matéria desconhecida",
       total: p.total,
+      // `acertos` vai junto pra UI poder mostrar o placar cru ("0/1") quando
+      // não há amostra pra taxa. Um "0%" apoiado numa resposta é a mesma
+      // afirmação que o badge de banda se recusou a fazer, só em número.
+      acertos: p.acertos,
       taxa: taxaDoPlacar(p) ?? 0,
       // ORDENAÇÃO usa `total` (acumulado). CLASSIFICAÇÃO usa só amostra de
       // treino: o diagnóstico mede 2 questões por matéria, o suficiente pra
@@ -251,7 +255,9 @@ export async function GET(req: NextRequest) {
   const materiasRiscoAll = materiasTaxas.filter((m) => m.taxa < TAXA_CRITICA)
   const materiasRisco = materiasRiscoAll
     .slice(0, 5)
-    .map(({ subject_id, nome, taxa, total, rotulavel }) => ({ subject_id, nome, taxa, total, rotulavel }))
+    .map(({ subject_id, nome, taxa, total, acertos, rotulavel }) => ({
+      subject_id, nome, taxa, total, acertos, rotulavel,
+    }))
 
   // O contador acompanha a LISTA, não as bandas. Com o rótulo exigindo amostra
   // de treino, `materiasPorBanda.criticas` é 0 pra quem só fez o diagnóstico —

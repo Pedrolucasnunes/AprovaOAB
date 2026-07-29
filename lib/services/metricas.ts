@@ -50,6 +50,8 @@ export interface AbandonoPorPosicao {
   histograma: { posicao: number; sessoes: number }[]
   emAndamento: number
   totalSessoes: number
+  /** Tamanho nominal do M1 — dá eixo ao histograma (1 barra em 16, não 1 em 1). */
+  tamanhoModulo: number
 }
 
 export interface Modulo2 {
@@ -108,7 +110,9 @@ interface AttemptRow {
 }
 
 export async function calcularMetricas(janelaDias = 7): Promise<Metricas> {
-  const { minTempoRespostaMs } = await getDiagnosticoConfig()
+  const { minTempoRespostaMs, modulos } = await getDiagnosticoConfig()
+  const m1 = modulos.find((m) => m.id === "m1")
+  const tamanhoModulo = m1 ? m1.subjects.length * m1.questoesPorMateria : 16
 
   const [usersRows, attempts, sessoes, eventos, limitesCfg] = await Promise.all([
     fetchAllRows<{ id: string; created_at: string; role: string; plano: string }>(() =>
@@ -305,6 +309,7 @@ export async function calcularMetricas(janelaDias = 7): Promise<Metricas> {
         .sort((a, b) => a.posicao - b.posicao),
       emAndamento: emAndamento.length,
       totalSessoes: sessoes.filter((s) => planoPorUser.has(s.user_id)).length,
+      tamanhoModulo,
     },
     modulo2: {
       natureza: "retroativa",

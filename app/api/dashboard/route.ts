@@ -98,9 +98,17 @@ export async function GET(req: NextRequest) {
   // (36% de acerto no diagnóstico contra 49% no treino) e, com o módulo em 16
   // questões, passa a dominar o número de todo usuário novo. É o mesmo motivo
   // pelo qual o hero usa taxaSimulados em vez da geral.
+  // CONTAGEM de atividade ("questões resolvidas"): tudo que o usuário
+  // respondeu, diagnóstico incluído. Ele resolveu aquelas questões — sumir com
+  // elas da contagem faz quem acabou de terminar o diagnóstico aparecer com
+  // zero e ser tratado como usuário que nunca fez nada.
+  const totalRespondidasAvulsas = avulsasAttempts.length
+  const totalAcertosAvulsas = avulsasAttempts.filter((a) => a.acertou).length
+
+  // BASE DA TAXA: só treino. É aqui, e só aqui, que o diagnóstico sai.
   const avulsasTreino = avulsasAttempts.filter((a) => !a.is_diagnostic)
-  const totalRespondidasAvulsas = avulsasTreino.length
-  const totalAcertosAvulsas = avulsasTreino.filter((a) => a.acertou).length
+  const treinoRespondidas = avulsasTreino.length
+  const treinoAcertos = avulsasTreino.filter((a) => a.acertou).length
 
   // 2. Último simulado + todos os finalizados (para taxa geral OAB)
   const [
@@ -266,10 +274,15 @@ export async function GET(req: NextRequest) {
   // como erro) é a taxaSimulados.
   const totalRespondidas = totalRespondidasAvulsas + totalRespostasSimulado
   const totalAcertos = totalAcertosAvulsas + totalAcertosRespostasSimulado
-  // `null` abaixo do piso de amostra: a tela mostra convite, não um número.
-  // 2 respostas viram "0%" ou "100%", que é ruído com cara de métrica.
-  const taxaGeralAcerto = totalRespondidas >= MIN_RESPOSTAS_TAXA_GERAL
-    ? parseFloat(((totalAcertos / totalRespondidas) * 100).toFixed(2))
+
+  // A taxa tem denominador PRÓPRIO, sem o diagnóstico — diferente do total
+  // acima de propósito. `null` abaixo do piso de amostra: a tela mostra
+  // convite, não um número. 2 respostas viram "0%" ou "100%", que é ruído com
+  // cara de métrica.
+  const baseTaxa = treinoRespondidas + totalRespostasSimulado
+  const acertosTaxa = treinoAcertos + totalAcertosRespostasSimulado
+  const taxaGeralAcerto = baseTaxa >= MIN_RESPOSTAS_TAXA_GERAL
+    ? parseFloat(((acertosTaxa / baseTaxa) * 100).toFixed(2))
     : null
 
   // 6. Action cards — dados em paralelo (fuso BR)

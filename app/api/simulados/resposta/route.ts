@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { requireUser } from "@/lib/auth-server"
 import { supabaseAdmin } from "@/lib/supabase-admin"
 import { checkDailyLimit } from "@/lib/check-daily-limit"
+import { EVENTOS, track } from "@/lib/events"
 import { logError } from "@/lib/logger"
 
 const DURACAO_SIMULADO_MS = 5 * 60 * 60 * 1000 // 5 horas
@@ -136,6 +137,15 @@ export async function POST(req: NextRequest) {
     const limit = await checkDailyLimit(supabase, userId, plano)
 
     if (limit.exceeded) {
+      // Métrica de preço: registra a resposta RECUSADA, não só "chegou a 10".
+      // A reconstrução por question_attempts mostra quem alcançou o teto; só o
+      // evento mostra quem quis passar dele.
+      void track(userId, EVENTOS.LIMITE_DIARIO_ATINGIDO, {
+        origem: "resposta",
+        motivo: "teto",
+        limite: limit.limit,
+        count: limit.count,
+      })
       return NextResponse.json(
         { error: "Você atingiu o limite de 10 questões por dia no plano Grátis.", upgrade: true, limiteDiario: true },
         { status: 403 }

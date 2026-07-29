@@ -10,12 +10,18 @@
 import { logWarning } from "./logger"
 import { supabaseAdmin } from "./supabase-admin"
 
+// Só entram chaves que TÊM um ponto de emissão. Chave definida que nunca grava
+// é pior que chave ausente: quem lê este mapa assume que o dado existe e monta
+// métrica em cima do vazio.
+//
+// Removidas de propósito:
+//   `diagnostico_modulo2_aberto` — redundante, MODULO_INICIADO já traz {modulo}
+//   `diagnostico_cta_clicado`    — virou o prop `origem` do TREINO_INICIADO,
+//                                  que mede o handoff em vez do clique
 export const EVENTOS = {
   DIAGNOSTICO_MODULO_INICIADO: "diagnostico_modulo_iniciado",
   DIAGNOSTICO_QUESTAO_RESPONDIDA: "diagnostico_questao_respondida",
   DIAGNOSTICO_MODULO_CONCLUIDO: "diagnostico_modulo_concluido",
-  DIAGNOSTICO_MODULO2_ABERTO: "diagnostico_modulo2_aberto",
-  DIAGNOSTICO_CTA_CLICADO: "diagnostico_cta_clicado",
   DIAGNOSTICO_LEMBRETE_PEDIDO: "diagnostico_lembrete_pedido",
   DIAGNOSTICO_LEMBRETE_ENVIADO: "diagnostico_lembrete_enviado",
   TREINO_INICIADO: "treino_iniciado",

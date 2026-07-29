@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
+  BarChart3,
   FileQuestion,
   Users,
   MessageSquare,
@@ -34,6 +35,11 @@ const menuItems = [
     title: "Dashboard",
     url: "/admin",
     icon: LayoutDashboard,
+  },
+  {
+    title: "Ativação",
+    url: "/admin/metricas",
+    icon: BarChart3,
   },
   {
     title: "Questões",

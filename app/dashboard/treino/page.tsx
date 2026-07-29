@@ -90,6 +90,9 @@ function TreinoPageInner() {
 
   const qParam = searchParams.get("quantidade")
   const materiaParam = searchParams.get("materia")
+  // De onde o usuário chegou. O CTA da tela de resultado do diagnóstico manda
+  // `origem=diagnostico`; a rota grava isso no evento `treino_iniciado`.
+  const origemParam = searchParams.get("origem")
 
   const initialQuantidade = qParam && QUANTIDADES_VALIDAS.includes(qParam) ? qParam : "10"
 
@@ -195,6 +198,7 @@ function TreinoPageInner() {
       body: JSON.stringify({
         quantidade: Number(quantidadeQuestoes),
         ...(materiaFiltrada && { materia: materiaFiltrada.id }),
+        ...(origemParam && { origem: origemParam }),
       }),
     })
 

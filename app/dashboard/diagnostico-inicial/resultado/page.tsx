@@ -278,8 +278,15 @@ export default function ResultadoPage() {
         {/* CTA principal — treino da matéria mais fraca medida */}
         <div className="mt-8">
           <Button asChild className="w-full" size="lg">
+            {/* `origem=diagnostico` é o que torna mensurável o handoff
+                diagnóstico -> treino. Sem isso, "quantos concluem o Módulo 1 e
+                clicam no CTA?" só dava resposta por inferência frágil. */}
             <Link
-              href={focoId ? `/dashboard/treino?quantidade=5&materia=${focoId}` : "/dashboard/treino?quantidade=5"}
+              href={
+                focoId
+                  ? `/dashboard/treino?quantidade=5&materia=${focoId}&origem=diagnostico`
+                  : "/dashboard/treino?quantidade=5&origem=diagnostico"
+              }
             >
               {data.foco ? `Começar por ${data.foco.nome}` : "Começar a treinar"}
               <ArrowRight className="ml-2 h-4 w-4" />

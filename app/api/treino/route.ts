@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth-server"
 import { rateLimit } from "@/lib/rate-limit"
 import { checkDailyLimit } from "@/lib/check-daily-limit"
 import { fetchAllRows, fetchByIds } from "@/lib/supabase-paginate"
+import { EVENTOS, track } from "@/lib/events"
 import { TAXA_CRITICA } from "@/lib/metrics"
 import { placarPorMateria, taxaDoPlacar } from "@/lib/services/desempenho"
 import { logError } from "@/lib/logger"
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
 
   const userId = user.id
 
-  let body: { quantidade?: unknown; materia?: unknown }
+  let body: { quantidade?: unknown; materia?: unknown; origem?: unknown }
   try {
     body = await req.json()
   } catch {
@@ -39,6 +40,10 @@ export async function POST(req: NextRequest) {
   const { quantidade, materia } = body
   const totalQuestoes = [5, 10, 20, 30].includes(Number(quantidade)) ? Number(quantidade) : 10
   const materiaFiltrada = typeof materia === "string" && materia.length > 0 ? materia : null
+  // De onde o treino foi disparado. "diagnostico" = o CTA da tela de resultado.
+  // É assim que respondemos "quantos concluem o Módulo 1 e clicam no CTA?" —
+  // pergunta do brief original que hoje é impossível de responder.
+  const origem = typeof body.origem === "string" && body.origem.length <= 32 ? body.origem : "treino"
 
   // Limite diário do plano free — verificado antes de montar o treino
   const { data: userPlanoRow } = await supabase
@@ -51,6 +56,13 @@ export async function POST(req: NextRequest) {
   const limit = await checkDailyLimit(supabase, userId, plano)
 
   if (limit.exceeded) {
+    void track(userId, EVENTOS.LIMITE_DIARIO_ATINGIDO, {
+      origem: "treino",
+      motivo: "teto",
+      limite: limit.limit,
+      count: limit.count,
+      quantidade_pedida: totalQuestoes,
+    })
     return NextResponse.json(
       { error: "Você já completou suas 10 questões de hoje.", limiteDiario: true, upgrade: true },
       { status: 403 }
@@ -61,6 +73,17 @@ export async function POST(req: NextRequest) {
   // em vez de montar um treino que o usuário seria barrado de terminar no meio.
   const restante = limit.limit - limit.count
   if (plano === "free" && totalQuestoes > restante) {
+    // Motivo distinto do "teto" de propósito: aqui a intenção foi barrada ANTES
+    // de gastar a cota — o usuário pediu 20 tendo 3 disponíveis. É sinal de
+    // demanda mais forte que bater no limite depois de consumir tudo.
+    void track(userId, EVENTOS.LIMITE_DIARIO_ATINGIDO, {
+      origem: "treino",
+      motivo: "treino_maior_que_restante",
+      limite: limit.limit,
+      count: limit.count,
+      restante,
+      quantidade_pedida: totalQuestoes,
+    })
     return NextResponse.json(
       {
         error: `Você tem só ${restante} ${restante === 1 ? "questão restante" : "questões restantes"} hoje no plano Grátis. Escolha um treino menor ou volte amanhã.`,
@@ -150,6 +173,15 @@ export async function POST(req: NextRequest) {
     }))
 
     console.log(`[treino] modo focado: ${questoesFocadas.length} questões de ${subjectName}`)
+
+    void track(userId, EVENTOS.TREINO_INICIADO, {
+      quantidade: totalQuestoes,
+      servidas: questoesFocadas.length,
+      risco: questoesFocadas.length,
+      geral: 0,
+      materia_filtrada: true,
+      origem,
+    })
 
     return NextResponse.json({
       distribuicao: {
@@ -260,6 +292,18 @@ export async function POST(req: NextRequest) {
   }))
 
   console.log(`[treino] ${questoesFinal.length} questões montadas — risco=${questoesRisco.length} geral=${questoesGeralSelecionadas.length}`)
+
+  // `servidas` separado de `quantidade`: quando o banco não tem questão inédita
+  // suficiente o treino sai menor, e sem esse par o encolhimento fica invisível.
+  void track(userId, EVENTOS.TREINO_INICIADO, {
+    quantidade: totalQuestoes,
+    servidas: questoesFinal.length,
+    risco: questoesRisco.length,
+    geral: questoesGeralSelecionadas.length,
+    materia_filtrada: false,
+    sessao_focada: sessaoFocada,
+    origem,
+  })
 
   return NextResponse.json({
     distribuicao: {

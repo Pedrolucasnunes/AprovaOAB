@@ -162,6 +162,38 @@ Onboarding (3 passos: welcome → data da prova → CTA do diagnóstico):
 | `calendar_events` | tabela | `is_auto`, `google_event_id` | `is_auto=true` = gerado pela agenda inteligente |
 | `google_calendar_tokens` | tabela | `access_token`, `refresh_token`, `expires_at` | Tokens criptografados AES-256-GCM |
 
+### Instrumentação de produto (`user_events`)
+
+`lib/events.ts` exporta `EVENTOS` e `track(userId, event, props)` — fire-and-forget via `supabaseAdmin`, nunca lança e nunca bloqueia a resposta. `user_events` tem RLS ligado **sem policies**: leitura e escrita só server-side.
+
+**Regra do mapa `EVENTOS`: só entram chaves que têm ponto de emissão.** Chave definida que nunca grava é pior que chave ausente — quem lê o mapa monta métrica em cima do vazio. (Foi por isso que `diagnostico_modulo2_aberto` e `diagnostico_cta_clicado` saíram: o primeiro é redundante com `modulo_iniciado {modulo}`, o segundo virou o prop `origem` do `treino_iniciado`.)
+
+Onde cada um emite:
+
+| Evento | Onde | Props que importam |
+|---|---|---|
+| `diagnostico_modulo_iniciado` | `/api/diagnostico/sessao` | `modulo`, `total`, `repescagem` |
+| `diagnostico_questao_respondida` | `/api/diagnostico/responder` | `modulo`, `posicao`, `time_spent_ms` |
+| `diagnostico_modulo_concluido` | `/api/diagnostico/responder` | `modulo` |
+| `diagnostico_lembrete_pedido` / `_enviado` | `/api/diagnostico/lembrete` e o cron | `modulo` |
+| `treino_iniciado` | `/api/treino` (2 saídas de sucesso) | `quantidade` vs `servidas`, `risco`, `geral`, **`origem`** |
+| `limite_diario_atingido` | `/api/treino` (2×) e `/api/simulados/resposta` | **`motivo`**: `teto` ou `treino_maior_que_restante` |
+
+`origem` no `treino_iniciado` é como se mede o handoff diagnóstico → treino: o CTA da tela de resultado manda `?origem=diagnostico`. `servidas` separado de `quantidade` torna visível o treino que sai menor por falta de questão inédita.
+
+### Métricas de ativação — `lib/services/metricas.ts` + `/admin/metricas`
+
+`calcularMetricas(janelaDias)` é a fonte única dos funis; a rota `/api/admin/metricas` só valida a janela (7/14/30) e serve. Dois princípios que a página aplica:
+
+- **Coorte-janela, nunca antes/depois.** "% que fez X dentro de N dias do cadastro", contando só usuários que já viveram a janela inteira. Comparar "total que já iniciou" entre grupos mede tempo de exposição, não comportamento.
+- **Toda métrica declara a natureza.** `retroativa` = `question_attempts`/`diagnostic_sessions`/`users`, vale desde sempre. `prospectiva` = `user_events`, vale desde o deploy da Fase D. A UI mostra o selo ("histórico completo" / "desde \<data\>") porque sem ele um `0` lê como fracasso do produto quando significa "a instrumentação começou ontem".
+
+Todas as contagens descartam respostas com `time_spent_ms < minTempoRespostaMs`, e o descarte aparece como número próprio. O bucket por dia usa `ymdBrasil` — em UTC as respostas migram de dia e a métrica do limite diário falseia.
+
+**Limite diário separa free de Pro obrigatoriamente:** Pro não tem teto, então para ele "10" é uso e não limite. A distribuição do Pro **acima** do teto é a estimativa de demanda reprimida (verificado jul/2026: média de 19 questões/dia contra o teto de 10). Ressalva registrada na própria página: `users.plano` é estado atual, então quem hoje é Pro mas bateu o teto quando era free entra classificado como Pro.
+
+`scripts/ativacao.mjs` **não** foi substituído: ele congela a baseline da Fase 0 e a coorte dos 33 usuários destravados. A página é o painel vivo; o script é o retrato de comparação.
+
 ### Sistema admin
 
 - `role = "admin"` → acesso ao painel `/admin` (questões, usuários, feedback)

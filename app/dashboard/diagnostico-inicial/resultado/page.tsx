@@ -231,19 +231,18 @@ export default function ResultadoPage() {
 
             {proximoModulo && (
               <>
-                {/* Declarar a PROFUNDIDADE, não só a quantidade. O Módulo 2 mede
-                    1 questão por matéria contra as 2 do Módulo 1 — sem dizer
-                    isso, o usuário vê o mesmo placar e assume a mesma
-                    confiança nas duas medições. */}
-                <p className="mt-4 rounded-lg border border-border bg-background/60 p-3 text-xs leading-relaxed text-muted-foreground">
-                  <span className="font-medium text-foreground">Medição mais rasa:</span>{" "}
-                  o {proximoModulo.label} faz{" "}
-                  {proximoModulo.questoesPorMateria === 1
-                    ? "1 questão por matéria"
-                    : `${proximoModulo.questoesPorMateria} questões por matéria`}
-                  {" "}— metade da profundidade do Módulo 1. Serve pra dizer por onde começar, não
-                  pra cravar seu nível nelas.
-                </p>
+                {/* Só quando a medição É mais rasa que a do Módulo 1.
+                    Sem esse gate, um Módulo 1 pendente (matérias que ficaram sem
+                    medir por resposta rápida demais) renderizava "o Módulo 1 faz
+                    2 questões por matéria — metade da profundidade do Módulo 1":
+                    o módulo sendo metade de si mesmo. */}
+                {proximoModulo.questoesPorMateria < 2 && (
+                  <p className="mt-4 rounded-lg border border-border bg-background/60 p-3 text-xs leading-relaxed text-muted-foreground">
+                    <span className="font-medium text-foreground">Medição mais rasa:</span>{" "}
+                    o {proximoModulo.label} faz 1 questão por matéria — metade da profundidade do
+                    Módulo 1. Serve pra dizer por onde começar, não pra cravar seu nível nelas.
+                  </p>
+                )}
 
                 <div className="mt-4 flex flex-col gap-2 sm:flex-row">
                   <Button asChild className="flex-1">

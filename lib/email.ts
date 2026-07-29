@@ -198,8 +198,11 @@ function buildPaymentFailedHtml(o: {
 export async function sendDiagnosticoLembreteEmail(opts: {
   toEmail: string
   firstName: string | null
+  /** `materiasPendentes` é do MÓDULO — não confundir com o mapa inteiro. */
   modulo: { label: string; questoes: number; materiasPendentes: number }
   materiasMedidas: number
+  /** Não medidas no mapa TODO. É este o número de "pro mapa ficar completo". */
+  materiasNaoMedidas: number
   coberturaPercentual: number
 }): Promise<void> {
   if (!resend) {
@@ -217,7 +220,10 @@ export async function sendDiagnosticoLembreteEmail(opts: {
     await resend.emails.send({
       from: FROM,
       to: opts.toEmail,
-      subject: `Faltam ${opts.modulo.materiasPendentes} matérias pro seu mapa ficar completo`,
+      // O assunto usa o número do MAPA, não do módulo: são coisas diferentes, e
+      // prometer "faltam 6" quando faltam 18 é o tipo de erro que essa tela
+      // inteira existe pra não cometer.
+      subject: `Faltam ${opts.materiasNaoMedidas} matérias pro seu mapa ficar completo`,
       html: buildDiagnosticoLembreteHtml({ greeting, url, ...opts }),
     })
   } catch (err) {
@@ -231,6 +237,7 @@ function buildDiagnosticoLembreteHtml(o: {
   url: string
   modulo: { label: string; questoes: number; materiasPendentes: number }
   materiasMedidas: number
+  materiasNaoMedidas: number
   coberturaPercentual: number
 }): string {
   const plural = (n: number, s: string, p: string) => (n === 1 ? s : p)
@@ -247,10 +254,14 @@ function buildDiagnosticoLembreteHtml(o: {
       que ${plural(o.materiasMedidas, "vale", "valem")} cerca de <strong style="color: #1f2937;">${o.coberturaPercentual}%</strong> da prova.
     </p>
     <div style="margin: 0 0 28px 0; padding: 16px; background-color: #f0fdf4; border-left: 4px solid #10b981; border-radius: 0 8px 8px 0;">
+      <p style="margin: 0 0 10px 0; color: #1f2937; font-size: 14px; line-height: 1.6;">
+        Faltam <strong>${o.materiasNaoMedidas} ${plural(o.materiasNaoMedidas, "matéria", "matérias")}</strong>
+        pro mapa ficar completo. Enquanto não medirmos, não dizemos nada sobre elas: nem que estão
+        boas, nem que estão ruins.
+      </p>
       <p style="margin: 0; color: #1f2937; font-size: 14px; line-height: 1.6;">
-        Faltam <strong>${o.modulo.materiasPendentes} ${plural(o.modulo.materiasPendentes, "matéria", "matérias")}</strong>
-        pro mapa ficar completo — são ${o.modulo.questoes} ${plural(o.modulo.questoes, "questão", "questões")} no ${o.modulo.label}.
-        Enquanto não medirmos, não dizemos nada sobre elas: nem que estão boas, nem que estão ruins.
+        O próximo passo cobre <strong>${o.modulo.materiasPendentes} ${plural(o.modulo.materiasPendentes, "delas", "delas")}</strong>:
+        ${o.modulo.questoes} ${plural(o.modulo.questoes, "questão", "questões")} no ${o.modulo.label}.
       </p>
     </div>
     <a href="${o.url}" style="display: inline-block; padding: 12px 24px; background-color: #10b981; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px;">

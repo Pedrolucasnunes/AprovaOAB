@@ -45,6 +45,13 @@ async function handle(req: Request) {
 
     const { janelaEdicoes } = await getDiagnosticoConfig()
 
+    // Total de matérias do banco — o denominador do "mapa completo". Lido uma
+    // vez por execução, não por usuário.
+    const { count: totalSubjectsCount } = await supabaseAdmin
+      .from("subjects")
+      .select("id", { count: "exact", head: true })
+    const totalSubjects = totalSubjectsCount ?? 0
+
     let enviados = 0
     let semPendencia = 0
     let semEmail = 0
@@ -73,6 +80,9 @@ async function handle(req: Request) {
       const cobertura = await coberturaDeSubjects(medidos, janelaEdicoes)
       const fullName = (authUser.user?.user_metadata?.full_name as string | undefined) ?? ""
 
+      // Duas contagens diferentes, e o e-mail precisa das duas: o módulo cobre
+      // parte do que falta, não tudo. Antes ele dizia "faltam 6 pro mapa ficar
+      // completo" usando o número do módulo, quando faltavam 18 no mapa.
       await sendDiagnosticoLembreteEmail({
         toEmail: email,
         firstName: fullName.trim().split(/\s+/)[0] || null,
@@ -82,6 +92,7 @@ async function handle(req: Request) {
           materiasPendentes: proximo.materiasPendentes,
         },
         materiasMedidas: medidos.length,
+        materiasNaoMedidas: Math.max(totalSubjects - medidos.length, 0),
         coberturaPercentual: Math.round(cobertura.percentual),
       })
 

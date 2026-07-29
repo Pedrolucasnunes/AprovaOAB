@@ -81,14 +81,14 @@ O plano **Aprovação** foi removido da vitrine: não aparece mais na landing e 
 (Internamente o gate é sempre `plano === "free"` vs. pago; um eventual `"aprovacao"` legado se comporta como Pro.)
 
 **Onde o gate está no código:**
-- Limite diário free: verificado em `app/api/simulados/resposta/route.ts` (não em `/api/questions`). Conta registros em `question_attempts` de hoje (UTC). Retorna `{ error, limiteDiario: true }` com status 403 ao atingir 10.
+- Limite diário free: verificado em `app/api/simulados/resposta/route.ts` (não em `/api/questions`). Conta registros em `question_attempts` de hoje (UTC). Retorna `{ error, limiteDiario: true }` com status 403 ao atingir 10. Essa rota também grava `time_spent_ms` nas respostas de treino (as telas de Treino e de Questões medem com `performance.now()`); o ramo de simulado ignora o campo, porque `simulado_respostas` não tem a coluna.
 - Simulados: gate em `app/api/simulados/gerar/route.ts` — verifica `users.plano === "free"` e retorna 403 com `{ upgrade: true }`.
 
 ### Treino inteligente — algoritmo
 
 Não óbvio sem ler o código (`app/api/treino/route.ts`):
-- **70%** das questões vêm das top 3 matérias com menor taxa de acerto. Priorização em cascata (filosofia: o simulado é a medição limpa): **1º** view `materias_risco` (só respostas de simulado); **2º fallback** sem dados de simulado (free/recém-chegado) → agrega `question_attempts` (avulsas + diagnóstico) por matéria e prioriza as com taxa < 40 (passo 2.5 da rota); **3º** questões gerais
-- **30%** são questões gerais
+- **70%** das questões vêm das top 3 matérias com menor taxa de acerto. Priorização em cascata (filosofia: o simulado é a medição limpa): **1º** view `materias_risco` (só respostas de simulado); **2º fallback** sem dados de simulado (free/recém-chegado) → `placarPorMateria` de `lib/services/desempenho.ts` e prioriza as com taxa < 40 (passo 2.5 da rota); **3º** questões gerais
+- **30%** são questões gerais, **preferindo matéria não medida** (sem entrada no placar ou com `total = 0`). É assim que o treino vai completando o mapa sem depender do Módulo 2 — antes, matéria sem dado nunca entrava no risco e nunca era priorizada, então podia ficar invisível pra sempre
 - Exclui questões já acertadas anteriormente (simulados + treino avulso)
 - Quantidades aceitas: 5, 10, 20 ou 30 (padrão: 10). **5 = "sessão focada"**: 100% matérias em risco (sem parcela geral), com fallback pra questões gerais se o usuário ainda não tem matérias em risco
 
@@ -96,7 +96,18 @@ Não óbvio sem ler o código (`app/api/treino/route.ts`):
 
 `lib/metrics.ts` centraliza META_APROVACAO (50%), as bandas por matéria (crítica < 40, média 40–70, boa > 70), os pisos de amostra MIN_TENTATIVAS_BANDA (3 respostas pra uma matéria entrar nas contagens dos cards) e MIN_RESPOSTAS_TAXA_GERAL (10 respostas de treino pra exibir a taxa geral) e os helpers de cor/label. Toda tela que classifica ou colore uma taxa de acerto importa daqui — não redeclarar thresholds.
 
-O `/api/dashboard` funde `question_attempts` (avulsas) + `simulado_respostas` por matéria em código (passo 5.5 — nenhuma view entrega isso, ver tabela acima) e devolve: `resumo.totalRespondidas`/`taxaGeralAcerto` (treino avulso + respostas de simulado; brancos de simulado ficam de fora, e **o diagnóstico também** — ele é régua, não treino: sai nas 8 matérias mais pesadas em dificuldade média/difícil e o candidato faz frio no dia 1, então puxa a taxa pra baixo (36% contra 49% do treino) e com 16 questões dominaria o número de todo usuário novo. A agregação **por matéria** do passo 5.5 continua incluindo o diagnóstico — é ele que mede as matérias. `taxaGeralAcerto` vem **`null`** abaixo de `MIN_RESPOSTAS_TAXA_GERAL`; a tela mostra convite, nunca `0%`), `resumo.taxaSimulados` (nota de prova: acertos ÷ 80 por simulado, brancos contam contra — é a métrica do hero), `materiasRiscoCount`/`materiasPorBanda` (contagens com piso de amostra — os números dos cards no Dashboard e na Agenda) e `materiasRisco` (top-5 da banda crítica, sem piso — alimenta listas e recomendações, que precisam funcionar já no pós-diagnóstico).
+**A fusão por matéria mora em `lib/services/desempenho.ts` (`placarPorMateria`)** — não repetir a agregação em rota nenhuma. Ela funde `question_attempts` (diagnóstico + treino) + `simulado_respostas`, aplica o filtro de baixa confiança e devolve **duas contagens de propósito**:
+
+- `total`/`acertos` — acumulado, base da **ORDENAÇÃO** (quem entra no bloco de risco do treino, em que ordem a lista aparece). Sem piso de amostra: recomendar a partir de pouca amostra é aceitável.
+- `totalTreino`/`acertosTreino` — **sem o diagnóstico**, base da **CLASSIFICAÇÃO**. Só com `>= MIN_TENTATIVAS_BANDA` o `/api/dashboard` marca `rotulavel: true`, e só aí a UI mostra o badge de banda ("crítico"/"atenção"/"adequado"); sem isso mostra "medindo". O diagnóstico mede 2 questões por matéria: aponta direção, não sustenta carimbar alguém de crítico numa disciplina.
+
+O **filtro de baixa confiança** (`app_config.diagnostico.minTempoRespostaMs`, hoje 3000) vale pra **todas** as fontes com tempo gravado, não só o diagnóstico. `time_spent_ms` nulo conta como válida — é o caso das respostas anteriores à instrumentação e de todo o simulado (`simulado_respostas` não tem a coluna, é a fonte não filtrada conhecida do placar). O filtro é prospectivo por isso.
+
+Matéria com `total = 0` (todas as respostas descartadas) **não é matéria com 0%** — é matéria não medida. Filtrar `total > 0` antes de calcular taxa é obrigatório: sem isso ela vira 0% e sobe pro topo da lista de risco.
+
+`placarPorMateria(..., "diagnostico")` restringe ao diagnóstico e alimenta `recomputarResultados` + `/api/diagnostico/resultado`: aquela tela é o retrato do que **o diagnóstico** mediu e não pode mudar quando o usuário treina depois.
+
+O `/api/dashboard` chama o placar no passo 5.5 e devolve: `resumo.totalRespondidas`/`taxaGeralAcerto` (treino avulso + respostas de simulado; brancos de simulado ficam de fora, e **o diagnóstico também** — ele é régua, não treino: sai nas 8 matérias mais pesadas em dificuldade média/difícil e o candidato faz frio no dia 1, então puxa a taxa pra baixo (36% contra 49% do treino) e com 16 questões dominaria o número de todo usuário novo. A agregação **por matéria** do passo 5.5 continua incluindo o diagnóstico — é ele que mede as matérias. `taxaGeralAcerto` vem **`null`** abaixo de `MIN_RESPOSTAS_TAXA_GERAL`; a tela mostra convite, nunca `0%`), `resumo.taxaSimulados` (nota de prova: acertos ÷ 80 por simulado, brancos contam contra — é a métrica do hero), `materiasPorBanda` (contagens **por banda**, só matérias `rotulavel` — alimenta a Agenda), `materiasRiscoCount` (**tamanho da lista de risco**, não a contagem por banda: com o rótulo exigindo amostra de treino, a contagem por banda é 0 pra quem só fez o diagnóstico e o card mostraria "0 disciplinas em risco" acima de uma lista com 4) e `materiasRisco` (top-5 da banda crítica, sem piso, cada uma com `rotulavel` — alimenta listas e recomendações, que precisam funcionar já no pós-diagnóstico).
 
 Decisão de produto: o **hero do dashboard usa `taxaSimulados`**, não a geral — treino avulso não prevê a prova (o treino puxa de propósito pras piores matérias). A taxa geral fica no stat card "Taxa de acerto geral". Quem nunca finalizou um simulado vê um convite ("faça seu primeiro simulado") no lugar da métrica, nunca um 0%.
 

@@ -37,6 +37,13 @@ interface DisciplinaItem {
   nome: string
   taxa_acerto: number
   total?: number // nº de respostas por trás da taxa (marca "poucos dados")
+  /**
+   * Tem amostra de TREINO suficiente pra carimbar a banda. O diagnóstico mede 2
+   * questões por matéria: serve pra ordenar por onde começar, não pra afirmar
+   * que a pessoa é crítica na disciplina. Ausente = trata como rotulável
+   * (telas que ainda não mandam o campo mantêm o comportamento antigo).
+   */
+  rotulavel?: boolean
 }
 
 function DisciplinaRow({ item, index }: { item: DisciplinaItem; index?: number }) {
@@ -54,7 +61,11 @@ function DisciplinaRow({ item, index }: { item: DisciplinaItem; index?: number }
                 <div className="flex flex-col min-w-0">
                   <span className="text-sm text-foreground truncate max-w-[180px]">{item.nome}</span>
                   <div className="mt-0.5 flex items-center gap-1.5">
-                    {getRiskBadge(taxa)}
+                    {item.rotulavel === false ? (
+                      <Badge variant="outline" className="text-muted-foreground">medindo</Badge>
+                    ) : (
+                      getRiskBadge(taxa)
+                    )}
                     {item.total !== undefined && item.total < MIN_TENTATIVAS_BANDA && (
                       <span className="text-[10px] text-muted-foreground whitespace-nowrap">
                         poucos dados · {item.total} {item.total === 1 ? "questão" : "questões"}
@@ -90,7 +101,7 @@ interface DashboardData {
   // (MIN_RESPOSTAS_TAXA_GERAL). O diagnóstico não entra nessa conta.
   resumo: { totalRespondidas: number; totalAcertos: number; taxaGeralAcerto: number | null; taxaSimulados: number; totalSimuladosFinalizados: number }
   ultimoSimulado: { id: string; acertos: number; erros: number; percentual: number; numero_questoes: number; titulo: string; created_at: string } | null
-  materiasRisco: { subject_id: string; nome: string; taxa: number; total?: number }[]
+  materiasRisco: { subject_id: string; nome: string; taxa: number; total?: number; rotulavel?: boolean }[]
   materiasRiscoCount?: number
   desempenhoPorMateria: { subject_id: string; nome: string; total: number; acertos: number; taxa_acerto: number }[]
   evolucao: { date: string; nota: number }[]

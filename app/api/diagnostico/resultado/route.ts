@@ -4,8 +4,8 @@ import { getDiagnosticoConfig } from "@/lib/config"
 import { coberturaDeSubjects } from "@/lib/exames"
 import { logError } from "@/lib/logger"
 import { classificarTaxa, type NivelTaxa } from "@/lib/metrics"
+import { placarPorMateria } from "@/lib/services/desempenho"
 import { recomputarResultados } from "@/lib/services/diagnostico"
-import { fetchAllRows, fetchByIds } from "@/lib/supabase-paginate"
 import { supabaseAdmin } from "@/lib/supabase-admin"
 
 // Resultado do diagnóstico: o que foi medido, o que NÃO foi, e quanto da prova
@@ -98,26 +98,19 @@ export async function GET() {
   //   "ainda não perguntamos nada"
   // Juntar as duas numa lista só faz a segunda parecer culpa do usuário e a
   // primeira desaparecer.
-  const tentadas = await fetchAllRows<{ question_id: string; time_spent_ms: number | null }>(() =>
-    supabaseAdmin
-      .from("question_attempts")
-      .select("question_id, time_spent_ms")
-      .eq("user_id", user.id)
-      .eq("is_diagnostic", true),
-  )
+  //
+  // Escopo "diagnostico": esta tela é o retrato do que O DIAGNÓSTICO mediu, e
+  // não pode mudar quando o usuário treina depois. Mesma função do placar que
+  // ordena o treino — uma régua de confiança só, num lugar só.
+  const placarDiag = await placarPorMateria(supabaseAdmin, user.id, "diagnostico")
 
   // O total de descartes NÃO pode sair da soma das linhas medidas: matéria com
-  // todas as respostas descartadas não tem linha, e os descartes dela sumiriam
-  // da conta. Era o que fazia a tela dizer "3 respostas" quando foram 13.
-  const descartadasTotal = tentadas.filter(
-    (a) => a.time_spent_ms !== null && a.time_spent_ms < config.minTempoRespostaMs,
-  ).length
-
-  const questoesTentadas = await fetchByIds<{ id: string; subject_id: string }>(
-    (ids) => supabaseAdmin.from("questions").select("id, subject_id").in("id", ids),
-    [...new Set(tentadas.map((a) => a.question_id))],
-  )
-  const subjectsTentados = new Set(questoesTentadas.map((q) => q.subject_id))
+  // todas as respostas descartadas não tem linha em diagnostic_subject_results,
+  // e os descartes dela sumiriam da conta. Era o que fazia a tela dizer "3
+  // respostas" quando foram 13. O placar mantém a entrada mesmo com total = 0.
+  const descartadasTotal = [...placarDiag.values()].reduce((acc, p) => acc + p.descartadas, 0)
+  const respostasTotal = [...placarDiag.values()].reduce((acc, p) => acc + p.total + p.descartadas, 0)
+  const subjectsTentados = new Set(placarDiag.keys())
 
   const porNome = (a: { nome: string }, b: { nome: string }) => a.nome.localeCompare(b.nome, "pt-BR")
   const naoMedidasBase = (subjects ?? [])
@@ -176,7 +169,7 @@ export async function GET() {
       questoesNaJanela: cobertura.questoesNaJanela,
     },
     descartadasTotal,
-    respostasTotal: tentadas.length,
+    respostasTotal,
     modulos,
     proximoModulo: proximo ? { id: proximo.id, label: proximo.label, questoes: proximo.questoes } : null,
     foco: medidas[0] ? { id: medidas[0].subject_id, nome: medidas[0].nome } : null,

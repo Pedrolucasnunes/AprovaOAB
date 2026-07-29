@@ -5,7 +5,7 @@
 // inteiro a cada conclusão de módulo em vez de somar incrementalmente — assim
 // m0 (legado), m1 e m2 convergem sozinhos, sem merge manual e sem risco de
 // contar duas vezes se um POST for reprocessado.
-import { getDiagnosticoConfig } from "@/lib/config"
+import { placarPorMateria } from "@/lib/services/desempenho"
 import { fetchAllRows, fetchByIds } from "@/lib/supabase-paginate"
 import { supabaseAdmin } from "@/lib/supabase-admin"
 
@@ -51,60 +51,51 @@ export async function materiasPendentes(userId: string, subjects: string[]): Pro
  * torna isso impossível de violar por acidente.
  */
 export async function recomputarResultados(userId: string): Promise<ResultadoMateria[]> {
-  const { minTempoRespostaMs } = await getDiagnosticoConfig()
+  // Escopo "diagnostico": o mapa é o retrato do que O DIAGNÓSTICO mediu. Com o
+  // escopo "tudo", um "0/2 em Penal" viraria "2/6" depois de algumas questões de
+  // treino e a tela deixaria de ser o que promete ser. Quem acumula as duas
+  // fontes é o placar que ordena o treino e os cards do dashboard.
+  const placar = await placarPorMateria(supabaseAdmin, userId, "diagnostico")
+  if (placar.size === 0) return []
 
-  const attempts = await fetchAllRows<{
-    question_id: string
-    acertou: boolean
-    time_spent_ms: number | null
-    diagnostic_module: string | null
-  }>(() =>
+  // O módulo de origem não está no placar (ele agrega por matéria, não por
+  // módulo), então vem de uma leitura própria — é só rótulo de procedência.
+  const modulos = await fetchAllRows<{ question_id: string; diagnostic_module: string | null }>(() =>
     supabaseAdmin
       .from("question_attempts")
-      .select("question_id, acertou, time_spent_ms, diagnostic_module")
+      .select("question_id, diagnostic_module")
       .eq("user_id", userId)
       .eq("is_diagnostic", true),
   )
 
-  if (attempts.length === 0) return []
-
   const questoes = await fetchByIds<{ id: string; subject_id: string }>(
     (ids) => supabaseAdmin.from("questions").select("id, subject_id").in("id", ids),
-    [...new Set(attempts.map((a) => a.question_id))],
+    [...new Set(modulos.map((a) => a.question_id))],
   )
   const subjectDaQuestao = new Map(questoes.map((q) => [q.id, q.subject_id]))
 
-  const porMateria = new Map<string, ResultadoMateria>()
-  for (const a of attempts) {
-    const subjectId = subjectDaQuestao.get(a.question_id)
-    if (!subjectId) continue
-
-    const atual = porMateria.get(subjectId) ?? {
-      subject_id: subjectId,
-      modulo: a.diagnostic_module ?? "m0",
-      acertos: 0,
-      total: 0,
-      descartadas: 0,
-    }
-
-    // time_spent_ms nulo (dados antigos) conta como válida: sem medição não dá
-    // pra afirmar que foi clique, e descartar por ausência de dado apagaria
-    // metade do histórico.
-    const rapidaDemais = a.time_spent_ms !== null && a.time_spent_ms < minTempoRespostaMs
-    if (rapidaDemais) {
-      atual.descartadas += 1
-    } else {
-      atual.total += 1
-      if (a.acertou) atual.acertos += 1
-    }
-
-    // Guarda o módulo mais recente que contribuiu (m2 > m1 > m0).
-    if ((a.diagnostic_module ?? "m0") > atual.modulo) atual.modulo = a.diagnostic_module ?? "m0"
-
-    porMateria.set(subjectId, atual)
+  // Guarda o módulo mais recente que contribuiu (m2 > m1 > m0).
+  const moduloPorMateria = new Map<string, string>()
+  for (const a of modulos) {
+    const sid = subjectDaQuestao.get(a.question_id)
+    if (!sid) continue
+    const mod = a.diagnostic_module ?? "m0"
+    if (mod > (moduloPorMateria.get(sid) ?? "")) moduloPorMateria.set(sid, mod)
   }
 
-  const linhas = [...porMateria.values()].filter((r) => r.total > 0)
+  // total = 0 significa matéria com TODAS as respostas descartadas: não ganha
+  // linha. É a regra que sustenta "linha existe = matéria medida" — e o
+  // CHECK (total > 0) no banco torna isso impossível de violar por acidente.
+  const linhas: ResultadoMateria[] = [...placar.values()]
+    .filter((p) => p.total > 0)
+    .map((p) => ({
+      subject_id: p.subject_id,
+      modulo: moduloPorMateria.get(p.subject_id) ?? "m0",
+      acertos: p.acertos,
+      total: p.total,
+      descartadas: p.descartadas,
+    }))
+
   if (linhas.length === 0) return []
 
   const { error } = await supabaseAdmin.from("diagnostic_subject_results").upsert(

@@ -22,6 +22,17 @@ export async function POST(req: NextRequest) {
   // ✅ userId vem do Auth — ignora userId do body
   const { questionId, simuladoId, resposta } = body
 
+  // Tempo de resposta: alimenta o filtro de baixa confiança (< minTempoRespostaMs)
+  // que o diagnóstico já aplica. Nunca rejeita a resposta — valor ausente, não
+  // numérico ou fora da faixa vira null, e null conta como resposta válida.
+  // O teto de 30 min é o mesmo de /api/diagnostico/responder: acima disso a aba
+  // ficou aberta, não é tempo de leitura.
+  const rawTempo = body.time_spent_ms
+  const timeSpentMs =
+    typeof rawTempo === "number" && Number.isFinite(rawTempo) && rawTempo >= 0 && rawTempo <= 1_800_000
+      ? Math.round(rawTempo)
+      : null
+
   if (!questionId || !resposta) {
     return NextResponse.json(
       { error: "questionId e resposta são obrigatórios" },
@@ -139,6 +150,7 @@ export async function POST(req: NextRequest) {
         question_id: questionId,
         resposta_usuario: respostaFormatada,
         acertou,
+        time_spent_ms: timeSpentMs,
       })
 
     if (qaError) {

@@ -424,7 +424,14 @@ export default function DesempenhoPage() {
                 <div className="space-y-3">
                   {riscosVisiveis.map((m, i) => (
                     <div key={`${m.subject_id}-${i}`} className="flex items-center gap-4 rounded-lg border border-border p-3">
-                      <Badge className={getRiskColor(m.taxa)}>{taxaLabel(m.taxa)}</Badge>
+                      {/* Rótulo de banda exige amostra: chamar alguém de "crítico"
+                          com 1 ou 2 respostas é afirmar o que não foi medido. A
+                          ordem da lista continua valendo — ela é ordenação. */}
+                      {m.questoes >= MIN_TENTATIVAS_BANDA ? (
+                        <Badge className={getRiskColor(m.taxa)}>{taxaLabel(m.taxa)}</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-muted-foreground">medindo</Badge>
+                      )}
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
                           <span className="font-medium text-foreground">{m.name}</span>

@@ -4,6 +4,7 @@ import { inicioDoDiaBR, hojeStringBR, diaDaSemanaBR } from "@/lib/check-daily-li
 import { fetchAllRows, fetchByIds } from "@/lib/supabase-paginate"
 import { classificarTaxa, TAXA_CRITICA, MIN_TENTATIVAS_BANDA, MIN_RESPOSTAS_TAXA_GERAL } from "@/lib/metrics"
 import { logError } from "@/lib/logger"
+import { placarPorMateria, taxaDoPlacar } from "@/lib/services/desempenho"
 import { supabaseAdmin } from "@/lib/supabase-admin"
 
 export async function GET(req: NextRequest) {
@@ -208,65 +209,54 @@ export async function GET(req: NextRequest) {
     ? parseFloat(((totalAcertosFinalizados / totalQuestoesFinalizados) * 100).toFixed(2))
     : 0
 
-  // 5.5. Desempenho REAL por matéria = avulsas + simulados. Nenhuma view
-  // entrega isso: desempenho_materia/materias_risco cobrem SÓ respostas de
-  // simulado, e as avulsas só existem em question_attempts. Esta fusão é a
-  // base ÚNICA de: bandas/contagens dos cards (Dashboard e Agenda), lista
-  // top-5 de risco e recomendações.
-  const avulsasPorMateria = new Map<string, { total: number; acertos: number }>()
-  if (avulsasAttempts.length > 0) {
-    const qIdsAvulsas = [...new Set(avulsasAttempts.map((a) => a.question_id))]
-    const qRowsAvulsas = await fetchByIds<{ id: string; subject_id: string }>(
-      (ids) => supabase.from("questions").select("id, subject_id").in("id", ids),
-      qIdsAvulsas,
-    )
-    const subjectDaAvulsa = Object.fromEntries(qRowsAvulsas.map((q) => [q.id, q.subject_id]))
-    for (const a of avulsasAttempts) {
-      const sid = subjectDaAvulsa[a.question_id]
-      if (!sid) continue
-      const cur = avulsasPorMateria.get(sid) ?? { total: 0, acertos: 0 }
-      cur.total += 1
-      if (a.acertou) cur.acertos += 1
-      avulsasPorMateria.set(sid, cur)
-    }
-  }
+  // 5.5. Desempenho REAL por matéria = diagnóstico + avulsas + simulados, com o
+  // filtro de baixa confiança aplicado. A fusão vive em lib/services/desempenho
+  // porque /api/treino precisa exatamente da mesma base — quando eram dois
+  // códigos, discordavam. Nenhuma view entrega isso: desempenho_materia e
+  // materias_risco cobrem SÓ simulado, e as avulsas só existem em
+  // question_attempts.
+  const placar = await placarPorMateria(supabase, userId)
 
-  const porMateria = new Map<string, { total: number; acertos: number }>()
-  for (const [sid, s] of avulsasPorMateria) porMateria.set(sid, { ...s })
-  for (const d of desempenhoPorMateria) {
-    const cur = porMateria.get(d.subject_id) ?? { total: 0, acertos: 0 }
-    cur.total += d.total
-    cur.acertos += d.acertos
-    porMateria.set(d.subject_id, cur)
-  }
-
-  const materiasTaxas = Array.from(porMateria.entries())
-    .map(([subject_id, s]) => ({
-      subject_id,
-      nome: subjectMap[subject_id] ?? "Matéria desconhecida",
-      total: s.total,
-      taxa: s.total > 0 ? parseFloat(((s.acertos / s.total) * 100).toFixed(2)) : 0,
+  const materiasTaxas = [...placar.values()]
+    // total = 0 é matéria com TODAS as respostas descartadas: perguntamos e não
+    // deu pra medir. Sem este filtro ela viraria taxa 0%, ou seja, o topo da
+    // lista de risco — exatamente a contradição que esta fase existe pra fechar,
+    // só que reintroduzida no dashboard.
+    .filter((p) => p.total > 0)
+    .map((p) => ({
+      subject_id: p.subject_id,
+      nome: subjectMap[p.subject_id] ?? "Matéria desconhecida",
+      total: p.total,
+      taxa: taxaDoPlacar(p) ?? 0,
+      // ORDENAÇÃO usa `total` (acumulado). CLASSIFICAÇÃO usa só amostra de
+      // treino: o diagnóstico mede 2 questões por matéria, o suficiente pra
+      // apontar direção e insuficiente pra dizer a alguém que ele é crítico
+      // numa disciplina.
+      rotulavel: p.totalTreino >= MIN_TENTATIVAS_BANDA,
     }))
     .sort((a, b) => a.taxa - b.taxa)
 
-  // Bandas/contagens dos cards: só matérias com amostra mínima — 1 erro em
-  // 1 questão não carimba a matéria como crítica.
+  // Bandas/contagens da Agenda: só matérias rotuláveis.
   const materiasPorBanda = { criticas: 0, medias: 0, boas: 0 }
   for (const m of materiasTaxas) {
-    if (m.total < MIN_TENTATIVAS_BANDA) continue
+    if (!m.rotulavel) continue
     const nivel = classificarTaxa(m.taxa)
     if (nivel === "critica") materiasPorBanda.criticas++
     else if (nivel === "media") materiasPorBanda.medias++
     else materiasPorBanda.boas++
   }
-  const materiasRiscoCount = materiasPorBanda.criticas
 
   // Lista de risco (banda crítica), SEM piso de amostra: as recomendações
-  // precisam funcionar já no pós-diagnóstico (1 resposta por matéria).
+  // precisam funcionar já no pós-diagnóstico (2 respostas por matéria).
   const materiasRiscoAll = materiasTaxas.filter((m) => m.taxa < TAXA_CRITICA)
   const materiasRisco = materiasRiscoAll
     .slice(0, 5)
-    .map(({ subject_id, nome, taxa, total }) => ({ subject_id, nome, taxa, total }))
+    .map(({ subject_id, nome, taxa, total, rotulavel }) => ({ subject_id, nome, taxa, total, rotulavel }))
+
+  // O contador acompanha a LISTA, não as bandas. Com o rótulo exigindo amostra
+  // de treino, `materiasPorBanda.criticas` é 0 pra quem só fez o diagnóstico —
+  // e o card mostraria "0 disciplinas em risco" logo acima de uma lista com 4.
+  const materiasRiscoCount = materiasRiscoAll.length
 
   // Resumo geral DE VERDADE: avulsas + respostas de simulado no mesmo
   // denominador — só questões EFETIVAMENTE respondidas ("resolvidas").

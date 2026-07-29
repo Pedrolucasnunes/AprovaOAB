@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect, useRef, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -39,6 +39,8 @@ interface MateriasRisco {
   nome: string
   taxa: number
   total?: number
+  /** Tem amostra de treino pra carimbar a banda (ver /api/dashboard). */
+  rotulavel?: boolean
 }
 
 interface QuestaoTreino {
@@ -113,6 +115,15 @@ function TreinoPageInner() {
   const [verificando, setVerificando] = useState(false)
   const [limiteAtingido, setLimiteAtingido] = useState(false)
   const [resumoFinal, setResumoFinal] = useState<ResumoTreino | null>(null)
+
+  // Tempo por questão — alimenta o filtro de baixa confiança (< 3s) no cálculo
+  // do desempenho por matéria. Zera na troca de questão (a navegação vai pra
+  // frente E pra trás), então mede a última exibição antes de confirmar.
+  const questaoAbertaEm = useRef<number>(0)
+  const questaoIdAtual = treinoAtivo?.questoes[currentQuestion]?.id
+  useEffect(() => {
+    questaoAbertaEm.current = performance.now()
+  }, [questaoIdAtual])
 
   useEffect(() => {
     async function init() {
@@ -220,6 +231,7 @@ function TreinoPageInner() {
         questionId: questao.id,
         simuladoId: null,
         resposta,
+        time_spent_ms: Math.round(performance.now() - questaoAbertaEm.current),
       }),
     })
 
@@ -905,12 +917,18 @@ function TreinoPageInner() {
                         <div className="flex-1 space-y-2">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-foreground">{materia.nome}</span>
-                            <Badge
-                              variant={nivel === "critica" ? "destructive" : "default"}
-                              className={nivel === "media" ? "bg-warning text-warning-foreground" : nivel === "boa" ? "bg-secondary text-secondary-foreground" : ""}
-                            >
-                              {taxaLabel(taxa)}
-                            </Badge>
+                            {/* Sem amostra de treino não carimba a banda: o
+                                diagnóstico ordena esta lista, não classifica. */}
+                            {materia.rotulavel === false ? (
+                              <Badge variant="outline" className="text-muted-foreground">medindo</Badge>
+                            ) : (
+                              <Badge
+                                variant={nivel === "critica" ? "destructive" : "default"}
+                                className={nivel === "media" ? "bg-warning text-warning-foreground" : nivel === "boa" ? "bg-secondary text-secondary-foreground" : ""}
+                              >
+                                {taxaLabel(taxa)}
+                              </Badge>
+                            )}
                           </div>
                           <Progress
                             value={taxa}

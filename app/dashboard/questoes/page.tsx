@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, type ReactNode } from "react"
+import { useState, useEffect, useCallback, useRef, type ReactNode } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -265,6 +265,30 @@ export default function QuestoesPage() {
   const [respostas, setRespostas] = useState<Record<string, RespostaState>>({})
   const [limiteAtingido, setLimiteAtingido] = useState(false)
 
+  // Tempo por questão — alimenta o filtro de baixa confiança (< 3s) no cálculo
+  // do desempenho por matéria. Mapa por id, não um timestamp só: no modo
+  // "explorar" várias questões ficam na tela ao mesmo tempo e são respondidas
+  // em qualquer ordem.
+  //
+  // Mede da EXIBIÇÃO até confirmar, não da primeira alternativa clicada. Quem
+  // lê 60s e então clica-e-confirma em 1s é leitor cuidadoso, não clicador —
+  // medir a partir do clique inverteria o sinal. No "explorar" isso infla o
+  // tempo de quem rola até a questão 7 depois de 2 min na página, e inflar é o
+  // lado seguro do erro: o filtro só descarta ABAIXO do piso.
+  const abertaEm = useRef<Record<string, number>>({})
+
+  useEffect(() => {
+    const agora = performance.now()
+    abertaEm.current = Object.fromEntries(questoes.map((q) => [q.id, agora]))
+  }, [questoes])
+
+  // No modo "resolver" a questão aparece uma de cada vez: reestampa na troca.
+  useEffect(() => {
+    if (modo !== "resolver") return
+    const q = questoes[currentIndex]
+    if (q) abertaEm.current[q.id] = performance.now()
+  }, [modo, currentIndex, questoes])
+
   // Contador e plano via /api/dashboard — mesma fonte que o backend usa para
   // aplicar o limite (meia-noite de São Paulo, exclui questões de diagnóstico).
   const refreshStatus = useCallback(async () => {
@@ -363,7 +387,15 @@ export default function QuestoesPage() {
     const res = await fetch("/api/simulados/resposta", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, questionId: questaoId, simuladoId: null, resposta: selecionada }),
+      body: JSON.stringify({
+        userId,
+        questionId: questaoId,
+        simuladoId: null,
+        resposta: selecionada,
+        time_spent_ms: abertaEm.current[questaoId]
+          ? Math.round(performance.now() - abertaEm.current[questaoId])
+          : null,
+      }),
     })
     const data = await res.json()
 

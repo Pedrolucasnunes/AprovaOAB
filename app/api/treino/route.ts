@@ -4,6 +4,7 @@ import { rateLimit } from "@/lib/rate-limit"
 import { checkDailyLimit } from "@/lib/check-daily-limit"
 import { fetchAllRows, fetchByIds } from "@/lib/supabase-paginate"
 import { TAXA_CRITICA } from "@/lib/metrics"
+import { placarPorMateria, taxaDoPlacar } from "@/lib/services/desempenho"
 import { logError } from "@/lib/logger"
 
 type QuestaoTreino = {
@@ -88,8 +89,8 @@ export async function POST(req: NextRequest) {
       (ids) => supabase.from("simulado_respostas").select("question_id").eq("acertou", true).in("attempt_id", ids),
       attemptIds,
     ),
-    // Todas as tentativas avulsas (acertos E erros): os acertos alimentam a
-    // exclusão abaixo; os erros alimentam o fallback de priorização do 2.5.
+    // Só os acertos importam aqui: alimentam a exclusão de repetição. A
+    // priorização por matéria saiu daqui e virou placarPorMateria (passo 2.5).
     fetchAllRows<{ question_id: string; acertou: boolean }>(
       () => supabase.from("question_attempts").select("question_id, acertou").eq("user_id", userId),
     ),
@@ -172,30 +173,24 @@ export async function POST(req: NextRequest) {
   let subjectIdsRisco = (materiasRisco ?? []).map((m) => m.subject_id)
 
   // 2.5. Fallback pra quem não tem simulado (free, ou Pro recém-chegado):
-  // prioriza pelas avulsas + diagnóstico (question_attempts). É o que torna o
-  // "Treino Estratégico" do free estratégico de verdade — antes, sem dados de
-  // simulado, o treino caía direto em questões gerais.
-  if (subjectIdsRisco.length === 0 && treinoAttempts.length > 0) {
-    const qIdsAvulsas = [...new Set(treinoAttempts.map((a) => a.question_id))]
-    const qRowsAvulsas = await fetchByIds<{ id: string; subject_id: string }>(
-      (ids) => supabase.from("questions").select("id, subject_id").in("id", ids),
-      qIdsAvulsas,
-    )
-    const subjectDaQuestao = Object.fromEntries(qRowsAvulsas.map((q) => [q.id, q.subject_id]))
+  // prioriza pelo placar acumulado — diagnóstico + treino + simulado, com o
+  // filtro de baixa confiança já aplicado. É o que torna o "Treino Estratégico"
+  // do free estratégico de verdade.
+  //
+  // Antes isso agregava question_attempts cru: sem filtro de tempo, o clique de
+  // menos de 3s que a tela do diagnóstico descartava como ruído era o mesmo que
+  // elegia a matéria pra dirigir 70% do treino. As duas telas discordavam sobre
+  // as mesmas respostas.
+  //
+  // Sem piso de amostra, de propósito: isto é ORDENAÇÃO. Recomendar a partir de
+  // pouca amostra é aceitável — carimbar o usuário de "crítico" não é, e esse
+  // gate mora no rótulo (ver lib/services/desempenho.ts).
+  const placar = await placarPorMateria(supabase, userId)
 
-    const statsAvulsas = new Map<string, { total: number; acertos: number }>()
-    for (const a of treinoAttempts) {
-      const sid = subjectDaQuestao[a.question_id]
-      if (!sid) continue
-      const s = statsAvulsas.get(sid) ?? { total: 0, acertos: 0 }
-      s.total += 1
-      if (a.acertou) s.acertos += 1
-      statsAvulsas.set(sid, s)
-    }
-
-    subjectIdsRisco = [...statsAvulsas.entries()]
-      .map(([sid, s]) => ({ sid, taxa: (s.acertos / s.total) * 100 }))
-      .filter((m) => m.taxa < TAXA_CRITICA)
+  if (subjectIdsRisco.length === 0 && placar.size > 0) {
+    subjectIdsRisco = [...placar.values()]
+      .map((p) => ({ sid: p.subject_id, taxa: taxaDoPlacar(p) }))
+      .filter((m): m is { sid: string; taxa: number } => m.taxa !== null && m.taxa < TAXA_CRITICA)
       .sort((a, b) => a.taxa - b.taxa)
       .slice(0, 3)
       .map((m) => m.sid)
@@ -215,9 +210,36 @@ export async function POST(req: NextRequest) {
     questoesRisco = await sortearQuestoes(qtdRisco, subjectIdsRisco, idsJaAcertou)
   }
 
-  // 4. Questões gerais (30%) — exclui as já acertadas e as já escolhidas no bloco de risco
+  // 4. Questões gerais (30%) — exclui as já acertadas e as já escolhidas no bloco de risco.
+  //
+  // Preferem matéria AUSENTE do placar: zero respostas válidas de qualquer
+  // fonte, ou seja, genuinamente desconhecida. Antes, "matéria não medida" era
+  // silenciosamente idêntica a "matéria medida e OK" — nunca entrava no risco e
+  // nunca era priorizada, então podia ficar invisível pra sempre. Assim o
+  // próprio treino vai completando o mapa, sem depender do Módulo 2.
   const idsJaSelecionados = new Set<string>([...idsJaAcertou, ...questoesRisco.map((q) => q.id)])
-  const questoesGeralSelecionadas = await sortearQuestoes(qtdGeral, null, idsJaSelecionados)
+
+  // "Não medida" = sem entrada no placar OU com entrada de total 0 (perguntamos
+  // e todas as respostas caíram no filtro de tempo). As duas são desconhecimento
+  // igual — a segunda só tem a tentativa registrada.
+  const { data: todasSubjects } = await supabase.from("subjects").select("id")
+  const naoMedidas = (todasSubjects ?? [])
+    .map((s) => s.id as string)
+    .filter((id) => (placar.get(id)?.total ?? 0) === 0)
+
+  const questoesGeralSelecionadas =
+    naoMedidas.length > 0 ? await sortearQuestoes(qtdGeral, naoMedidas, idsJaSelecionados) : []
+
+  // Pool de não medidas esgotado (ou inexistente): completa com o banco inteiro.
+  if (questoesGeralSelecionadas.length < qtdGeral) {
+    const jaEscolhidas = new Set<string>([
+      ...idsJaSelecionados,
+      ...questoesGeralSelecionadas.map((q) => q.id),
+    ])
+    questoesGeralSelecionadas.push(
+      ...(await sortearQuestoes(qtdGeral - questoesGeralSelecionadas.length, null, jaEscolhidas)),
+    )
+  }
 
   // 5. Monta lista final
   const questoesFinal = [...questoesRisco, ...questoesGeralSelecionadas]

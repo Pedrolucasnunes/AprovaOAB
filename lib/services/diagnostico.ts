@@ -5,6 +5,8 @@
 // inteiro a cada conclusão de módulo em vez de somar incrementalmente — assim
 // m0 (legado), m1 e m2 convergem sozinhos, sem merge manual e sem risco de
 // contar duas vezes se um POST for reprocessado.
+import { getDiagnosticoConfig } from "@/lib/config"
+import { logError } from "@/lib/logger"
 import { placarPorMateria } from "@/lib/services/desempenho"
 import { fetchAllRows, fetchByIds } from "@/lib/supabase-paginate"
 import { supabaseAdmin } from "@/lib/supabase-admin"
@@ -37,6 +39,86 @@ export async function subjectsMedidos(userId: string): Promise<Set<string>> {
 export async function materiasPendentes(userId: string, subjects: string[]): Promise<string[]> {
   const medidos = await subjectsMedidos(userId)
   return subjects.filter((s) => !medidos.has(s))
+}
+
+/**
+ * Mapa consolidado do usuário, materializando na leitura se ainda não existe.
+ *
+ * Os ~23 usuários do diagnóstico legado (5 questões, `m0`) nunca passaram por
+ * uma conclusão de módulo, que é onde o `responder` chama o recompute. Sem esta
+ * materialização, quem lê `diagnostic_subject_results` cru vê zero matérias
+ * medidas pra eles — e o dashboard passaria a oferecer "faltam 8 matérias, 16
+ * questões" enquanto a tela de resultado, que recalcula, mostraria 2 ou 3
+ * medidas. Duas telas discordando sobre o mesmo usuário.
+ *
+ * Custo: um write por usuário legado, na primeira leitura. Quem tem TODAS as
+ * respostas descartadas (< 3s) não gera linha nenhuma e repete a tentativa a
+ * cada leitura — são poucos, e a alternativa (persistir "não deu pra medir")
+ * quebraria a invariante `CHECK (total > 0)` que sustenta "linha existe =
+ * matéria medida".
+ */
+export async function mapaConsolidado(userId: string): Promise<Set<string>> {
+  const medidos = await subjectsMedidos(userId)
+  if (medidos.size > 0) return medidos
+
+  const { count } = await supabaseAdmin
+    .from("question_attempts")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("is_diagnostic", true)
+
+  if ((count ?? 0) === 0) return medidos
+
+  try {
+    const linhas = await recomputarResultados(userId)
+    return new Set(linhas.map((l) => l.subject_id))
+  } catch (err) {
+    logError(err, { area: "diagnostico-mapa-consolidado", userId })
+    return medidos
+  }
+}
+
+export interface ModuloPendente {
+  id: string
+  label: string
+  /** Quantas questões FALTAM — não o tamanho nominal do módulo. */
+  questoes: number
+  materiasPendentes: number
+  /** Profundidade da medição: 1 questão por matéria é mais raso que 2. */
+  questoesPorMateria: number
+}
+
+/**
+ * Próximo módulo com matéria pendente, ou null se o mapa está completo.
+ *
+ * "Próximo" é o que tem matéria PENDENTE, não o que não foi concluído: um
+ * Módulo 1 respondido inteiro mas com 5 matérias sem medir (respostas rápidas
+ * demais) ainda é o próximo, e oferecer o Módulo 2 nesse caso não cobriria
+ * nenhuma delas.
+ *
+ * Mora aqui porque o dashboard e a tela de resultado precisam da MESMA resposta.
+ * Quando eram dois cálculos, o dashboard não tinha nenhum — os entry points do
+ * diagnóstico eram todos gateados em `!diagnosticoCompleto`, então o Módulo 2
+ * ficava inalcançável pra quem saísse da tela de resultado.
+ */
+export async function proximoModuloPendente(userId: string): Promise<ModuloPendente | null> {
+  const { modulos } = await getDiagnosticoConfig()
+  // Consolida na leitura: sem isso os usuários legados apareceriam com zero
+  // matérias medidas e o card ofereceria o módulo inteiro de novo.
+  const medidos = await mapaConsolidado(userId)
+
+  for (const m of modulos) {
+    const pendentes = m.subjects.filter((id) => !medidos.has(id))
+    if (pendentes.length === 0) continue
+    return {
+      id: m.id,
+      label: m.label,
+      questoes: pendentes.length * m.questoesPorMateria,
+      materiasPendentes: pendentes.length,
+      questoesPorMateria: m.questoesPorMateria,
+    }
+  }
+  return null
 }
 
 /**

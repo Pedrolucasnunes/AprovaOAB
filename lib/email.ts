@@ -189,6 +189,85 @@ function buildPaymentFailedHtml(o: {
 </html>`
 }
 
+// Lembrete do Módulo 2 do diagnóstico, pedido pelo próprio usuário no botão
+// "Me lembra amanhã". Disparado uma única vez pelo cron diário.
+//
+// O tom é o mesmo da tela de resultado: dizer o que falta medir em número, sem
+// fingir que o mapa está completo. É o motivo pra voltar — e a única coisa que
+// alcança quem não voltou por conta própria.
+export async function sendDiagnosticoLembreteEmail(opts: {
+  toEmail: string
+  firstName: string | null
+  modulo: { label: string; questoes: number; materiasPendentes: number }
+  materiasMedidas: number
+  coberturaPercentual: number
+}): Promise<void> {
+  if (!resend) {
+    logWarning("RESEND_API_KEY não configurada, pulando lembrete do diagnóstico", {
+      area: "email",
+      phase: "diagnostico-lembrete",
+    })
+    return
+  }
+
+  const greeting = opts.firstName ? `Olá, ${opts.firstName}!` : "Olá!"
+  const url = `${APP_URL}/dashboard/diagnostico-inicial/resultado`
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: opts.toEmail,
+      subject: `Faltam ${opts.modulo.materiasPendentes} matérias pro seu mapa ficar completo`,
+      html: buildDiagnosticoLembreteHtml({ greeting, url, ...opts }),
+    })
+  } catch (err) {
+    logError(err, { area: "email", phase: "diagnostico-lembrete" })
+    // Não propaga — o cron não deve falhar por causa de um email
+  }
+}
+
+function buildDiagnosticoLembreteHtml(o: {
+  greeting: string
+  url: string
+  modulo: { label: string; questoes: number; materiasPendentes: number }
+  materiasMedidas: number
+  coberturaPercentual: number
+}): string {
+  const plural = (n: number, s: string, p: string) => (n === 1 ? s : p)
+
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Seu mapa de estudos</title></head>
+<body style="margin: 0; padding: 32px 16px; background-color: #f9fafb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <div style="max-width: 560px; margin: 0 auto; background-color: white; border-radius: 12px; padding: 40px 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+    <h1 style="margin: 0 0 8px 0; color: #10b981; font-size: 24px; font-weight: 700;">Você pediu pra ser lembrado</h1>
+    <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 16px;">${o.greeting}</p>
+    <p style="margin: 0 0 16px 0; color: #1f2937; font-size: 15px; line-height: 1.6;">
+      Já medimos <strong style="color: #1f2937;">${o.materiasMedidas} ${plural(o.materiasMedidas, "matéria", "matérias")}</strong>,
+      que ${plural(o.materiasMedidas, "vale", "valem")} cerca de <strong style="color: #1f2937;">${o.coberturaPercentual}%</strong> da prova.
+    </p>
+    <div style="margin: 0 0 28px 0; padding: 16px; background-color: #f0fdf4; border-left: 4px solid #10b981; border-radius: 0 8px 8px 0;">
+      <p style="margin: 0; color: #1f2937; font-size: 14px; line-height: 1.6;">
+        Faltam <strong>${o.modulo.materiasPendentes} ${plural(o.modulo.materiasPendentes, "matéria", "matérias")}</strong>
+        pro mapa ficar completo — são ${o.modulo.questoes} ${plural(o.modulo.questoes, "questão", "questões")} no ${o.modulo.label}.
+        Enquanto não medirmos, não dizemos nada sobre elas: nem que estão boas, nem que estão ruins.
+      </p>
+    </div>
+    <a href="${o.url}" style="display: inline-block; padding: 12px 24px; background-color: #10b981; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px;">
+      Continuar meu mapa
+    </a>
+    <p style="margin: 32px 0 0 0; color: #4b5563; font-size: 14px; line-height: 1.6;">
+      Seu progresso fica salvo: dá pra parar no meio e voltar depois.
+    </p>
+    <p style="margin: 24px 0 0 0; color: #9ca3af; font-size: 13px; line-height: 1.5;">
+      Este é um lembrete único, que você mesmo pediu — não vamos repetir.<br>
+      Time AprovaOAB
+    </p>
+  </div>
+</body>
+</html>`
+}
+
 // Aviso interno (pra você, não pro usuário): o cron semanal já sincronizou a
 // audiência e deixou o rascunho da edição pronto no Resend. Basta revisar o
 // conteúdo (notícia/curiosidade) e disparar. Usa a chave send-only (RESEND_API_KEY).

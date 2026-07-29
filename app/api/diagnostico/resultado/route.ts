@@ -2,10 +2,9 @@ import { NextResponse } from "next/server"
 import { requireUser } from "@/lib/auth-server"
 import { getDiagnosticoConfig } from "@/lib/config"
 import { coberturaDeSubjects } from "@/lib/exames"
-import { logError } from "@/lib/logger"
 import { classificarTaxa, type NivelTaxa } from "@/lib/metrics"
 import { placarPorMateria } from "@/lib/services/desempenho"
-import { recomputarResultados } from "@/lib/services/diagnostico"
+import { mapaConsolidado, proximoModuloPendente } from "@/lib/services/diagnostico"
 import { supabaseAdmin } from "@/lib/supabase-admin"
 
 // Resultado do diagnóstico: o que foi medido, o que NÃO foi, e quanto da prova
@@ -54,26 +53,33 @@ export async function GET() {
   //   1. nunca fez diagnóstico  -> completed: false
   //   2. fez, mas o mapa nunca foi gravado -> consolida agora
   //
-  // O caso 2 é a regra, não a exceção: os 28 usuários com diagnóstico legado
+  // O caso 2 é a regra, não a exceção: os ~23 usuários com diagnóstico legado
   // (m0) nunca passaram por uma conclusão de módulo, que é onde o responder
   // chama o recompute. Também cobre falha de consolidação no POST, que é
   // logada e segue — a leitura conserta.
+  //
+  // `mapaConsolidado` é a MESMA materialização que o dashboard usa via
+  // proximoModuloPendente. Quando só esta rota consolidava, o card do dashboard
+  // dizia "faltam 8 matérias" e esta tela mostrava 3 medidas, pro mesmo usuário.
   if (linhas.length === 0) {
-    const { count } = await supabaseAdmin
-      .from("question_attempts")
-      .select("id", { count: "exact", head: true })
+    const medidosIds = await mapaConsolidado(user.id)
+    if (medidosIds.size === 0) {
+      const { count } = await supabaseAdmin
+        .from("question_attempts")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("is_diagnostic", true)
+
+      if ((count ?? 0) === 0) {
+        return NextResponse.json({ completed: false })
+      }
+    }
+
+    const { data: recarregadas } = await supabaseAdmin
+      .from("diagnostic_subject_results")
+      .select("subject_id, modulo, acertos, total, descartadas")
       .eq("user_id", user.id)
-      .eq("is_diagnostic", true)
-
-    if ((count ?? 0) === 0) {
-      return NextResponse.json({ completed: false })
-    }
-
-    try {
-      linhas = await recomputarResultados(user.id)
-    } catch (err) {
-      logError(err, { area: "diagnostico-resultado-recompute", userId: user.id })
-    }
+    linhas = recarregadas ?? []
   }
 
   const medidas: MateriaMedida[] = linhas
@@ -151,10 +157,13 @@ export async function GET() {
   //
   // Não exige sessão concluída de propósito: os usuários legados (m0) não têm
   // sessão nenhuma, e 8 dos 28 caem exatamente aqui.
-  // O próximo módulo é o que tem matéria PENDENTE, não o que não foi concluído.
-  // Antes, um Módulo 1 respondido inteiro mas com 5 matérias sem medir contava
-  // como concluído, e a tela oferecia o Módulo 2 — que não cobre nenhuma delas.
-  const proximo = modulos.find((m) => m.materiasPendentes > 0) ?? null
+  //
+  // O próximo módulo sai do MESMO helper que o dashboard usa. Antes essa regra
+  // ("o próximo é o que tem matéria pendente, não o que não foi concluído") só
+  // existia aqui, e o dashboard não tinha nenhuma — os entry points do
+  // diagnóstico eram todos gateados em `!diagnosticoCompleto`, então o Módulo 2
+  // ficava inalcançável pra quem fechasse esta tela.
+  const proximo = await proximoModuloPendente(user.id)
 
   return NextResponse.json({
     completed: true,
@@ -171,7 +180,10 @@ export async function GET() {
     descartadasTotal,
     respostasTotal,
     modulos,
-    proximoModulo: proximo ? { id: proximo.id, label: proximo.label, questoes: proximo.questoes } : null,
+    // `questoesPorMateria` vai pra tela poder declarar a PROFUNDIDADE: o Módulo
+    // 2 mede 1 questão por matéria contra as 2 do Módulo 1. Sem isso o usuário
+    // vê o mesmo placar e assume a mesma confiança nas duas medições.
+    proximoModulo: proximo,
     foco: medidas[0] ? { id: medidas[0].subject_id, nome: medidas[0].nome } : null,
   })
 }

@@ -161,6 +161,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       modulo: moduloId,
       label: modulo.label,
+      // Profundidade da medição — a tela declara "1 questão por matéria" pro
+      // usuário não assumir a mesma confiança que no Módulo 1 (2 por matéria).
+      questoesPorMateria: modulo.questoesPorMateria,
       total: existente.question_ids.length,
       posicao: existente.posicao,
       retomando: existente.posicao > 0,
@@ -198,6 +201,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     modulo: moduloId,
     label: modulo.label,
+    questoesPorMateria: modulo.questoesPorMateria,
     total: questionIds.length,
     posicao: 0,
     retomando: false,

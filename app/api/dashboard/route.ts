@@ -5,6 +5,7 @@ import { fetchAllRows, fetchByIds } from "@/lib/supabase-paginate"
 import { classificarTaxa, TAXA_CRITICA, MIN_TENTATIVAS_BANDA, MIN_RESPOSTAS_TAXA_GERAL } from "@/lib/metrics"
 import { logError } from "@/lib/logger"
 import { placarPorMateria, taxaDoPlacar } from "@/lib/services/desempenho"
+import { proximoModuloPendente } from "@/lib/services/diagnostico"
 import { supabaseAdmin } from "@/lib/supabase-admin"
 
 export async function GET(req: NextRequest) {
@@ -58,6 +59,13 @@ export async function GET(req: NextRequest) {
   const legadoConcluido = sessoes.length === 0 && (diagnosticAttemptsCount ?? 0) >= 5
 
   const diagnosticoCompleto = sessoes.some((s) => s.status === "concluida") || legadoConcluido
+
+  // Módulo com matéria ainda não medida. Existe porque `diagnosticoCompleto`
+  // não significa "mapa completo": ele fica true assim que UMA sessão conclui,
+  // e todos os entry points do diagnóstico eram gateados em
+  // `!diagnosticoCompleto` — então quem terminava o Módulo 1 perdia qualquer
+  // caminho pro Módulo 2 fora da tela de resultado.
+  const proximoModuloDiag = diagnosticoCompleto ? await proximoModuloPendente(userId) : null
   const diagnosticoEmAndamento = emAndamento
     ? {
         modulo: emAndamento.modulo as string,
@@ -433,6 +441,7 @@ export async function GET(req: NextRequest) {
     temPerfilOnboarding,
     diagnosticoCompleto,
     diagnosticoEmAndamento,
+    diagnosticoProximoModulo: proximoModuloDiag,
     questoesHoje,
     plano,
     subscriptionStatus,

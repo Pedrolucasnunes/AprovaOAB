@@ -131,6 +131,17 @@ interface DashboardData {
   temPerfilOnboarding?: boolean
   diagnosticoCompleto?: boolean
   diagnosticoEmAndamento?: { modulo: string; posicao: number; total: number } | null
+  /**
+   * Módulo com matéria ainda NÃO medida. Diferente de `diagnosticoCompleto`,
+   * que só diz que uma sessão terminou — o mapa pode seguir incompleto.
+   */
+  diagnosticoProximoModulo?: {
+    id: string
+    label: string
+    questoes: number
+    materiasPendentes: number
+    questoesPorMateria: number
+  } | null
   questoesHoje?: number
   plano?: "free" | "pro" | "aprovacao"
   subscriptionStatus?: "active" | "past_due" | "canceled"
@@ -519,6 +530,41 @@ export default function DashboardPage() {
             className="shrink-0 cursor-pointer text-muted-foreground hover:text-foreground">
             <X className="h-4 w-4" />
           </button>
+        </div>
+      )}
+
+      {/* ── Mapa incompleto: entry point PERSISTENTE do próximo módulo ──
+           Não é dispensável de propósito, e não depende de `isNewUser`. Antes,
+           todo caminho pro diagnóstico era gateado em `!diagnosticoCompleto` —
+           que fica true assim que a PRIMEIRA sessão conclui. Quem terminava o
+           Módulo 1 e fechava a tela de resultado perdia o Módulo 2 pra
+           sempre. */}
+      {data?.diagnosticoProximoModulo && (
+        <div className="flex flex-col gap-3 rounded-lg border border-dashed border-border bg-muted/30 px-4 py-3 sm:flex-row sm:items-center">
+          <Target className="h-4 w-4 shrink-0 text-primary" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium">
+              Faltam {data.diagnosticoProximoModulo.materiasPendentes}{" "}
+              {data.diagnosticoProximoModulo.materiasPendentes === 1 ? "matéria" : "matérias"} pro seu
+              mapa ficar completo
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {data.diagnosticoProximoModulo.label} ·{" "}
+              {data.diagnosticoProximoModulo.questoes}{" "}
+              {data.diagnosticoProximoModulo.questoes === 1 ? "questão" : "questões"} · enquanto não
+              medirmos, não dizemos nada sobre elas
+            </p>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <Button asChild size="sm" variant="ghost">
+              <Link href="/dashboard/diagnostico-inicial/resultado">Ver mapa</Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/dashboard/diagnostico-inicial?modulo=${data.diagnosticoProximoModulo.id}`}>
+                Continuar
+              </Link>
+            </Button>
+          </div>
         </div>
       )}
 

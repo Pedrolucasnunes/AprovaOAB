@@ -16,6 +16,8 @@ export const EVENTOS = {
   DIAGNOSTICO_MODULO_CONCLUIDO: "diagnostico_modulo_concluido",
   DIAGNOSTICO_MODULO2_ABERTO: "diagnostico_modulo2_aberto",
   DIAGNOSTICO_CTA_CLICADO: "diagnostico_cta_clicado",
+  DIAGNOSTICO_LEMBRETE_PEDIDO: "diagnostico_lembrete_pedido",
+  DIAGNOSTICO_LEMBRETE_ENVIADO: "diagnostico_lembrete_enviado",
   TREINO_INICIADO: "treino_iniciado",
   LIMITE_DIARIO_ATINGIDO: "limite_diario_atingido",
 } as const

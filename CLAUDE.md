@@ -92,6 +92,18 @@ Não óbvio sem ler o código (`app/api/treino/route.ts`):
 - Exclui questões já acertadas anteriormente (simulados + treino avulso)
 - Quantidades aceitas: 5, 10, 20 ou 30 (padrão: 10). **5 = "sessão focada"**: 100% matérias em risco (sem parcela geral), com fallback pra questões gerais se o usuário ainda não tem matérias em risco
 
+### Diagnóstico modular — módulos, mapa e lembrete
+
+O diagnóstico é dividido em módulos definidos em `app_config.diagnostico` (sem hardcode): **Módulo 1** = 8 matérias × 2 questões (dificuldade média/difícil), **Módulo 2** = 12 matérias × 1 questão (média). A profundidade diferente é **declarada na UI** — a tela de questões e o CTA dizem "1 questão por matéria, metade da profundidade do Módulo 1", porque sem isso o usuário vê o mesmo placar e assume a mesma confiança.
+
+`diagnostic_subject_results` é a invariante: **linha existe = matéria medida** (`CHECK (total > 0)`). Ela é derivada de `question_attempts`, e três coisas dependem disso:
+
+- **`mapaConsolidado(userId)`** (`lib/services/diagnostico.ts`) — materializa na leitura quando não há linha. Os ~23 usuários do diagnóstico legado (`m0`, 5 questões) nunca passaram por uma conclusão de módulo, que é onde o `responder` grava. **Toda leitura do mapa tem que passar por aqui**: quando só a tela de resultado consolidava, o dashboard dizia "faltam 8 matérias" e a tela mostrava 3 medidas, pro mesmo usuário (17 casos em produção).
+- **`proximoModuloPendente(userId)`** — o próximo módulo é o que tem matéria **pendente**, não o que não foi concluído. Um Módulo 1 respondido inteiro mas com 5 matérias sem medir (respostas < 3s) ainda é o próximo; oferecer o Módulo 2 ali não cobriria nenhuma delas. Usado pelo `/api/dashboard` **e** pelo `/api/diagnostico/resultado`.
+- **`diagnosticoCompleto` ≠ mapa completo.** Ele fica `true` assim que UMA sessão conclui. Os entry points do diagnóstico eram todos gateados em `!diagnosticoCompleto`, então quem terminava o Módulo 1 perdia qualquer caminho pro Módulo 2 fora da tela de resultado — daí o card persistente do dashboard alimentado por `diagnosticoProximoModulo`.
+
+**Lembrete do Módulo 2:** o botão "Me lembra amanhã" grava `users.diagnostic_reminder_at` (`POST /api/diagnostico/lembrete`) com a **meia-noite de amanhã no fuso de Brasília** — não `now + 24h`, porque o cron roda em hora fixa e um alvo de 24h à frente seria pulado pela execução da manhã. `/api/cron/diagnostico-lembrete` (diário, 13h UTC, em `vercel.json`, protegido por `CRON_SECRET`) envia e **zera a coluna**: é lembrete único, não sequência. Se o mapa foi completado no meio, não manda nada.
+
 ### Métricas exibidas — fonte única
 
 `lib/metrics.ts` centraliza META_APROVACAO (50%), as bandas por matéria (crítica < 40, média 40–70, boa > 70), os pisos de amostra MIN_TENTATIVAS_BANDA (3 respostas pra uma matéria entrar nas contagens dos cards) e MIN_RESPOSTAS_TAXA_GERAL (10 respostas de treino pra exibir a taxa geral) e os helpers de cor/label. Toda tela que classifica ou colore uma taxa de acerto importa daqui — não redeclarar thresholds.

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Sparkles, ArrowRight, AlertTriangle, RotateCcw } from "lucide-react"
 import { taxaTextColor, taxaBarColor } from "@/lib/metrics"
@@ -45,7 +46,14 @@ interface ResultadoData {
   descartadasTotal: number
   respostasTotal: number
   modulos: ModuloStatus[]
-  proximoModulo: { id: string; label: string; questoes: number } | null
+  proximoModulo: {
+    id: string
+    label: string
+    questoes: number
+    materiasPendentes: number
+    /** 1 questão por matéria é medição mais rasa que 2 — a tela precisa dizer. */
+    questoesPorMateria: number
+  } | null
   foco: { id: string; nome: string } | null
 }
 
@@ -53,6 +61,21 @@ export default function ResultadoPage() {
   const router = useRouter()
   const [data, setData] = useState<ResultadoData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [lembrete, setLembrete] = useState<"idle" | "enviando" | "ok">("idle")
+
+  // O botão era um <Link href="/dashboard"> — não lembrava ninguém de nada.
+  // Agora agenda de fato, e o texto só muda depois que o servidor confirmou.
+  async function pedirLembrete() {
+    setLembrete("enviando")
+    try {
+      const res = await fetch("/api/diagnostico/lembrete", { method: "POST" })
+      if (!res.ok) throw new Error("falhou")
+      setLembrete("ok")
+    } catch {
+      setLembrete("idle")
+      toast.error("Não foi possível agendar o lembrete. Tente de novo.")
+    }
+  }
 
   useEffect(() => {
     fetch("/api/diagnostico/resultado")
@@ -207,17 +230,48 @@ export default function ResultadoPage() {
             </p>
 
             {proximoModulo && (
-              <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-                <Button asChild className="flex-1">
-                  <Link href={`/dashboard/diagnostico-inicial?modulo=${proximoModulo.id}`}>
-                    {proximoModulo.label} — {proximoModulo.questoes}{" "}
-                    {proximoModulo.questoes === 1 ? "questão" : "questões"}
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" className="flex-1">
-                  <Link href="/dashboard">Me lembra amanhã</Link>
-                </Button>
-              </div>
+              <>
+                {/* Declarar a PROFUNDIDADE, não só a quantidade. O Módulo 2 mede
+                    1 questão por matéria contra as 2 do Módulo 1 — sem dizer
+                    isso, o usuário vê o mesmo placar e assume a mesma
+                    confiança nas duas medições. */}
+                <p className="mt-4 rounded-lg border border-border bg-background/60 p-3 text-xs leading-relaxed text-muted-foreground">
+                  <span className="font-medium text-foreground">Medição mais rasa:</span>{" "}
+                  o {proximoModulo.label} faz{" "}
+                  {proximoModulo.questoesPorMateria === 1
+                    ? "1 questão por matéria"
+                    : `${proximoModulo.questoesPorMateria} questões por matéria`}
+                  {" "}— metade da profundidade do Módulo 1. Serve pra dizer por onde começar, não
+                  pra cravar seu nível nelas.
+                </p>
+
+                <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                  <Button asChild className="flex-1">
+                    <Link href={`/dashboard/diagnostico-inicial?modulo=${proximoModulo.id}`}>
+                      {proximoModulo.label} — {proximoModulo.questoes}{" "}
+                      {proximoModulo.questoes === 1 ? "questão" : "questões"}
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={pedirLembrete}
+                    disabled={lembrete !== "idle"}
+                  >
+                    {lembrete === "ok"
+                      ? "Lembrete agendado ✓"
+                      : lembrete === "enviando"
+                        ? "Agendando..."
+                        : "Me lembra amanhã"}
+                  </Button>
+                </div>
+
+                {lembrete === "ok" && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Amanhã você recebe um e-mail com o que falta medir. Um só — não vamos repetir.
+                  </p>
+                )}
+              </>
             )}
           </div>
         )}

@@ -55,6 +55,11 @@ function DiagnosticoInicialInner() {
   const [posicaoInicial, setPosicaoInicial] = useState(0)
   const [total, setTotal] = useState(0)
   const [retomando, setRetomando] = useState(false)
+  const [label, setLabel] = useState("")
+  // Profundidade da medição deste módulo. 1 questão por matéria (Módulo 2) é
+  // metade da do Módulo 1 — o usuário tem que saber antes de responder, senão
+  // sai da tela com a mesma confiança nas duas medições.
+  const [questoesPorMateria, setQuestoesPorMateria] = useState(2)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
 
@@ -87,6 +92,8 @@ function DiagnosticoInicialInner() {
         setPosicaoInicial(json.posicao ?? 0)
         setTotal(json.total ?? json.questions.length)
         setRetomando(Boolean(json.retomando))
+        setLabel(json.label ?? "")
+        setQuestoesPorMateria(json.questoesPorMateria ?? 2)
         setLoading(false)
         startedAtRef.current = performance.now()
       })
@@ -207,6 +214,19 @@ function DiagnosticoInicialInner() {
               ? `Retomando de onde você parou — faltam ${questions.length}.`
               : "Pode fechar quando quiser: seu progresso fica salvo."}
           </p>
+
+          {/* Só aparece quando a medição é mais rasa que a do Módulo 1. Dizer
+              isso na tela em que a pessoa responde, e não só no CTA que a
+              trouxe, é o que evita ela sair achando que mediu igual. */}
+          {questoesPorMateria < 2 && (
+            <p className="mt-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+              <span className="font-medium text-foreground">
+                {label || "Este módulo"}: 1 questão por matéria.
+              </span>{" "}
+              É metade da profundidade do Módulo 1 — aponta direção, não crava seu nível. Depois dá
+              pra aprofundar treinando cada uma.
+            </p>
+          )}
         </div>
 
         {/* Enunciado */}

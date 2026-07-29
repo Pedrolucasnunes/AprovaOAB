@@ -16,12 +16,10 @@ export async function GET(req: NextRequest) {
   const inicioDoDia = inicioDoDiaBR()
 
   const [
-    { data: userRow },
     { count: diagnosticAttemptsCount },
     { count: questoesHojeCount },
     { data: userPlanoRow },
   ] = await Promise.all([
-    supabase.from("users").select("onboarding_data").eq("id", userId).single(),
     supabase
       .from("question_attempts")
       .select("id", { count: "exact", head: true })
@@ -37,9 +35,11 @@ export async function GET(req: NextRequest) {
   ])
 
   const onboardingCompleto = user.user_metadata?.onboarding_completed === true
-  const temPerfilOnboarding =
-    Array.isArray(userRow?.onboarding_data?.dificuldades) &&
-    userRow.onboarding_data.dificuldades.length > 0
+  // "Passou pelo onboarding". Antes olhava onboarding_data.dificuldades, campo
+  // que o wizard não coleta mais — todo usuário novo daria falso aqui e cairia
+  // no card de "usuário antigo sem perfil". A fonte correta sempre foi a flag
+  // do Auth; a lista de dificuldades era só um proxy dela.
+  const temPerfilOnboarding = onboardingCompleto
   // Estado do diagnóstico vem da SESSÃO, não da contagem de tentativas.
   // Com o módulo em 16 questões, o antigo `count >= 5` marcava "concluído" com
   // o usuário na questão 6 — o banner sumia no meio do diagnóstico.

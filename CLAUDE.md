@@ -116,13 +116,15 @@ Cadastro: email/senha → OTP 6 dígitos no email → verifyOtp → onboarding m
 Google:   signInWithOAuth → /auth/callback → verifica onboarding_completed → dashboard
 ```
 
-Onboarding (6 passos: welcome → nível → dificuldades → data da prova → tempo diário → CTA do diagnóstico):
-- `POST /api/user/onboarding` aceita **qualquer subconjunto** dos campos e faz merge sobre o `users.onboarding_data` existente — o modal grava a cada passo. Antes era tudo-ou-nada (`nivel && dificuldades && tempo_diario`), e quem saía no meio ficava com `onboarding_data` nulo; como o diagnóstico exigia `dificuldades`, isso travou 33 dos 57 usuários (jul/2026)
-- `exam_date` (em `user_metadata`) só é tocado quando a chave vem no corpo — save parcial de outro passo não pode zerar a data
-- `user_metadata.onboarding_completed = true` só com `completo: true` no payload, mandado apenas no último passo — é o que impede o modal de reabrir
-- `GET /api/user/onboarding` devolve o estado salvo; o modal usa pra pré-preencher e retomar no passo certo
+Onboarding (3 passos: welcome → data da prova → CTA do diagnóstico):
+- **Os passos de nível, dificuldades e tempo diário foram removidos (jul/2026).** Coletavam dados sem nenhum leitor: `nivel` e `tempo_diario` nunca tiveram um consumidor, e `dificuldades` só servia ao diagnóstico antigo (escolhia 3 das 5 questões) — o Módulo 1 é blueprint fixo de 8 matérias vindo do `app_config`. Este wizard era o maior buraco de ativação medido: 33 de 57 usuários pararam nele
+- `users.onboarding_data` **não é mais escrito**; a coluna fica com o histórico de quem já preencheu. Nada no app lê o conteúdo dela
+- `POST /api/user/onboarding` aceita só `exam_date` e `completo`. `exam_date` (em `user_metadata`) só é tocado quando a chave vem no corpo — o save do passo da data não pode ser zerado por outro save
+- `user_metadata.onboarding_completed = true` só com `completo: true`, mandado apenas no último passo — é o que impede o modal de reabrir
+- `GET /api/user/onboarding` devolve `exam_date` + `completo`; o modal usa pra pré-preencher
 - Enquanto `onboarding_completed` for falsy, `/dashboard` abre o modal automaticamente
-- O diagnóstico **não exige** onboarding: sem `dificuldades`, as 5 questões saem do baseline (Ética Profissional + Direito Constitucional) e do sorteio geral
+- `temPerfilOnboarding` (no `/api/dashboard`) = `onboarding_completed`. Antes olhava `onboarding_data.dificuldades`, que o wizard não coleta mais — todo usuário novo daria falso e cairia no card de "usuário antigo sem perfil"
+- O diagnóstico **não exige** onboarding nenhum
 
 ### Tabelas e views do banco (não óbvias pelo código)
 

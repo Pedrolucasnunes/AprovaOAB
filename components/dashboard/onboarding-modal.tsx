@@ -2,15 +2,26 @@
 
 import { useEffect, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
-import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { CalendarDays, Sparkles, Target, BookOpen, Clock } from "lucide-react"
+import { CalendarDays, Sparkles } from "lucide-react"
 
-type Step = "welcome" | "nivel" | "dificuldades" | "exam-date" | "tempo" | "diagnostico-cta"
-type Nivel = "iniciante" | "intermediario" | "avancado"
-type Tempo = "1h" | "2-3h" | "4h+"
+// Onboarding enxuto: welcome -> data da prova -> CTA do diagnóstico.
+//
+// Os passos de nível, matérias difíceis e tempo diário foram removidos. Eles
+// coletavam dados que NINGUÉM lia: `nivel` e `tempo_diario` nunca tiveram um
+// leitor sequer, e `dificuldades` só servia ao diagnóstico antigo pra escolher
+// 3 das 5 questões — o Módulo 1 é blueprint fixo de 8 matérias vindo do
+// app_config e não depende mais disso.
+//
+// Não é economia de código: este wizard é o maior buraco de ativação medido
+// (33 de 57 usuários pararam nele), e três das seis telas cobravam esforço sem
+// devolver nada. A premissa da reforma é que medição bate autodeclaração —
+// pedir pro candidato adivinhar as próprias matérias fracas antes de medir
+// contradizia isso.
+
+type Step = "welcome" | "exam-date" | "diagnostico-cta"
 
 const MONTHS = [
   "Janeiro", "Fevereiro", "Março", "Abril",
@@ -21,79 +32,40 @@ const MONTHS = [
 const currentYear = new Date().getFullYear()
 const YEARS = Array.from({ length: 3 }, (_, i) => currentYear + i)
 
-const NIVEIS: { value: Nivel; label: string; desc: string }[] = [
-  { value: "iniciante", label: "Estou começando agora", desc: "Primeiros meses de estudo." },
-  { value: "intermediario", label: "Já estudo há alguns meses", desc: "Estou em ritmo, mas com lacunas." },
-  { value: "avancado", label: "Já fiz a OAB antes", desc: "Quero focar nos pontos fracos." },
-]
-
-const TEMPOS: { value: Tempo; label: string; desc: string }[] = [
-  { value: "1h", label: "Tenho 1h por dia", desc: "Estudo concentrado, pouco tempo." },
-  { value: "2-3h", label: "Tenho 2-3h por dia", desc: "Rotina equilibrada." },
-  { value: "4h+", label: "4h+ ou estudo full-time", desc: "Foco total na aprovação." },
-]
-
-interface Subject {
-  id: string
-  name: string
-}
-
 export function OnboardingModal() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [step, setStep] = useState<Step>("welcome")
 
-  const [nivel, setNivel] = useState<Nivel | null>(null)
-  const [dificuldades, setDificuldades] = useState<string[]>([])
   const [month, setMonth] = useState("")
   const [year, setYear] = useState(String(currentYear))
   const [noDate, setNoDate] = useState(false)
-  const [tempo, setTempo] = useState<Tempo | null>(null)
-
-  const [subjects, setSubjects] = useState<Subject[]>([])
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (searchParams.get("onboarding") !== "true") return
     setIsOpen(true)
 
-    supabase
-      .from("subjects")
-      .select("id, name")
-      .order("name")
-      .then(({ data }) => {
-        if (data) setSubjects(data)
-      })
-
-    // Retoma de onde parou: cada passo é gravado na hora, então quem fechou no
-    // meio volta com o que já respondeu preenchido em vez de recomeçar do zero.
+    // Prefill: quem já escolheu a data e fechou não recomeça em branco.
     fetch("/api/user/onboarding")
       .then((r) => (r.ok ? r.json() : null))
       .then((json) => {
-        if (!json) return
-        const d = json.onboarding_data
-        if (d?.nivel) setNivel(d.nivel)
-        if (Array.isArray(d?.dificuldades)) setDificuldades(d.dificuldades)
-        if (d?.tempo_diario) setTempo(d.tempo_diario)
-
-        if (typeof json.exam_date === "string") {
+        if (typeof json?.exam_date === "string") {
           const [ano, mes] = json.exam_date.split("-")
           setYear(ano)
           setMonth(MONTHS[Number(mes) - 1] ?? "")
         }
-
-        // O último campo presente diz até onde ele chegou. `exam_date` sozinho
-        // não serve de marco: "ainda não sei a data" grava null igual a não ter
-        // respondido — por isso quem tem `tempo_diario` já passou desse passo.
-        if (d?.tempo_diario) setStep("diagnostico-cta")
-        else if (d?.dificuldades?.length) setStep("exam-date")
-        else if (d?.nivel) setStep("dificuldades")
       })
       .catch(() => {})
   }, [searchParams])
 
-  /** Grava o passo atual sem bloquear a navegação — o save final é que é awaited. */
+  function computeExamDate(): string | null {
+    const monthIndex = MONTHS.indexOf(month) + 1
+    return noDate || !month ? null : `${year}-${String(monthIndex).padStart(2, "0")}`
+  }
+
+  /** Grava sem bloquear a navegação — o save final é que é awaited. */
   function salvarParcial(patch: Record<string, unknown>) {
     void fetch("/api/user/onboarding", {
       method: "POST",
@@ -102,37 +74,12 @@ export function OnboardingModal() {
     }).catch(() => {})
   }
 
-  function toggleDificuldade(id: string) {
-    setDificuldades((prev) => {
-      if (prev.includes(id)) return prev.filter((x) => x !== id)
-      if (prev.length >= 4) return prev
-      return [...prev, id]
-    })
-  }
-
-  function computeExamDate(): string | null {
-    const monthIndex = MONTHS.indexOf(month) + 1
-    return noDate || !month ? null : `${year}-${String(monthIndex).padStart(2, "0")}`
-  }
-
-  // Só manda o que tem valor: o schema recusa `null`/`[]` nesses campos, e o
-  // save final não pode falhar por causa de um passo que o usuário pulou.
-  function buildPayload() {
-    return {
-      exam_date: computeExamDate(),
-      ...(nivel ? { nivel } : {}),
-      ...(dificuldades.length > 0 ? { dificuldades } : {}),
-      ...(tempo ? { tempo_diario: tempo } : {}),
-      completo: true,
-    }
-  }
-
   async function persist(): Promise<boolean> {
     try {
       const res = await fetch("/api/user/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(buildPayload()),
+        body: JSON.stringify({ exam_date: computeExamDate(), completo: true }),
       })
       return res.ok
     } catch {
@@ -140,7 +87,7 @@ export function OnboardingModal() {
     }
   }
 
-  async function startDiagnostico() {
+  async function concluir(destino: string) {
     setSaving(true)
     const ok = await persist()
     setSaving(false)
@@ -149,24 +96,10 @@ export function OnboardingModal() {
       return
     }
     setIsOpen(false)
-    router.replace("/dashboard/diagnostico-inicial")
+    router.replace(destino)
   }
 
-  async function skipDiagnostico() {
-    setSaving(true)
-    const ok = await persist()
-    setSaving(false)
-    if (!ok) {
-      toast.error("Não foi possível salvar. Tente de novo.")
-      return
-    }
-    setIsOpen(false)
-    router.replace("/dashboard")
-  }
-
-  // Fechar não grava mais nada: cada passo já foi salvo na hora. O POST antigo
-  // mandava `{ exam_date: null }` só pra ter um corpo válido — e apagava a data
-  // de quem já tinha escolhido uma.
+  // Fechar não grava nada: a data já foi salva no passo dela.
   function handleDismiss() {
     setIsOpen(false)
     router.replace("/dashboard")
@@ -184,7 +117,7 @@ export function OnboardingModal() {
             </div>
             <div className="space-y-2">
               <h2 className="text-2xl font-bold text-foreground">
-                Vamos criar seu diagnóstico
+                Vamos medir seu nível
               </h2>
               {/* ~15 min = 16 questões × 56s (mediana medida). Se mudar
                   questoesPorMateria no app_config, revisar este número. */}
@@ -197,8 +130,8 @@ export function OnboardingModal() {
                 <li>• por onde começar a estudar</li>
               </ul>
             </div>
-            <Button className="w-full" onClick={() => setStep("nivel")}>
-              Começar diagnóstico
+            <Button className="w-full" onClick={() => setStep("exam-date")}>
+              Começar
             </Button>
             <button
               onClick={handleDismiss}
@@ -206,112 +139,6 @@ export function OnboardingModal() {
             >
               Pular por agora
             </button>
-          </div>
-        )}
-
-        {step === "nivel" && (
-          <div className="flex flex-col gap-5">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                <Target className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-foreground">Em que ponto você está?</h3>
-                <p className="text-xs text-muted-foreground">Isso ajuda a calibrar a primeira leitura.</p>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              {NIVEIS.map((n) => (
-                <button
-                  key={n.value}
-                  type="button"
-                  onClick={() => setNivel(n.value)}
-                  className={`text-left rounded-lg border p-3 transition-colors cursor-pointer ${
-                    nivel === n.value
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/40"
-                  }`}
-                >
-                  <p className="text-sm font-medium text-foreground">{n.label}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{n.desc}</p>
-                </button>
-              ))}
-            </div>
-
-            <div className="flex gap-2 pt-1">
-              <Button variant="outline" className="flex-1" onClick={() => setStep("welcome")}>
-                Voltar
-              </Button>
-              <Button
-                className="flex-1"
-                disabled={!nivel}
-                onClick={() => {
-                  salvarParcial({ nivel })
-                  setStep("dificuldades")
-                }}
-              >
-                Continuar
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {step === "dificuldades" && (
-          <div className="flex flex-col gap-5">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                <BookOpen className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-foreground">Onde você sente mais dificuldade?</h3>
-                <p className="text-xs text-muted-foreground">Escolha de 1 a 4 matérias.</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 max-h-72 overflow-y-auto pr-1">
-              {subjects.map((s) => {
-                const selected = dificuldades.includes(s.id)
-                const disabled = !selected && dificuldades.length >= 4
-                return (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => toggleDificuldade(s.id)}
-                    disabled={disabled}
-                    className={`text-left rounded-lg border px-3 py-2 transition-colors cursor-pointer ${
-                      selected
-                        ? "border-primary bg-primary/5 text-foreground"
-                        : disabled
-                          ? "border-border opacity-40 cursor-not-allowed"
-                          : "border-border hover:border-primary/40 text-foreground"
-                    }`}
-                  >
-                    <p className="text-xs font-medium">{s.name}</p>
-                  </button>
-                )
-              })}
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              Selecionadas: {dificuldades.length}/4
-            </p>
-
-            <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => setStep("nivel")}>
-                Voltar
-              </Button>
-              <Button
-                className="flex-1"
-                disabled={dificuldades.length === 0}
-                onClick={() => {
-                  salvarParcial({ dificuldades })
-                  setStep("exam-date")
-                }}
-              >
-                Continuar
-              </Button>
-            </div>
           </div>
         )}
 
@@ -362,7 +189,7 @@ export function OnboardingModal() {
             </label>
 
             <div className="flex gap-2 pt-1">
-              <Button variant="outline" className="flex-1" onClick={() => setStep("dificuldades")}>
+              <Button variant="outline" className="flex-1" onClick={() => setStep("welcome")}>
                 Voltar
               </Button>
               <Button
@@ -370,54 +197,6 @@ export function OnboardingModal() {
                 disabled={!noDate && !month}
                 onClick={() => {
                   salvarParcial({ exam_date: computeExamDate() })
-                  setStep("tempo")
-                }}
-              >
-                Continuar
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {step === "tempo" && (
-          <div className="flex flex-col gap-5">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                <Clock className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-foreground">Quanto tempo você tem por dia?</h3>
-                <p className="text-xs text-muted-foreground">Pra calibrar o ritmo do plano.</p>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              {TEMPOS.map((t) => (
-                <button
-                  key={t.value}
-                  type="button"
-                  onClick={() => setTempo(t.value)}
-                  className={`text-left rounded-lg border p-3 transition-colors cursor-pointer ${
-                    tempo === t.value
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/40"
-                  }`}
-                >
-                  <p className="text-sm font-medium text-foreground">{t.label}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{t.desc}</p>
-                </button>
-              ))}
-            </div>
-
-            <div className="flex gap-2 pt-1">
-              <Button variant="outline" className="flex-1" onClick={() => setStep("exam-date")}>
-                Voltar
-              </Button>
-              <Button
-                className="flex-1"
-                disabled={!tempo}
-                onClick={() => {
-                  salvarParcial({ tempo_diario: tempo })
                   setStep("diagnostico-cta")
                 }}
               >
@@ -435,20 +214,21 @@ export function OnboardingModal() {
             <div className="space-y-2">
               <h3 className="text-xl font-bold text-foreground">Tudo pronto</h3>
               <p className="text-sm text-muted-foreground text-pretty">
-                Agora vamos identificar seus primeiros padrões. Responda 5 questões rápidas pra começar.
+                São 16 questões, 2 de cada uma das 8 matérias mais pesadas. Pode fechar no
+                meio — seu progresso fica salvo.
               </p>
             </div>
             <Button
               className="w-full"
-              onClick={startDiagnostico}
+              onClick={() => concluir("/dashboard/diagnostico-inicial")}
               disabled={saving}
             >
-              {saving ? "Salvando..." : "Fazer mini-diagnóstico agora"}
+              {saving ? "Salvando..." : "Fazer diagnóstico agora"}
             </Button>
             <Button
               variant="ghost"
               className="w-full"
-              onClick={skipDiagnostico}
+              onClick={() => concluir("/dashboard")}
               disabled={saving}
             >
               Mais tarde — ir pro dashboard

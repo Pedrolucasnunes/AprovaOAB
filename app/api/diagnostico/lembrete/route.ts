@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { addDays, startOfDay } from "date-fns"
 import { fromZonedTime, toZonedTime } from "date-fns-tz"
 import { requireUser } from "@/lib/auth-server"
+import { rateLimit } from "@/lib/rate-limit"
 import { TZ_BRASIL } from "@/lib/datas"
 import { EVENTOS, track } from "@/lib/events"
 import { logError } from "@/lib/logger"
@@ -28,7 +29,16 @@ function inicioDeAmanhaBR(): Date {
   return fromZonedTime(addDays(startOfDay(agoraSP), 1), TZ_BRASIL)
 }
 
-export async function POST() {
+export async function POST(req: NextRequest) {
+  // Escrita autenticada, mas ainda assim limitada: sem isso um usuário logado
+  // pode marretar a rota. O dano é baixo (reescreve o mesmo timestamp, e o cron
+  // manda um e-mail só), mas escrita sem teto não se justifica quando o helper
+  // já existe.
+  const rl = await rateLimit(req, "diagnostico-lembrete", 10, 60)
+  if (!rl.success) {
+    return NextResponse.json({ error: "Muitas requisições. Aguarde alguns segundos." }, { status: 429 })
+  }
+
   const { user, error } = await requireUser()
   if (error) return error
 

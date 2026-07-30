@@ -87,10 +87,30 @@ export interface LimiteDiario {
   mediaProAcimaDoTeto: number | null
 }
 
+/**
+ * De onde saem os denominadores da página.
+ *
+ * Existe porque a tela mostrava "base: 39" no funil e "14 de 35" no retorno, e
+ * nada dizia que eram populações diferentes. Número certo sem base declarada é
+ * indistinguível de número errado pra quem lê.
+ */
+export interface BaseUsuarios {
+  total: number
+  /** Cadastrados há >= janelaDias. Só eles entram nas taxas. */
+  maduros: number
+  /** Cadastrados dentro da janela — voltam a contar quando amadurecerem. */
+  imaturos: number
+  /** Maduros que responderam ao menos 1 questão dentro da janela. */
+  madurosAtivos: number
+  /** Maduros que nunca responderam nada — o buraco de ativação real. */
+  madurosSemAtividade: number
+}
+
 export interface Metricas {
   janelaDias: number
   /** Primeiro evento registrado — o "vale desde" dos blocos prospectivos. */
   eventosDesde: string | null
+  base: BaseUsuarios
   totalUsuarios: number
   descartadasPorTempo: number
   respostasDiagnostico: number
@@ -208,9 +228,16 @@ export async function calcularMetricas(janelaDias = 7): Promise<Metricas> {
   ).size
 
   // ── 4. Retorno em outro dia ──────────────────────────────────────────────
+  // DENTRO DA COORTE, igual ao funil: só usuários maduros e só atividade dentro
+  // da janela desde o cadastro. Antes esta métrica varria o histórico todo, e o
+  // resultado era um denominador diferente do resto da página ("14 de 35" embaixo
+  // de "base: 39") sem nada explicando a diferença — os dois estavam certos e
+  // mediam populações distintas, o que é a pior combinação possível num painel.
+  const idsMadurosSet = new Set(idsMaduros)
   const diasPorUser = new Map<string, Set<string>>()
   for (const a of attempts) {
-    if (!planoPorUser.has(a.user_id)) continue
+    if (!idsMadurosSet.has(a.user_id)) continue
+    if (!naJanela(a.user_id, a)) continue
     if (!diasPorUser.has(a.user_id)) diasPorUser.set(a.user_id, new Set())
     diasPorUser.get(a.user_id)!.add(ymdBrasil(parseDbDate(a.created_at)))
   }
@@ -290,6 +317,13 @@ export async function calcularMetricas(janelaDias = 7): Promise<Metricas> {
   return {
     janelaDias,
     eventosDesde: primeiroEvento,
+    base: {
+      total: usuarios.length,
+      maduros: idsMaduros.length,
+      imaturos: usuarios.length - idsMaduros.length,
+      madurosAtivos: diasPorUser.size,
+      madurosSemAtividade: idsMaduros.length - diasPorUser.size,
+    },
     totalUsuarios: usuarios.length,
     descartadasPorTempo,
     respostasDiagnostico,

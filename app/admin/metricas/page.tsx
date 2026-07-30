@@ -38,6 +38,13 @@ const COR_NEUTRA = "var(--chart-2)"
 interface Metricas {
   janelaDias: number
   eventosDesde: string | null
+  base: {
+    total: number
+    maduros: number
+    imaturos: number
+    madurosAtivos: number
+    madurosSemAtividade: number
+  }
   totalUsuarios: number
   descartadasPorTempo: number
   respostasDiagnostico: number
@@ -244,6 +251,36 @@ export default function MetricasPage() {
         </div>
       </div>
 
+      {/* ── De onde vêm os denominadores ────────────────────────────────
+           Explícito porque a página tinha "base: 39" num card e "de 35" em
+           outro: dois números certos medindo populações diferentes, sem nada
+           dizendo isso. Pior que número errado, porque parece erro. */}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-border bg-muted/30 px-4 py-2.5 text-xs">
+        <span className="font-medium text-foreground">{data.base.total} cadastrados</span>
+        <ArrowRight className="h-3 w-3 text-muted-foreground/50" />
+        <span className="text-muted-foreground">
+          <strong className="text-foreground">{data.base.maduros}</strong> com{" "}
+          {data.janelaDias} dias completos
+          {data.base.imaturos > 0 && (
+            <span className="text-muted-foreground/70">
+              {" "}
+              (−{data.base.imaturos} recentes, ainda não deu tempo)
+            </span>
+          )}
+        </span>
+        <ArrowRight className="h-3 w-3 text-muted-foreground/50" />
+        <span className="text-muted-foreground">
+          <strong className="text-foreground">{data.base.madurosAtivos}</strong> responderam algo na
+          janela
+          {data.base.madurosSemAtividade > 0 && (
+            <span className="text-destructive/80">
+              {" "}
+              (−{data.base.madurosSemAtividade} nunca responderam nada)
+            </span>
+          )}
+        </span>
+      </div>
+
       {/* ── KPIs: o estado do produto em 5 segundos ────────────────────── */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi
@@ -259,7 +296,7 @@ export default function MetricasPage() {
         <Kpi
           label="Voltaram em outro dia"
           valor={pct(retorno.voltaramOutroDia, retorno.ativos)}
-          sub={`${retorno.voltaramOutroDia} de ${retorno.ativos} com atividade`}
+          sub={`${retorno.voltaramOutroDia} dos ${retorno.ativos} que responderam algo`}
         />
         <Kpi
           destaque
@@ -491,8 +528,8 @@ export default function MetricasPage() {
                   Dias de atividade
                 </CardTitle>
                 <CardDescription className="mt-1">
-                  {retorno.voltaramOutroDia} de {retorno.ativos} voltaram em outro dia (
-                  {pct(retorno.voltaramOutroDia, retorno.ativos)}). Fuso de Brasília.
+                  {retorno.voltaramOutroDia} dos {retorno.ativos} maduros que responderam algo na
+                  janela ({pct(retorno.voltaramOutroDia, retorno.ativos)}). Dias no fuso de Brasília.
                 </CardDescription>
               </div>
               <Selo natureza={retorno.natureza} />

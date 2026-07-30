@@ -18,6 +18,21 @@ No test suite exists in this project.
 
 Deployed on Vercel at `https://www.aprovaoab.app.br`.
 
+### Região das funções — `gru1`, e por quê
+
+`vercel.json` fixa `"regions": ["gru1"]` (São Paulo). **Não mudar sem medir.** O default da Vercel para projetos novos é `iad1` (Washington), e o Supabase deste projeto está em `sa-east-1` (São Paulo): com a função em `iad1`, cada ida ao banco custava **~135 ms** contra ~20 ms de `gru1`. Como as rotas fazem várias consultas na mesma requisição, era esse número — e não o volume de dados — que dominava o tempo de resposta.
+
+Como conferir a região em produção (o `x-vercel-id` é `<edge>::<função>::<id>`):
+
+```bash
+curl -sD - https://www.aprovaoab.app.br/api/dashboard | grep -i x-vercel-id
+# gru1::gru1::...  correto     |  gru1::iad1::...  voltou pro default
+```
+
+Contrapartida aceita: Stripe, Resend e Google Calendar são hospedados nos EUA e ficam ~100 ms mais lentos. São caminhos de webhook e background, não de tela.
+
+**Corolário para quem escreve rota nova: o custo está no NÚMERO de consultas em sequência, não no tamanho delas.** Duas consultas independentes têm que ir num `Promise.all`; consulta repetida na mesma requisição é ida e volta jogada fora.
+
 ### Supabase — dois clientes distintos
 
 | Cliente | Arquivo | Quando usar |
@@ -34,8 +49,8 @@ O cliente browser respeita RLS. O `supabaseAdmin` ignora RLS completamente — u
 Todas as rotas protegidas usam os guards de `lib/auth-server.ts`:
 
 ```ts
-// Usuário comum
-const { user, supabase, error } = await requireUser()
+// Usuário comum — `plano` vem junto, NÃO reconsultar
+const { user, supabase, plano, error } = await requireUser()
 if (error) return error
 
 // Admin
@@ -44,6 +59,8 @@ if (error) return error
 ```
 
 `requireUser()` também bloqueia contas com `role = "blocked"`. `requireAdmin()` exige `role = "admin"` na tabela `users`.
+
+**`requireUser()` devolve `plano`** porque ele sai da mesma linha de `users` que o `role`. As rotas que precisavam dele (`/api/treino`, `/api/simulados/gerar`, `/api/simulados/resposta`) faziam um segundo `SELECT` na linha que o guard acabara de ler — uma ida e volta inteira ao banco por requisição, na rota que roda a cada questão respondida.
 
 ### Tabela `users` (Supabase)
 
@@ -119,7 +136,17 @@ Matéria com `total = 0` (todas as respostas descartadas) **não é matéria com
 
 `placarPorMateria(..., "diagnostico")` restringe ao diagnóstico e alimenta `recomputarResultados` + `/api/diagnostico/resultado`: aquela tela é o retrato do que **o diagnóstico** mediu e não pode mudar quando o usuário treina depois.
 
-O `/api/dashboard` chama o placar no passo 5.5 e devolve: `resumo.totalRespondidas`/`taxaGeralAcerto` (treino avulso + respostas de simulado; brancos de simulado ficam de fora, e **o diagnóstico também** — ele é régua, não treino: sai nas 8 matérias mais pesadas em dificuldade média/difícil e o candidato faz frio no dia 1, então puxa a taxa pra baixo (36% contra 49% do treino) e com 16 questões dominaria o número de todo usuário novo. A agregação **por matéria** do passo 5.5 continua incluindo o diagnóstico — é ele que mede as matérias. `taxaGeralAcerto` vem **`null`** abaixo de `MIN_RESPOSTAS_TAXA_GERAL`; a tela mostra convite, nunca `0%`), `resumo.taxaSimulados` (nota de prova: acertos ÷ 80 por simulado, brancos contam contra — é a métrica do hero), `materiasPorBanda` (contagens **por banda**, só matérias `rotulavel` — alimenta a Agenda), `materiasRiscoCount` (**tamanho da lista de risco**, não a contagem por banda: com o rótulo exigindo amostra de treino, a contagem por banda é 0 pra quem só fez o diagnóstico e o card mostraria "0 disciplinas em risco" acima de uma lista com 4) e `materiasRisco` (top-5 da banda crítica, sem piso, cada uma com `rotulavel` — alimenta listas e recomendações, que precisam funcionar já no pós-diagnóstico).
+**Busca e fusão são separadas de propósito.** `placarPorMateria` é só o atalho `fundirPlacar(await carregarFontesPlacar(...))`:
+
+| Função | O que é | Quando usar |
+|---|---|---|
+| `carregarFontesPlacar(supabase, userId, escopo)` | só I/O — devolve `{ attempts, simulado, subjectDaQuestao }` | quando a rota também precisa dos dados crus |
+| `fundirPlacar(fontes, minTempoRespostaMs)` | **pura, zero I/O** — aplica o filtro de <3s e as duas contagens | sempre que já tiver as fontes |
+| `placarPorMateria(supabase, userId, escopo)` | as duas juntas | quando só o placar interessa (`/api/treino`, `recomputarResultados`) |
+
+A separação existe porque o `/api/dashboard` precisa das MESMAS quatro consultas (`question_attempts`, `simulado_attempts`, `simulado_respostas`, `questions`) para outros campos: sem ela, cada uma era feita duas ou três vezes na mesma requisição. `attempts` traz `created_at` justamente para que contagem por dia e "última prática por matéria" saiam de memória. **Rota que já tem `fontes` não pode chamar `placarPorMateria`** — chama `fundirPlacar`.
+
+O `/api/dashboard` é a rota mais chamada do app (dashboard, treino, questões, perfil e calendário). Ela carrega as fontes **uma vez**, num `Promise.all` único junto de tudo que não depende de mais nada, e deriva o resto em memória — contagem de questões de hoje, tentativas de diagnóstico, total de simulados finalizados, desempenho por matéria e a última prática de cada matéria. Nenhuma delas deve voltar a ser query. Ela chama o placar no passo 5.5 e devolve: `resumo.totalRespondidas`/`taxaGeralAcerto` (treino avulso + respostas de simulado; brancos de simulado ficam de fora, e **o diagnóstico também** — ele é régua, não treino: sai nas 8 matérias mais pesadas em dificuldade média/difícil e o candidato faz frio no dia 1, então puxa a taxa pra baixo (36% contra 49% do treino) e com 16 questões dominaria o número de todo usuário novo. A agregação **por matéria** do passo 5.5 continua incluindo o diagnóstico — é ele que mede as matérias. `taxaGeralAcerto` vem **`null`** abaixo de `MIN_RESPOSTAS_TAXA_GERAL`; a tela mostra convite, nunca `0%`), `resumo.taxaSimulados` (nota de prova: acertos ÷ 80 por simulado, brancos contam contra — é a métrica do hero), `materiasPorBanda` (contagens **por banda**, só matérias `rotulavel` — alimenta a Agenda), `materiasRiscoCount` (**tamanho da lista de risco**, não a contagem por banda: com o rótulo exigindo amostra de treino, a contagem por banda é 0 pra quem só fez o diagnóstico e o card mostraria "0 disciplinas em risco" acima de uma lista com 4) e `materiasRisco` (top-5 da banda crítica, sem piso, cada uma com `rotulavel` — alimenta listas e recomendações, que precisam funcionar já no pós-diagnóstico).
 
 Decisão de produto: o **hero do dashboard usa `taxaSimulados`**, não a geral — treino avulso não prevê a prova (o treino puxa de propósito pras piores matérias). A taxa geral fica no stat card "Taxa de acerto geral". Quem nunca finalizou um simulado vê um convite ("faça seu primeiro simulado") no lugar da métrica, nunca um 0%.
 

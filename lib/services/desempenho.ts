@@ -46,11 +46,28 @@ export type EscopoPlacar = "tudo" | "diagnostico"
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Cliente = SupabaseClient<any, any, any>
 
-interface AttemptRow {
+export interface AttemptRow {
   question_id: string
   acertou: boolean
   is_diagnostic: boolean
   time_spent_ms: number | null
+  /** Necessário para bucketar por dia e achar a última prática por matéria. */
+  created_at: string
+}
+
+/**
+ * Os dados crus por trás do placar, antes de qualquer regra.
+ *
+ * Existe separado da fusão porque quem já buscou isso não pode ser obrigado a
+ * buscar de novo: o /api/dashboard precisava das MESMAS quatro consultas para
+ * outros campos e acabava fazendo cada uma duas ou três vezes na mesma
+ * requisição — com a função em outra região, cada repetição custava ~135 ms.
+ */
+export interface FontesPlacar {
+  attempts: AttemptRow[]
+  simulado: { question_id: string; acertou: boolean }[]
+  /** question_id → subject_id, cobrindo toda questão que o usuário tocou. */
+  subjectDaQuestao: Map<string, string>
 }
 
 function vazio(subject_id: string): PlacarMateria {
@@ -58,58 +75,67 @@ function vazio(subject_id: string): PlacarMateria {
 }
 
 /**
- * Placar por matéria do usuário.
+ * Busca as fontes do placar. Só I/O — nenhuma regra de negócio mora aqui.
  *
- * O filtro de baixa confiança vale para TODAS as fontes que têm tempo gravado,
- * não só o diagnóstico: respostas abaixo do piso acertam menos que o chute puro,
- * então são clique e não resposta, venham de onde vierem.
- *
- * `time_spent_ms` nulo conta como válida. É o caso das 384 respostas de treino
- * anteriores à instrumentação e das respostas de simulado (que não têm a coluna):
- * descartar por ausência de dado apagaria metade do histórico. Consequência
- * aceita: o filtro é prospectivo.
+ * Três etapas em vez de quatro sequenciais: tentativas e attempts de simulado
+ * são independentes e vão juntas; as respostas de simulado dependem dos ids dos
+ * attempts; as questões dependem dos ids das duas fontes.
  */
-export async function placarPorMateria(
+export async function carregarFontesPlacar(
   supabase: Cliente,
   userId: string,
   escopo: EscopoPlacar = "tudo",
-): Promise<Map<string, PlacarMateria>> {
-  const { minTempoRespostaMs } = await getDiagnosticoConfig()
+): Promise<FontesPlacar> {
+  const [attempts, attemptIds] = await Promise.all([
+    fetchAllRows<AttemptRow>(() => {
+      const q = supabase
+        .from("question_attempts")
+        .select("question_id, acertou, is_diagnostic, time_spent_ms, created_at")
+        .eq("user_id", userId)
+      return escopo === "diagnostico" ? q.eq("is_diagnostic", true) : q
+    }),
+    // Simulado só entra no escopo "tudo": ele não faz parte do diagnóstico.
+    escopo === "tudo"
+      ? fetchAllRows<{ id: string }>(() =>
+          supabase.from("simulado_attempts").select("id").eq("user_id", userId),
+        ).then((rows) => rows.map((a) => a.id))
+      : Promise.resolve([] as string[]),
+  ])
 
-  const attempts = await fetchAllRows<AttemptRow>(() => {
-    const q = supabase
-      .from("question_attempts")
-      .select("question_id, acertou, is_diagnostic, time_spent_ms")
-      .eq("user_id", userId)
-    return escopo === "diagnostico" ? q.eq("is_diagnostic", true) : q
-  })
-
-  // Simulado só entra no escopo "tudo": ele não faz parte do diagnóstico.
-  let simulado: { question_id: string; acertou: boolean }[] = []
-  if (escopo === "tudo") {
-    const attemptIds = (
-      await fetchAllRows<{ id: string }>(() =>
-        supabase.from("simulado_attempts").select("id").eq("user_id", userId),
-      )
-    ).map((a) => a.id)
-
-    simulado = await fetchByIds<{ question_id: string; acertou: boolean }>(
-      (ids) => supabase.from("simulado_respostas").select("question_id, acertou").in("attempt_id", ids),
-      attemptIds,
-    )
-  }
+  const simulado = await fetchByIds<{ question_id: string; acertou: boolean }>(
+    (ids) => supabase.from("simulado_respostas").select("question_id, acertou").in("attempt_id", ids),
+    attemptIds,
+  )
 
   const questionIds = [
     ...new Set([...attempts.map((a) => a.question_id), ...simulado.map((r) => r.question_id)]),
   ]
-  if (questionIds.length === 0) return new Map()
+  if (questionIds.length === 0) {
+    return { attempts, simulado, subjectDaQuestao: new Map() }
+  }
 
   const questoes = await fetchByIds<{ id: string; subject_id: string }>(
     (ids) => supabase.from("questions").select("id, subject_id").in("id", ids),
     questionIds,
   )
-  const subjectDaQuestao = new Map(questoes.map((q) => [q.id, q.subject_id]))
 
+  return {
+    attempts,
+    simulado,
+    subjectDaQuestao: new Map(questoes.map((q) => [q.id, q.subject_id])),
+  }
+}
+
+/**
+ * Aplica as regras sobre as fontes. **Função pura, zero I/O** — é aqui que vive
+ * o filtro de baixa confiança e a separação entre as duas contagens, e é isso
+ * que garante que dashboard e treino não possam divergir.
+ */
+export function fundirPlacar(
+  fontes: FontesPlacar,
+  minTempoRespostaMs: number,
+): Map<string, PlacarMateria> {
+  const { attempts, simulado, subjectDaQuestao } = fontes
   const placar = new Map<string, PlacarMateria>()
 
   for (const a of attempts) {
@@ -150,6 +176,32 @@ export async function placarPorMateria(
   }
 
   return placar
+}
+
+/**
+ * Placar por matéria do usuário.
+ *
+ * O filtro de baixa confiança vale para TODAS as fontes que têm tempo gravado,
+ * não só o diagnóstico: respostas abaixo do piso acertam menos que o chute puro,
+ * então são clique e não resposta, venham de onde vierem.
+ *
+ * `time_spent_ms` nulo conta como válida. É o caso das 384 respostas de treino
+ * anteriores à instrumentação e das respostas de simulado (que não têm a coluna):
+ * descartar por ausência de dado apagaria metade do histórico. Consequência
+ * aceita: o filtro é prospectivo.
+ */
+export async function placarPorMateria(
+  supabase: Cliente,
+  userId: string,
+  escopo: EscopoPlacar = "tudo",
+): Promise<Map<string, PlacarMateria>> {
+  // A config não depende das fontes — buscar as duas juntas tira mais uma ida
+  // e volta do caminho de quem só quer o placar (/api/treino, recomputarResultados).
+  const [{ minTempoRespostaMs }, fontes] = await Promise.all([
+    getDiagnosticoConfig(),
+    carregarFontesPlacar(supabase, userId, escopo),
+  ])
+  return fundirPlacar(fontes, minTempoRespostaMs)
 }
 
 /** Taxa de acerto acumulada (0–100). `null` quando não há resposta válida. */

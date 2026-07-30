@@ -19,6 +19,18 @@ export interface ResultadoMateria {
   descartadas: number
 }
 
+/**
+ * Dados que o chamador já buscou, para não repetir a ida ao banco.
+ *
+ * O /api/dashboard já lê `diagnostic_subject_results` e já sabe quantas
+ * tentativas de diagnóstico o usuário tem — sem isto, o mapa refazia as duas
+ * consultas dentro da mesma requisição.
+ */
+export interface PreCarregado {
+  medidos?: Set<string>
+  attemptsDiagnostico?: number
+}
+
 /** Matérias que já têm medição válida — linha em diagnostic_subject_results. */
 export async function subjectsMedidos(userId: string): Promise<Set<string>> {
   const { data } = await supabaseAdmin
@@ -57,17 +69,21 @@ export async function materiasPendentes(userId: string, subjects: string[]): Pro
  * quebraria a invariante `CHECK (total > 0)` que sustenta "linha existe =
  * matéria medida".
  */
-export async function mapaConsolidado(userId: string): Promise<Set<string>> {
-  const medidos = await subjectsMedidos(userId)
+export async function mapaConsolidado(userId: string, pre?: PreCarregado): Promise<Set<string>> {
+  const medidos = pre?.medidos ?? (await subjectsMedidos(userId))
   if (medidos.size > 0) return medidos
 
-  const { count } = await supabaseAdmin
-    .from("question_attempts")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .eq("is_diagnostic", true)
+  let count = pre?.attemptsDiagnostico
+  if (count === undefined) {
+    const res = await supabaseAdmin
+      .from("question_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("is_diagnostic", true)
+    count = res.count ?? 0
+  }
 
-  if ((count ?? 0) === 0) return medidos
+  if (count === 0) return medidos
 
   try {
     const linhas = await recomputarResultados(userId)
@@ -101,11 +117,16 @@ export interface ModuloPendente {
  * diagnóstico eram todos gateados em `!diagnosticoCompleto`, então o Módulo 2
  * ficava inalcançável pra quem saísse da tela de resultado.
  */
-export async function proximoModuloPendente(userId: string): Promise<ModuloPendente | null> {
-  const { modulos } = await getDiagnosticoConfig()
+export async function proximoModuloPendente(
+  userId: string,
+  pre?: PreCarregado,
+): Promise<ModuloPendente | null> {
   // Consolida na leitura: sem isso os usuários legados apareceriam com zero
   // matérias medidas e o card ofereceria o módulo inteiro de novo.
-  const medidos = await mapaConsolidado(userId)
+  const [{ modulos }, medidos] = await Promise.all([
+    getDiagnosticoConfig(),
+    mapaConsolidado(userId, pre),
+  ])
 
   for (const m of modulos) {
     const pendentes = m.subjects.filter((id) => !medidos.has(id))

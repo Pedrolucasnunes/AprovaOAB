@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireUser } from "@/lib/auth-server"
-import { supabaseAdmin } from "@/lib/supabase-admin"
 import { checkDailyLimit } from "@/lib/check-daily-limit"
 import { EVENTOS, track } from "@/lib/events"
 import { logError } from "@/lib/logger"
@@ -8,7 +7,7 @@ import { logError } from "@/lib/logger"
 const DURACAO_SIMULADO_MS = 5 * 60 * 60 * 1000 // 5 horas
 
 export async function POST(req: NextRequest) {
-  const { user, supabase, error } = await requireUser()
+  const { user, supabase, plano, error } = await requireUser()
   if (error) return error
 
   const userId = user.id
@@ -50,28 +49,52 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Busca o gabarito
-  const { data: question, error: qError } = await supabase
+  // Esta rota roda a CADA questão respondida (treino, questões e simulado), então
+  // o número de idas ao banco em sequência é o que define a sensação de lentidão
+  // ao estudar. As leituras de validação são independentes entre si e vão juntas;
+  // a ESCRITA continua depois de todas elas, e a ordem em que os erros são
+  // checados é a mesma de antes (gabarito → ownership → estado do simulado).
+  const gabarito = supabase
     .from("questions")
     .select("resposta_correta")
     .eq("id", questionId)
     .single()
 
-  if (qError || !question) {
-    return NextResponse.json({ error: "Questão não encontrada" }, { status: 404 })
-  }
-
-  const acertou = respostaFormatada === question.resposta_correta.toUpperCase().trim()
+  let acertou = false
+  // Só o ramo de treino devolve o gabarito — no simulado ele fica vazio de
+  // propósito (ver o comentário do retorno lá embaixo).
+  let respostaCorreta = ""
 
   if (simuladoId) {
-    // ✅ Verifica que o attempt pertence ao usuário autenticado
-    const { data: attempt, error: atError } = await supabase
-      .from("simulado_attempts")
-      .select("id")
-      .eq("simulado_id", simuladoId)
-      .eq("question_id", questionId)
-      .eq("user_id", userId) // ← garante ownership
-      .single()
+    const [
+      { data: question, error: qError },
+      { data: attempt, error: atError },
+      { data: simulado },
+    ] = await Promise.all([
+      gabarito,
+      // ✅ Verifica que o attempt pertence ao usuário autenticado
+      supabase
+        .from("simulado_attempts")
+        .select("id")
+        .eq("simulado_id", simuladoId)
+        .eq("question_id", questionId)
+        .eq("user_id", userId) // ← garante ownership
+        .single(),
+      // Server-side timeout: rejeita respostas após 5h do started_at
+      supabase
+        .from("simulados")
+        .select("started_at, percentual")
+        .eq("id", simuladoId)
+        .eq("user_id", userId)
+        .single(),
+    ])
+
+    // O gabarito foi buscado em paralelo, então pode ter vindo mesmo quando a
+    // validação falha — mas ele nunca é devolvido no ramo de simulado, então não
+    // há como vazar resposta correta em tempo de prova.
+    if (qError || !question) {
+      return NextResponse.json({ error: "Questão não encontrada" }, { status: 404 })
+    }
 
     if (atError || !attempt) {
       logError(atError ?? new Error("Attempt não encontrado"), {
@@ -82,14 +105,6 @@ export async function POST(req: NextRequest) {
         { status: 404 }
       )
     }
-
-    // Server-side timeout: rejeita respostas após 5h do started_at
-    const { data: simulado } = await supabase
-      .from("simulados")
-      .select("started_at, percentual")
-      .eq("id", simuladoId)
-      .eq("user_id", userId)
-      .single()
 
     if (simulado?.percentual !== null && simulado?.percentual !== undefined) {
       return NextResponse.json(
@@ -107,6 +122,8 @@ export async function POST(req: NextRequest) {
         )
       }
     }
+
+    acertou = respostaFormatada === question.resposta_correta.toUpperCase().trim()
 
     const { error: rError } = await supabase
       .from("simulado_respostas")
@@ -126,15 +143,20 @@ export async function POST(req: NextRequest) {
     }
 
   } else {
-    // Treino avulso — verifica limite diário para plano free
-    const { data: userData } = await supabaseAdmin
-      .from("users")
-      .select("plano")
-      .eq("id", userId)
-      .single()
+    // Treino avulso. `plano` vem do guard (mesma linha de `users` que o `role`),
+    // então o limite diário pode ser contado em paralelo com o gabarito —
+    // checkDailyLimit retorna cedo, sem consultar, para quem não é free.
+    const [{ data: question, error: qError }, limit] = await Promise.all([
+      gabarito,
+      checkDailyLimit(supabase, userId, plano),
+    ])
 
-    const plano = (userData?.plano ?? "free") as "free" | "pro" | "aprovacao"
-    const limit = await checkDailyLimit(supabase, userId, plano)
+    if (qError || !question) {
+      return NextResponse.json({ error: "Questão não encontrada" }, { status: 404 })
+    }
+
+    respostaCorreta = question.resposta_correta
+    acertou = respostaFormatada === respostaCorreta.toUpperCase().trim()
 
     if (limit.exceeded) {
       // Métrica de preço: registra a resposta RECUSADA, não só "chegou a 10".
@@ -182,7 +204,7 @@ export async function POST(req: NextRequest) {
   return NextResponse.json(
     simuladoId
       ? { ok: true }
-      : { acertou, resposta_correta: question.resposta_correta },
+      : { acertou, resposta_correta: respostaCorreta },
     { status: 200 }
   )
 }

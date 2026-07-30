@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Muitas requisições. Aguarde alguns segundos." }, { status: 429 })
   }
 
-  const { user, supabase, error } = await requireUser()
+  const { user, supabase, plano, error } = await requireUser()
   if (error) return error
 
   const userId = user.id
@@ -45,14 +45,9 @@ export async function POST(req: NextRequest) {
   // pergunta do brief original que hoje é impossível de responder.
   const origem = typeof body.origem === "string" && body.origem.length <= 32 ? body.origem : "treino"
 
-  // Limite diário do plano free — verificado antes de montar o treino
-  const { data: userPlanoRow } = await supabase
-    .from("users")
-    .select("plano")
-    .eq("id", userId)
-    .single()
-
-  const plano = (userPlanoRow?.plano ?? "free") as "free" | "pro" | "aprovacao"
+  // Limite diário do plano free — verificado antes de montar o treino.
+  // `plano` vem do guard: sai da mesma linha de `users` que o `role`, então
+  // reconsultar aqui era uma ida ao banco a troco de nada.
   const limit = await checkDailyLimit(supabase, userId, plano)
 
   if (limit.exceeded) {

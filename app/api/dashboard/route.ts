@@ -1,39 +1,103 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireUser } from "@/lib/auth-server"
+import { getDiagnosticoConfig } from "@/lib/config"
 import { inicioDoDiaBR, hojeStringBR, diaDaSemanaBR } from "@/lib/check-daily-limit"
-import { fetchAllRows, fetchByIds } from "@/lib/supabase-paginate"
+import { parseDbDate } from "@/lib/datas"
+import { fetchAllRows } from "@/lib/supabase-paginate"
 import { classificarTaxa, TAXA_CRITICA, MIN_TENTATIVAS_BANDA, MIN_RESPOSTAS_TAXA_GERAL } from "@/lib/metrics"
 import { logError } from "@/lib/logger"
-import { placarPorMateria, taxaDoPlacar } from "@/lib/services/desempenho"
-import { proximoModuloPendente } from "@/lib/services/diagnostico"
+import { carregarFontesPlacar, fundirPlacar, taxaDoPlacar } from "@/lib/services/desempenho"
+import { proximoModuloPendente, subjectsMedidos } from "@/lib/services/diagnostico"
 import { supabaseAdmin } from "@/lib/supabase-admin"
 
 export async function GET(req: NextRequest) {
-  const { user, supabase, error } = await requireUser()
+  const { user, supabase, plano, error } = await requireUser()
   if (error) return error
 
   const userId = user.id
 
-  // 0. Estado do onboarding/diagnóstico + limite diário (fuso BR — América/São_Paulo)
+  // 0. TUDO que não depende de mais nada vai junto.
+  //
+  // Esta rota é a mais chamada do app (dashboard, treino, questões, perfil e
+  // calendário) e fazia 19 idas ao banco EM SEQUÊNCIA, cinco delas repetindo
+  // consultas que já tinham sido feitas na mesma requisição. Com a função numa
+  // região e o banco em outra, cada repetição custava ~135 ms.
+  //
+  // A regra aqui: só sobra fora deste bloco o que precisa do resultado dele.
+  // As fontes do placar (tentativas, simulados, questões) são carregadas UMA
+  // vez e todo o resto — contagens, taxas, insight — sai de memória.
   const inicioDoDia = inicioDoDiaBR()
+  const todayDate   = new Date()
+  const todayStr    = hojeStringBR()
+  const todayDow    = diaDaSemanaBR()
 
   const [
-    { count: diagnosticAttemptsCount },
-    { count: questoesHojeCount },
+    fontes,
     { data: userPlanoRow },
+    { data: sessoesDiag },
+    { data: subjects },
+    { data: ultimoSimulado, error: simError },
+    simuladosFinalizados,
+    { data: historicoSimulados, error: historicoError },
+    { data: todaySlot },
+    { data: proximoSimEvent },
+    medidosDiag,
+    { minTempoRespostaMs },
   ] = await Promise.all([
+    // Fontes do placar: question_attempts + simulado_attempts + simulado_respostas
+    // + questions, com o `created_at` que o insight do passo 6 precisa.
+    carregarFontesPlacar(supabase, userId),
+    supabase.from("users").select("subscription_status, trial_used, trial_ends_at").eq("id", userId).single(),
+    // diagnostic_sessions tem RLS sem policies: leitura só via supabaseAdmin.
+    supabaseAdmin
+      .from("diagnostic_sessions")
+      .select("modulo, status, posicao, question_ids")
+      .eq("user_id", userId),
+    supabase.from("subjects").select("id, name"),
     supabase
-      .from("question_attempts")
-      .select("id", { count: "exact", head: true })
+      .from("simulados")
+      .select("id, created_at, acertos, erros, percentual, numero_questoes, titulo")
       .eq("user_id", userId)
-      .eq("is_diagnostic", true),
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single(),
+    // Pagina: um usuário ativo pode passar de 1000 simulados finalizados.
+    fetchAllRows<{ acertos: number; numero_questoes: number }>(
+      () => supabase
+        .from("simulados")
+        .select("acertos, numero_questoes")
+        .eq("user_id", userId)
+        .not("percentual", "is", null),
+    ),
     supabase
-      .from("question_attempts")
-      .select("id", { count: "exact", head: true })
+      .from("simulados")
+      .select("created_at, percentual")
       .eq("user_id", userId)
-      .eq("is_diagnostic", false)
-      .gte("created_at", inicioDoDia.toISOString()),
-    supabase.from("users").select("plano, subscription_status, trial_used, trial_ends_at").eq("id", userId).single(),
+      .order("created_at", { ascending: true })
+      .limit(20),
+    // Horário disponível hoje
+    supabase
+      .from("user_availability")
+      .select("start_time")
+      .eq("user_id", userId)
+      .eq("day_of_week", todayDow)
+      .order("start_time", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+    // Próximo simulado agendado
+    supabase
+      .from("calendar_events")
+      .select("date, time")
+      .eq("user_id", userId)
+      .eq("type", "simulado")
+      .gte("date", todayStr)
+      .order("date", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+    subjectsMedidos(userId),
+    // É `cache()`ada por request, então adiantá-la aqui deixa de graça a
+    // chamada do passo 5.5 e a de dentro do proximoModuloPendente.
+    getDiagnosticoConfig(),
   ])
 
   const onboardingCompleto = user.user_metadata?.onboarding_completed === true
@@ -45,18 +109,19 @@ export async function GET(req: NextRequest) {
   // Estado do diagnóstico vem da SESSÃO, não da contagem de tentativas.
   // Com o módulo em 16 questões, o antigo `count >= 5` marcava "concluído" com
   // o usuário na questão 6 — o banner sumia no meio do diagnóstico.
-  // diagnostic_sessions tem RLS sem policies: leitura só via supabaseAdmin.
-  const { data: sessoesDiag } = await supabaseAdmin
-    .from("diagnostic_sessions")
-    .select("modulo, status, posicao, question_ids")
-    .eq("user_id", userId)
-
   const sessoes = sessoesDiag ?? []
   const emAndamento = sessoes.find((s) => s.status === "em_andamento") ?? null
 
+  // Contagens que antes eram `count: exact` no banco: as tentativas já estão
+  // todas em memória, com `is_diagnostic` e `created_at`.
+  const diagnosticAttemptsCount = fontes.attempts.filter((a) => a.is_diagnostic).length
+  const questoesHoje = fontes.attempts.filter(
+    (a) => !a.is_diagnostic && parseDbDate(a.created_at) >= inicioDoDia,
+  ).length
+
   // Quem fez o diagnóstico de 5 questões antes dos módulos não tem sessão
   // nenhuma — pra esses, a contagem antiga continua sendo o sinal correto.
-  const legadoConcluido = sessoes.length === 0 && (diagnosticAttemptsCount ?? 0) >= 5
+  const legadoConcluido = sessoes.length === 0 && diagnosticAttemptsCount >= 5
 
   const diagnosticoCompleto = sessoes.some((s) => s.status === "concluida") || legadoConcluido
 
@@ -65,7 +130,15 @@ export async function GET(req: NextRequest) {
   // e todos os entry points do diagnóstico eram gateados em
   // `!diagnosticoCompleto` — então quem terminava o Módulo 1 perdia qualquer
   // caminho pro Módulo 2 fora da tela de resultado.
-  const proximoModuloDiag = diagnosticoCompleto ? await proximoModuloPendente(userId) : null
+  //
+  // O mapa e a contagem de tentativas já vieram no bloco paralelo — sem isso o
+  // `mapaConsolidado` refazia as duas consultas aqui dentro.
+  const proximoModuloDiag = diagnosticoCompleto
+    ? await proximoModuloPendente(userId, {
+        medidos: medidosDiag,
+        attemptsDiagnostico: diagnosticAttemptsCount,
+      })
+    : null
   const diagnosticoEmAndamento = emAndamento
     ? {
         modulo: emAndamento.modulo as string,
@@ -73,29 +146,18 @@ export async function GET(req: NextRequest) {
         total: (emAndamento.question_ids as string[]).length,
       }
     : null
-  const questoesHoje = questoesHojeCount ?? 0
-  const plano: "free" | "pro" | "aprovacao" = userPlanoRow?.plano ?? "free"
   const subscriptionStatus: "active" | "trialing" | "past_due" | "canceled" =
     userPlanoRow?.subscription_status ?? "active"
   const trialUsed: boolean = userPlanoRow?.trial_used ?? false
   const trialEndsAt: string | null = userPlanoRow?.trial_ends_at ?? null
   const examDate: string | null = (user.user_metadata?.exam_date as string | null) ?? null
 
-  // 1. Tentativas avulsas (diagnóstico + treino + questões), direto da tabela.
+  // 1. Tentativas avulsas (diagnóstico + treino + questões).
   // CUIDADO: a view desempenho_materia NÃO serve aqui — verificado no banco,
   // ela retorna 1 linha por SIMULADO_RESPOSTA (desagregada, total sempre 1) e
-  // NÃO inclui question_attempts. Avulsas só existem nesta tabela; a
-  // agregação por matéria acontece no passo 5.5.
-  const avulsasAttempts = await fetchAllRows<{
-    question_id: string
-    acertou: boolean
-    is_diagnostic: boolean
-  }>(
-    () => supabase
-      .from("question_attempts")
-      .select("question_id, acertou, is_diagnostic")
-      .eq("user_id", userId),
-  )
+  // NÃO inclui question_attempts. Avulsas só existem em question_attempts, que
+  // já veio em `fontes` — buscar de novo aqui era a maior das repetições.
+  const avulsasAttempts = fontes.attempts
 
   // A agregação POR MATÉRIA (passo 5.5) usa TODAS as tentativas, diagnóstico
   // incluído — é justamente ele que mede as matérias, e tirá-lo dali cegaria o
@@ -119,37 +181,13 @@ export async function GET(req: NextRequest) {
   const treinoRespondidas = avulsasTreino.length
   const treinoAcertos = avulsasTreino.filter((a) => a.acertou).length
 
-  // 2. Último simulado + todos os finalizados (para taxa geral OAB)
-  const [
-    { data: ultimoSimulado, error: simError },
-    simuladosFinalizados,
-  ] = await Promise.all([
-    supabase
-      .from("simulados")
-      .select("id, created_at, acertos, erros, percentual, numero_questoes, titulo")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .single(),
-    // Pagina: um usuário ativo pode passar de 1000 simulados finalizados.
-    fetchAllRows<{ acertos: number; numero_questoes: number }>(
-      () => supabase
-        .from("simulados")
-        .select("acertos, numero_questoes")
-        .eq("user_id", userId)
-        .not("percentual", "is", null),
-    ),
-  ])
-
+  // 2. Último simulado + todos os finalizados (para taxa geral OAB) — vieram
+  //    no bloco paralelo lá em cima.
   if (simError && simError.code !== "PGRST116") {
     logError(simError, { area: "dashboard", userId, phase: "ultimo-simulado" })
   }
 
   // 3. Nomes das matérias
-  const { data: subjects } = await supabase
-    .from("subjects")
-    .select("id, name")
-
   const subjectMap = Object.fromEntries(
     (subjects ?? []).map((s) => [s.id, s.name])
   )
@@ -157,58 +195,38 @@ export async function GET(req: NextRequest) {
   // 4. (removido) A view materias_risco agrega só respostas de simulado e não
   //    filtra risco. A lista de risco agora sai da fusão do passo 5.5.
 
-  // 5. Desempenho por matéria — apenas simulados
-  const simAttempts = await fetchAllRows<{ id: string; question_id: string }>(
-    () => supabase.from("simulado_attempts").select("id, question_id").eq("user_id", userId),
-  )
-
-  const simAttemptIds = simAttempts.map((a) => a.id)
+  // 5. Desempenho por matéria — apenas simulados. As respostas e o mapa
+  //    questão→matéria já estão em `fontes`.
+  const simRespostas = fontes.simulado
+  // Respostas efetivamente dadas em simulados (brancos não geram linha).
+  const totalRespostasSimulado = simRespostas.length
+  const totalAcertosRespostasSimulado = simRespostas.filter((r) => r.acertou).length
 
   let desempenhoPorMateria: {
     subject_id: string; nome: string; total: number; acertos: number; taxa_acerto: number
   }[] = []
-  // Respostas efetivamente dadas em simulados (brancos não geram linha).
-  let totalRespostasSimulado = 0
-  let totalAcertosRespostasSimulado = 0
 
-  if (simAttemptIds.length > 0) {
-    const simRespostas = await fetchByIds<{ question_id: string; acertou: boolean }>(
-      (ids) => supabase.from("simulado_respostas").select("question_id, acertou").in("attempt_id", ids),
-      simAttemptIds,
-    )
-    totalRespostasSimulado = simRespostas.length
-    totalAcertosRespostasSimulado = simRespostas.filter((r) => r.acertou).length
+  if (simRespostas.length > 0) {
+    const subjectStats = new Map<string, { total: number; acertos: number }>()
 
-    if (simRespostas.length > 0) {
-      const qIds = [...new Set(simRespostas.map((r) => r.question_id))]
-
-      const simQuestions = await fetchByIds<{ id: string; subject_id: string }>(
-        (ids) => supabase.from("questions").select("id, subject_id").in("id", ids),
-        qIds,
-      )
-
-      const qSubjectMap = Object.fromEntries(simQuestions.map((q) => [q.id, q.subject_id]))
-      const subjectStats = new Map<string, { total: number; acertos: number }>()
-
-      for (const r of simRespostas) {
-        const sid = qSubjectMap[r.question_id]
-        if (!sid) continue
-        const s = subjectStats.get(sid) ?? { total: 0, acertos: 0 }
-        s.total += 1
-        if (r.acertou) s.acertos += 1
-        subjectStats.set(sid, s)
-      }
-
-      desempenhoPorMateria = Array.from(subjectStats.entries())
-        .map(([subject_id, s]) => ({
-          subject_id,
-          nome: subjectMap[subject_id] ?? "Matéria desconhecida",
-          total: s.total,
-          acertos: s.acertos,
-          taxa_acerto: s.total > 0 ? parseFloat(((s.acertos / s.total) * 100).toFixed(2)) : 0,
-        }))
-        .sort((a, b) => a.taxa_acerto - b.taxa_acerto)
+    for (const r of simRespostas) {
+      const sid = fontes.subjectDaQuestao.get(r.question_id)
+      if (!sid) continue
+      const s = subjectStats.get(sid) ?? { total: 0, acertos: 0 }
+      s.total += 1
+      if (r.acertou) s.acertos += 1
+      subjectStats.set(sid, s)
     }
+
+    desempenhoPorMateria = Array.from(subjectStats.entries())
+      .map(([subject_id, s]) => ({
+        subject_id,
+        nome: subjectMap[subject_id] ?? "Matéria desconhecida",
+        total: s.total,
+        acertos: s.acertos,
+        taxa_acerto: s.total > 0 ? parseFloat(((s.acertos / s.total) * 100).toFixed(2)) : 0,
+      }))
+      .sort((a, b) => a.taxa_acerto - b.taxa_acerto)
   }
 
   const totalQuestoesFinalizados = (simuladosFinalizados ?? []).reduce((acc: number, s) => acc + (s.numero_questoes ?? 0), 0)
@@ -223,7 +241,8 @@ export async function GET(req: NextRequest) {
   // códigos, discordavam. Nenhuma view entrega isso: desempenho_materia e
   // materias_risco cobrem SÓ simulado, e as avulsas só existem em
   // question_attempts.
-  const placar = await placarPorMateria(supabase, userId)
+  // As fontes já estão em memória: aqui só se aplica a regra.
+  const placar = fundirPlacar(fontes, minTempoRespostaMs)
 
   const materiasTaxas = [...placar.values()]
     // total = 0 é matéria com TODAS as respostas descartadas: perguntamos e não
@@ -289,72 +308,27 @@ export async function GET(req: NextRequest) {
     ? parseFloat(((acertosTaxa / baseTaxa) * 100).toFixed(2))
     : null
 
-  // 6. Action cards — dados em paralelo (fuso BR)
-  const todayDate   = new Date()
-  const todayStr    = hojeStringBR()
-  const todayDow    = diaDaSemanaBR()
-
-  const [
-    { data: todaySlot },
-    { data: proximoSimEvent },
-    { count: totalSimulados },
-    { data: recentAttempts },
-  ] = await Promise.all([
-    // Horário disponível hoje
-    supabase
-      .from("user_availability")
-      .select("start_time")
-      .eq("user_id", userId)
-      .eq("day_of_week", todayDow)
-      .order("start_time", { ascending: true })
-      .limit(1)
-      .maybeSingle(),
-
-    // Próximo simulado agendado
-    supabase
-      .from("calendar_events")
-      .select("date, time")
-      .eq("user_id", userId)
-      .eq("type", "simulado")
-      .gte("date", todayStr)
-      .order("date", { ascending: true })
-      .limit(1)
-      .maybeSingle(),
-
-    // Total de simulados finalizados
-    supabase
-      .from("simulados")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .not("percentual", "is", null),
-
-    // Últimas práticas avulsas (para insight)
-    supabase
-      .from("question_attempts")
-      .select("question_id, created_at")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(500),
-  ])
+  // 6. Action cards. As duas consultas vieram no bloco paralelo; as práticas
+  //    recentes saem de `fontes.attempts` (que tem `created_at`) e o mapa
+  //    questão→matéria de `fontes.subjectDaQuestao` — antes isso custava mais
+  //    uma leitura de question_attempts e mais uma de questions.
+  //
+  //    O total de simulados finalizados é o tamanho de `simuladosFinalizados`:
+  //    mesmo filtro (`percentual is not null`), então a contagem separada era
+  //    a mesma pergunta feita duas vezes.
+  const totalSimulados = (simuladosFinalizados ?? []).length
 
   // Matéria em risco com prática mais antiga
   let insightMateria: { subject: string; taxa: number; diasSemTreino: number | null } | null = null
 
   if (materiasRiscoAll.length > 0) {
-    if (recentAttempts && recentAttempts.length > 0) {
-      const qIds = [...new Set(recentAttempts.map((a) => a.question_id))] as string[]
-      const qRows = await fetchByIds<{ id: string; subject_id: string }>(
-        (ids) => supabase.from("questions").select("id, subject_id").in("id", ids),
-        qIds,
-      )
-
-      const qSubMap = Object.fromEntries(qRows.map((q) => [q.id, q.subject_id]))
+    if (avulsasAttempts.length > 0) {
       const lastPractice = new Map<string, Date>()
 
-      for (const a of recentAttempts) {
-        const sid = qSubMap[a.question_id]
+      for (const a of avulsasAttempts) {
+        const sid = fontes.subjectDaQuestao.get(a.question_id)
         if (!sid) continue
-        const d = new Date(a.created_at)
+        const d = parseDbDate(a.created_at)
         if (!lastPractice.has(sid) || d > lastPractice.get(sid)!) lastPractice.set(sid, d)
       }
 
@@ -400,14 +374,7 @@ export async function GET(req: NextRequest) {
     insightMateria,
   }
 
-  // 7. Evolução do desempenho
-  const { data: historicoSimulados, error: historicoError } = await supabase
-    .from("simulados")
-    .select("created_at, percentual")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: true })
-    .limit(20)
-
+  // 7. Evolução do desempenho — veio no bloco paralelo.
   if (historicoError) {
     logError(historicoError, { area: "dashboard", userId, phase: "historico" })
   }

@@ -9,9 +9,11 @@ type AdminAuthResult =
   | { user: User; error: null }
   | { user: null; error: NextResponse }
 
+export type Plano = "free" | "pro" | "aprovacao"
+
 type UserAuthResult =
-  | { user: User; supabase: ReturnType<typeof createServerClient>; error: null }
-  | { user: null; supabase: null; error: NextResponse }
+  | { user: User; supabase: ReturnType<typeof createServerClient>; plano: Plano; error: null }
+  | { user: null; supabase: null; plano: null; error: NextResponse }
 
 async function buildServerClient() {
   const cookieStore = await cookies()
@@ -31,26 +33,33 @@ async function buildServerClient() {
   )
 }
 
-/** Verifica sessão ativa + bloqueia contas com role="blocked". */
+/**
+ * Verifica sessão ativa + bloqueia contas com role="blocked".
+ *
+ * Devolve `plano` junto porque ele sai da MESMA linha de `users` que o `role` —
+ * as rotas que precisavam dele faziam um segundo SELECT na mesma linha, o que
+ * custava uma ida e volta inteira ao banco por requisição. Use este valor em vez
+ * de reconsultar.
+ */
 export async function requireUser(): Promise<UserAuthResult> {
   const supabase = await buildServerClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
 
   if (authError || !user) {
-    return { user: null, supabase: null, error: NextResponse.json({ error: "Não autenticado" }, { status: 401 }) }
+    return { user: null, supabase: null, plano: null, error: NextResponse.json({ error: "Não autenticado" }, { status: 401 }) }
   }
 
   const { data: userData } = await supabaseAdmin
     .from("users")
-    .select("role")
+    .select("role, plano")
     .eq("id", user.id)
     .single()
 
   if (userData?.role === "blocked") {
-    return { user: null, supabase: null, error: NextResponse.json({ error: "Conta bloqueada. Entre em contato com o suporte." }, { status: 403 }) }
+    return { user: null, supabase: null, plano: null, error: NextResponse.json({ error: "Conta bloqueada. Entre em contato com o suporte." }, { status: 403 }) }
   }
 
-  return { user, supabase, error: null }
+  return { user, supabase, plano: (userData?.plano ?? "free") as Plano, error: null }
 }
 
 /** Verifica sessão ativa + exige role="admin". */

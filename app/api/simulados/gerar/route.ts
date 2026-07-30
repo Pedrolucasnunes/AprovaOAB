@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireUser } from "@/lib/auth-server"
-import { supabaseAdmin } from "@/lib/supabase-admin"
 import { rateLimit } from "@/lib/rate-limit"
 import { logError, logWarning } from "@/lib/logger"
 
@@ -38,19 +37,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Muitas requisições. Aguarde alguns segundos." }, { status: 429 })
   }
 
-  const { user, supabase, error } = await requireUser()
+  const { user, supabase, plano, error } = await requireUser()
   if (error) return error
 
   const userId = user.id
 
   try {
-    const { data: userData } = await supabaseAdmin
-      .from("users")
-      .select("plano")
-      .eq("id", userId)
-      .single()
-
-    if (userData?.plano === "free") {
+    // `plano` vem do guard — mesma linha de `users` que o `role`.
+    if (plano === "free") {
       return NextResponse.json(
         { error: "Simulados completos são exclusivos do plano Pro.", upgrade: true },
         { status: 403 }

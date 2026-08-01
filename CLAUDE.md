@@ -117,6 +117,17 @@ Dois estados, definidos em `lib/limite-diario.ts` (também puro): `habito` (< `D
 - `sessao` (o "10 questões de X — 3 certas") só é passado pelo **treino**, que é sessão fechada. O banco de questões pagina, e resumir a página atual diria "3 questões" pra quem respondeu 10 hoje.
 - O resumo conta respostas **salvas**, não tentadas: o 403 chega na resposta seguinte ao teto, então contar tentativas faria a parede dizer 11 de 10.
 
+### Depoimentos da landing
+
+`lib/depoimentos.ts` é a lista curada à mão (não vem do banco) e `components/site/depoimentos.tsx` é a seção, montada entre `Benefits` e `FreeQuestions`.
+
+- **Abaixo de `MIN_DEPOIMENTOS` = 3 a seção não renderiza.** Mesma regra do `MIN_ATTEMPTS` de `lib/seo/stats.ts`: prova social ou tem amostra real, ou não é exibida. Em dev, 1 ou 2 depoimentos disparam um `console.warn` explicando o sumiço.
+- **`autorizadoEm` é obrigatório no tipo; `contexto` e `fonte` não.** Os dois nasceram obrigatórios e foram afrouxados quando os primeiros dez chegaram sem essa informação: campo obrigatório que ninguém preenche com verdade vira convite a preencher com invenção, e "candidata ao XLIII Exame" ao lado de um nome real é afirmação sobre uma pessoa. `autorizadoEm` continua obrigatório porque o rodapé da seção afirma "publicados com autorização de cada pessoa" — é o único campo que vira promessa pública.
+- **Sem `Review`/`AggregateRating` no JSON-LD**, apesar de o `SoftwareApplication` de `app/layout.tsx` ser o nó natural. Não existe nota no produto (não há NPS nem escala), então `aggregateRating` seria número inventado; e review que o próprio site coleta sobre si é *self-serving*, que o Google não aceita pra rich result. Risco de ação manual, ganho zero.
+- O carrossel é scroll-snap nativo + `rAF` sobre `scrollLeft`, **não** o `Carousel` do shadcn (nenhuma seção de `components/site/` importa de `@/components/ui/`) e **não** o `.marquee-track` de `globals.css` — aquele anima `transform` dentro de `overflow: hidden`, e track transformado não é rolável: no touch, onde não existe hover, o usuário ficaria sem nenhum controle sobre texto em movimento.
+- A lista é renderizada **duas vezes** (a 2ª metade `aria-hidden`) pro loop não ter emenda. O recuo do loop usa o **período medido** (`offsetLeft` do primeiro clone), nunca `scrollWidth / 2`: entre as duas voltas existe um gap a mais do que dentro de cada volta, e a diferença (8px com 10 depoimentos) derivaria a cada volta.
+- A rolagem pausa em hover, foco de teclado, toque e clique de seta, e não existe sob `prefers-reduced-motion`. Ressalva conhecida: WCAG 2.2.2 pede mecanismo **persistente** de pausa — os quatro gatilhos são transitórios, então falta um botão pausar/continuar pra conformidade estrita.
+
 ### Treino inteligente — algoritmo
 
 Não óbvio sem ler o código (`app/api/treino/route.ts`):

@@ -12,11 +12,13 @@ import {
 import {
   Search, SlidersHorizontal, CheckCircle2, XCircle,
   Loader2, ChevronLeft, Maximize2, BookOpen, PenLine, RotateCcw,
-  CalendarDays,
 } from "lucide-react"
+import {
+  ParedeLimiteCard, ParedeLimiteInline,
+} from "@/components/dashboard/limite-diario"
 import { supabase } from "@/lib/supabase"
 import { getClientUser } from "@/lib/auth-client"
-import Link from "next/link"
+import { type DiasNoTeto } from "@/lib/limite-diario"
 
 type Modo = "resolver" | "explorar"
 
@@ -244,7 +246,11 @@ export default function QuestoesPage() {
   const [questoesHoje, setQuestoesHoje] = useState<number>(0)
   // Matéria mais fraca (top-1 do risco) — personaliza a copy do limite diário.
   const [materiaFraca, setMateriaFraca] = useState<string | null>(null)
-  const LIMITE_FREE = 10
+  // Teto e frequência vêm do servidor (app_config + question_attempts): o
+  // trigger do banco já lia `app_config`, e o 10 fixo aqui mentiria assim que o
+  // valor mudasse. O 10 sobrou só como estado inicial até a primeira resposta.
+  const [limiteFree, setLimiteFree] = useState(10)
+  const [diasNoTeto, setDiasNoTeto] = useState<DiasNoTeto>({ total: 0, ultimos7: 0 })
   const [questoes, setQuestoes] = useState<Questao[]>([])
   const [filtros, setFiltros] = useState<Filtros>({ subjects: [], dificuldades: [], bancas: [] })
   const [pagination, setPagination] = useState<Pagination>({ total: 0, page: 1, limit: 10, totalPages: 0 })
@@ -264,6 +270,10 @@ export default function QuestoesPage() {
   const [pendingLastIndex, setPendingLastIndex] = useState(false)
   const [respostas, setRespostas] = useState<Record<string, RespostaState>>({})
   const [limiteAtingido, setLimiteAtingido] = useState(false)
+  const [trialUsed, setTrialUsed] = useState(false)
+
+  const trialDisponivel =
+    process.env.NEXT_PUBLIC_TRIAL_ENABLED === "true" && plano === "free" && !trialUsed
 
   // Tempo por questão — alimenta o filtro de baixa confiança (< 3s) no cálculo
   // do desempenho por matéria. Mapa por id, não um timestamp só: no modo
@@ -297,6 +307,9 @@ export default function QuestoesPage() {
     if (!res.ok) return null
     setPlano(data.plano ?? "free")
     setQuestoesHoje(data.questoesHoje ?? 0)
+    if (typeof data.limiteDiario === "number") setLimiteFree(data.limiteDiario)
+    if (data.diasNoTeto) setDiasNoTeto(data.diasNoTeto)
+    setTrialUsed(data.trialUsed ?? false)
     setMateriaFraca(data.materiasRisco?.[0]?.nome ?? null)
     return data
   }, [])
@@ -407,7 +420,7 @@ export default function QuestoesPage() {
         return handleVerificar(questaoId, selecionada, true)
       }
       setLimiteAtingido(true)
-      setQuestoesHoje((prev) => Math.max(prev, LIMITE_FREE))
+      setQuestoesHoje((prev) => Math.max(prev, limiteFree))
       setRespostas((prev) => ({
         ...prev,
         [questaoId]: { ...(prev[questaoId] ?? emptyResposta), verificando: false },
@@ -458,13 +471,14 @@ export default function QuestoesPage() {
   // Feedback no ponto do clique quando o limite bloqueia a resposta — o banner
   // do topo não é visível no modo foco (overlay) nem explica que nada foi salvo.
   const avisoLimite = limiteAtingido && plano === "free" ? (
-    <p className="mt-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-foreground">
-      Você atingiu as 10 questões de hoje do plano Grátis — esta resposta não foi registrada.{" "}
-      <Link href="/#planos" className="text-primary underline underline-offset-2">
-        Conheça o Pro
-      </Link>{" "}
-      para continuar agora, ou volte amanhã.
-    </p>
+    <ParedeLimiteInline
+      limite={limiteFree}
+      diasNoTeto={diasNoTeto}
+      trialDisponivel={trialDisponivel}
+      origem="questoes_inline"
+      materiaFraca={materiaFraca}
+      avisoNaoSalvo
+    />
   ) : null
 
   const NavBar = () => (
@@ -653,48 +667,23 @@ export default function QuestoesPage() {
         )}
 
         {/* Banner de limite diário / próximo passo */}
-        {plano === "free" && questoesHoje >= LIMITE_FREE ? (
-          <Card className="border-primary/30 bg-primary/5">
-            <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                  <CalendarDays className="h-5 w-5 text-primary" />
-                </div>
-                <div className="space-y-1">
-                  <p className="font-semibold text-foreground">
-                    Você completou suas 10 questões de hoje!
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {materiaFraca ? (
-                      <>
-                        Seu ponto mais fraco hoje é{" "}
-                        <strong className="text-foreground">{materiaFraca}</strong> — no Pro
-                        você continuaria treinando exatamente isso agora.
-                      </>
-                    ) : (
-                      "Próximo passo: monte sua agenda da semana baseada no que você acertou e errou."
-                    )}
-                  </p>
-                  <p className="pt-1 text-xs text-muted-foreground">
-                    Quer questões ilimitadas?{" "}
-                    <Link href="/#planos" className="underline underline-offset-2 hover:text-foreground">
-                      Conheça o plano Pro
-                    </Link>
-                  </p>
-                </div>
-              </div>
-              <Button asChild className="shrink-0 gap-1.5">
-                <Link href="/dashboard/calendario">
-                  <CalendarDays className="h-4 w-4" />
-                  Gerar minha agenda
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
+        {plano === "free" && questoesHoje >= limiteFree ? (
+          /* Sem `sessao` de propósito: aqui não existe sessão fechada — a lista
+             é paginada e `respostas` só tem a página atual. Resumir isso daria
+             "3 questões — 1 certa" pra quem respondeu 10 hoje. A copy cai no
+             texto que sai de `questoesHoje`, que é verdadeiro. */
+          <ParedeLimiteCard
+            limite={limiteFree}
+            diasNoTeto={diasNoTeto}
+            trialDisponivel={trialDisponivel}
+            origem="questoes_banner"
+            materiaFraca={materiaFraca}
+            secundario="calendario"
+          />
         ) : plano === "free" ? (
           <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm">
             <span className="text-muted-foreground">
-              {questoesHoje}/{LIMITE_FREE} questões respondidas hoje (plano Grátis)
+              {questoesHoje}/{limiteFree} questões respondidas hoje (plano Grátis)
             </span>
           </div>
         ) : null}

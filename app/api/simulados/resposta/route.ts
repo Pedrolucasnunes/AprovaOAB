@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireUser } from "@/lib/auth-server"
-import { checkDailyLimit } from "@/lib/check-daily-limit"
+import { avaliarLimite, carregarDiasNoTeto, contarQuestoesHoje } from "@/lib/check-daily-limit"
+import { getLimitesConfig } from "@/lib/config"
+import { estadoDaParede } from "@/lib/limite-diario"
 import { EVENTOS, track } from "@/lib/events"
 import { logError } from "@/lib/logger"
 
@@ -145,11 +147,17 @@ export async function POST(req: NextRequest) {
   } else {
     // Treino avulso. `plano` vem do guard (mesma linha de `users` que o `role`),
     // então o limite diário pode ser contado em paralelo com o gabarito —
-    // checkDailyLimit retorna cedo, sem consultar, para quem não é free.
-    const [{ data: question, error: qError }, limit] = await Promise.all([
+    // contarQuestoesHoje retorna cedo, sem consultar, para quem não é free.
+    //
+    // O teto sai de `app_config` (mesma fonte do trigger). Vai no mesmo
+    // `Promise.all`: esta rota roda a cada questão respondida e uma consulta em
+    // SEQUÊNCIA aqui apareceria em toda resposta do app.
+    const [{ data: question, error: qError }, limites, contagemHoje] = await Promise.all([
       gabarito,
-      checkDailyLimit(supabase, userId, plano),
+      getLimitesConfig(),
+      contarQuestoesHoje(supabase, userId, plano),
     ])
+    const limit = avaliarLimite(contagemHoje, limites.freeDailyLimit)
 
     if (qError || !question) {
       return NextResponse.json({ error: "Questão não encontrada" }, { status: 404 })
@@ -159,17 +167,28 @@ export async function POST(req: NextRequest) {
     acertou = respostaFormatada === respostaCorreta.toUpperCase().trim()
 
     if (limit.exceeded) {
-      // Métrica de preço: registra a resposta RECUSADA, não só "chegou a 10".
-      // A reconstrução por question_attempts mostra quem alcançou o teto; só o
+      // Métrica de preço: registra a resposta RECUSADA, não só "chegou ao teto".
+      // A reconstrução por question_attempts mostra quem alcançou o limite; só o
       // evento mostra quem quis passar dele.
+      //
+      // `diasNoTeto` só é consultado AQUI, no ramo bloqueado — no caminho de
+      // sucesso seria uma ida ao banco por questão respondida.
+      const dias = await carregarDiasNoTeto(supabase, userId, limit.limit)
       void track(userId, EVENTOS.LIMITE_DIARIO_ATINGIDO, {
         origem: "resposta",
         motivo: "teto",
         limite: limit.limit,
         count: limit.count,
+        estado: estadoDaParede(dias.total),
+        dias_no_teto: dias.total,
+        dias_no_teto_7d: dias.ultimos7,
       })
       return NextResponse.json(
-        { error: "Você atingiu o limite de 10 questões por dia no plano Grátis.", upgrade: true, limiteDiario: true },
+        {
+          error: `Você atingiu o limite de ${limit.limit} questões por dia no plano Grátis.`,
+          upgrade: true,
+          limiteDiario: true,
+        },
         { status: 403 }
       )
     }
@@ -186,10 +205,14 @@ export async function POST(req: NextRequest) {
       })
 
     if (qaError) {
-      // Trigger atômico do banco — defesa contra race condition que escapa do checkDailyLimit acima.
+      // Trigger atômico do banco — defesa contra race condition que escapa da contagem acima.
       if (qaError.message?.includes("free_daily_limit_exceeded")) {
         return NextResponse.json(
-          { error: "Você atingiu o limite de 10 questões por dia no plano Grátis.", upgrade: true, limiteDiario: true },
+          {
+            error: `Você atingiu o limite de ${limit.limit} questões por dia no plano Grátis.`,
+            upgrade: true,
+            limiteDiario: true,
+          },
           { status: 403 }
         )
       }

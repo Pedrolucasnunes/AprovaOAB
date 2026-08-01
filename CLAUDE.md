@@ -83,7 +83,9 @@ As colunas `timestamp` do schema público (`question_attempts`, `simulados`, `us
 - `lib/stripe.ts` exporta instância singleton do cliente Stripe
 
 Planos live:
-- Pro: `STRIPE_PRICE_PRO` (R$ 19/mês, promocional — preço real R$ 29) — **único plano pago vendável**
+- Pro: `STRIPE_PRICE_PRO` (R$ 19/mês) — **único plano pago vendável**
+
+**O preço exibido sai de `lib/planos.ts`, não de string solta.** Estava escrito à mão em quatro arquivos (vitrine, FAQ, tela do trial, perfil). `PRECO_PRO_ANTERIOR` e `PROMOCAO_ATE` são `null`: o R$ 29 riscado **nunca foi cobrado de ninguém**, então exibi-lo como preço anterior era âncora inventada, e "promocional de lançamento" sem data era promessa que não dava pra cobrar. Se houver aumento real, os dois voltam juntos — o valor antigo e o prazo.
 
 O plano **Aprovação** foi removido da vitrine: não aparece mais na landing e o checkout rejeita `plano !== "pro"` (`app/api/stripe/checkout/route.ts`). O valor `"aprovacao"` permanece nos tipos, no webhook (`planoFromPriceId`) e nos badges admin apenas como plumbing defensivo, para reintroduzir um tier premium real no futuro (ex.: 2ª fase). `STRIPE_PRICE_APROVACAO` segue no env mas o price está arquivado na Stripe.
 
@@ -98,8 +100,22 @@ O plano **Aprovação** foi removido da vitrine: não aparece mais na landing e 
 (Internamente o gate é sempre `plano === "free"` vs. pago; um eventual `"aprovacao"` legado se comporta como Pro.)
 
 **Onde o gate está no código:**
-- Limite diário free: verificado em `app/api/simulados/resposta/route.ts` (não em `/api/questions`). Conta registros em `question_attempts` de hoje (UTC). Retorna `{ error, limiteDiario: true }` com status 403 ao atingir 10. Essa rota também grava `time_spent_ms` nas respostas de treino (as telas de Treino e de Questões medem com `performance.now()`); o ramo de simulado ignora o campo, porque `simulado_respostas` não tem a coluna.
-- Simulados: gate em `app/api/simulados/gerar/route.ts` — verifica `users.plano === "free"` e retorna 403 com `{ upgrade: true }`.
+- Limite diário free: verificado em `app/api/simulados/resposta/route.ts` (não em `/api/questions`) e em `/api/treino`. Conta registros em `question_attempts` de hoje. Retorna `{ error, limiteDiario: true }` com status 403 ao atingir o teto. Essa rota também grava `time_spent_ms` nas respostas de treino (as telas de Treino e de Questões medem com `performance.now()`); o ramo de simulado ignora o campo, porque `simulado_respostas` não tem a coluna.
+- **O valor do teto sai de `app_config.limites.freeDailyLimit` (`getLimitesConfig`), nunca de constante.** É a mesma fonte que o trigger `enforce_free_daily_limit` lê no banco. `lib/check-daily-limit.ts` separa I/O de decisão pelo mesmo motivo do placar: `contarQuestoesHoje` (consulta, retorna `null` pra quem não é free) e `avaliarLimite` (pura). Elas existem separadas porque a config e a contagem têm que ir no **mesmo `Promise.all`** — buscar as duas em sequência em `/api/simulados/resposta` seria uma ida ao banco a mais em toda questão respondida.
+- `carregarDiasNoTeto` **só pode ser chamada dentro do ramo do 403**. É consulta extra; no caminho de sucesso vira custo por resposta. Quem já tem `question_attempts` em memória (o `/api/dashboard`) usa `contarDiasNoTeto` direto, sem I/O.
+- Simulados: gate em `app/api/simulados/gerar/route.ts` — verifica `users.plano === "free"` e retorna 403 com `{ upgrade: true }`. Na prática o free **não chega nesse 403**: a tela troca o botão por trial/assinar, então o 403 é backstop pra plano trocado no meio da sessão.
+
+### A parede do limite diário
+
+`components/dashboard/limite-diario.tsx` é a **única** superfície da parede — antes eram seis blocos com copy própria que já discordavam entre si (dois no treino, dois nas questões, o card de "poucas restantes" e o recuo silencioso do seletor). Toda a decisão de texto mora em `conteudoDaParede`, que é pura.
+
+Dois estados, definidos em `lib/limite-diario.ts` (também puro): `habito` (< `DIAS_PARA_OFERTA` = 3 dias com o teto batido) mostra o que a sessão produziu e empurra a volta amanhã, sem vender; `recorrente` vira oferta, sempre com o caminho gratuito visível.
+
+- A frequência vem de `diasNoTeto` (`question_attempts`, retroativo), **não** do evento `limite_diario_atingido` — o evento só existe desde 28/jul e classificaria como "primeira vez" quem já batia no teto antes disso. O evento mede o que a tabela não consegue: intenção **recusada**.
+- `frasePeriodo` só diz "essa semana" quando `ultimos7` sustenta.
+- **A parede não cita preço** de propósito: o valor muda, e assim ela não envelhece errado.
+- `sessao` (o "10 questões de X — 3 certas") só é passado pelo **treino**, que é sessão fechada. O banco de questões pagina, e resumir a página atual diria "3 questões" pra quem respondeu 10 hoje.
+- O resumo conta respostas **salvas**, não tentadas: o 403 chega na resposta seguinte ao teto, então contar tentativas faria a parede dizer 11 de 10.
 
 ### Treino inteligente — algoritmo
 
@@ -204,7 +220,10 @@ Onde cada um emite:
 | `diagnostico_modulo_concluido` | `/api/diagnostico/responder` | `modulo` |
 | `diagnostico_lembrete_pedido` / `_enviado` | `/api/diagnostico/lembrete` e o cron | `modulo` |
 | `treino_iniciado` | `/api/treino` (2 saídas de sucesso) | `quantidade` vs `servidas`, `risco`, `geral`, **`origem`** |
-| `limite_diario_atingido` | `/api/treino` (2×) e `/api/simulados/resposta` | **`motivo`**: `teto` ou `treino_maior_que_restante` |
+| `limite_diario_atingido` | `/api/treino` (2×) e `/api/simulados/resposta` | **`motivo`**: `teto` ou `treino_maior_que_restante`; `estado`, `dias_no_teto` |
+| `parede_cta_clicado` | as telas, via `POST /api/eventos` | `estado`, `origem`, `destino`, `dias_no_teto` |
+
+`parede_cta_clicado` é o **único** evento que nasce no cliente — o clique acontece antes de qualquer requisição. Por isso existe `lib/events-client.ts` (client-safe, sem `supabaseAdmin`) e a rota `/api/eventos`, que aceita **só** os nomes de `EVENTOS_DO_CLIENTE`: endpoint de escrita com nome livre deixaria qualquer usuário logado inventar métrica no painel. `lib/analytics.ts` (dataLayer do GTM) não serve pra isso — manda pro GA4, e a análise do produto sai do `/admin/metricas`, que lê `user_events`.
 
 `origem` no `treino_iniciado` é como se mede o handoff diagnóstico → treino: o CTA da tela de resultado manda `?origem=diagnostico`. `servidas` separado de `quantidade` torna visível o treino que sai menor por falta de questão inédita.
 

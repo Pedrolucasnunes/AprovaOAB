@@ -15,6 +15,7 @@ import { whatsappSupportUrl } from "@/lib/support"
 import { toast } from "sonner"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import Link from "next/link"
+import { PRECO_PRO } from "@/lib/planos"
 import { getTrialState, isTrialEnabledClient, type TrialUser } from "@/lib/trial"
 
 export default function PerfilPage() {
@@ -289,7 +290,7 @@ export default function PerfilPage() {
                         <p className="mt-1 text-sm text-muted-foreground">
                           {cancelAtPeriodEnd
                             ? `Encerra em ${trialState.daysLeft} ${trialState.daysLeft === 1 ? "dia" : "dias"} (${fimDate}) · sem cobrança`
-                            : `Termina em ${trialState.daysLeft} ${trialState.daysLeft === 1 ? "dia" : "dias"} · cobrança de R$ 19 em ${fimDate}`
+                            : `Termina em ${trialState.daysLeft} ${trialState.daysLeft === 1 ? "dia" : "dias"} · cobrança de ${PRECO_PRO} em ${fimDate}`
                           }
                         </p>
                       </div>

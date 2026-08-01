@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireUser } from "@/lib/auth-server"
-import { getDiagnosticoConfig } from "@/lib/config"
+import { getDiagnosticoConfig, getLimitesConfig } from "@/lib/config"
 import { inicioDoDiaBR, hojeStringBR, diaDaSemanaBR } from "@/lib/check-daily-limit"
 import { parseDbDate } from "@/lib/datas"
+import { contarDiasNoTeto } from "@/lib/limite-diario"
 import { fetchAllRows } from "@/lib/supabase-paginate"
 import { classificarTaxa, TAXA_CRITICA, MIN_TENTATIVAS_BANDA, MIN_RESPOSTAS_TAXA_GERAL } from "@/lib/metrics"
 import { logError } from "@/lib/logger"
@@ -43,6 +44,7 @@ export async function GET(req: NextRequest) {
     { data: proximoSimEvent },
     medidosDiag,
     { minTempoRespostaMs },
+    { freeDailyLimit },
   ] = await Promise.all([
     // Fontes do placar: question_attempts + simulado_attempts + simulado_respostas
     // + questions, com o `created_at` que o insight do passo 6 precisa.
@@ -98,6 +100,10 @@ export async function GET(req: NextRequest) {
     // É `cache()`ada por request, então adiantá-la aqui deixa de graça a
     // chamada do passo 5.5 e a de dentro do proximoModuloPendente.
     getDiagnosticoConfig(),
+    // O limite diário vai pro cliente: as telas hardcodeavam 10 enquanto o
+    // trigger do banco já lia `app_config`. Aqui é de graça — vai no mesmo
+    // bloco paralelo e é `cache()`ada por request.
+    getLimitesConfig(),
   ])
 
   const onboardingCompleto = user.user_metadata?.onboarding_completed === true
@@ -118,6 +124,12 @@ export async function GET(req: NextRequest) {
   const questoesHoje = fontes.attempts.filter(
     (a) => !a.is_diagnostic && parseDbDate(a.created_at) >= inicioDoDia,
   ).length
+
+  // Quantas vezes o usuário já bateu no teto — é o que separa a parede de
+  // "primeira vez" (empurra hábito) da de "toda semana" (vira oferta).
+  // Derivado das mesmas tentativas que já estão em memória: nenhuma consulta
+  // nova nesta rota, que é a mais chamada do app.
+  const diasNoTeto = contarDiasNoTeto(fontes.attempts, freeDailyLimit, todayDate)
 
   // Quem fez o diagnóstico de 5 questões antes dos módulos não tem sessão
   // nenhuma — pra esses, a contagem antiga continua sendo o sinal correto.
@@ -410,6 +422,10 @@ export async function GET(req: NextRequest) {
     diagnosticoEmAndamento,
     diagnosticoProximoModulo: proximoModuloDiag,
     questoesHoje,
+    // O teto vem do servidor (app_config, mesma fonte do trigger) — as telas
+    // não podem inventar o número que elas mesmas anunciam.
+    limiteDiario: freeDailyLimit,
+    diasNoTeto,
     plano,
     subscriptionStatus,
     trialUsed,

@@ -28,6 +28,14 @@ export type PublicSubject = {
   name: string
   slug: string
   count: number // limitado a PUBLIC_QUESTIONS_PER_SUBJECT
+  /**
+   * Quantas questões a matéria tem DE VERDADE no banco, sem o teto público.
+   *
+   * Existe porque o CTA dizia "Milhares de questões" numa página que mostra 10
+   * — e o número real já era calculado aqui e descartado no `Math.min`. Se a
+   * gente vai afirmar uma quantidade, que seja a que dá pra provar.
+   */
+  total: number
 }
 
 const QUESTION_FIELDS =
@@ -106,6 +114,7 @@ export async function getPublicSubjects(): Promise<PublicSubject[]> {
         name: subj.name,
         slug: subjectSlug(subj.name),
         count: Math.min(raw, PUBLIC_QUESTIONS_PER_SUBJECT),
+        total: raw,
       }
     })
   )

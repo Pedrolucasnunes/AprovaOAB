@@ -23,8 +23,11 @@ export function GatedExplanation({ materia }: { materia: string }) {
       </div>
 
       <div className="mt-5 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+        {/* Sem quantidade: este componente não tem a contagem, e uma consulta
+            por página de questão não se paga. Promessa sem número é melhor que
+            número inventado. */}
         <p className="text-sm text-muted-foreground">
-          Veja a resolução comentada e pratique milhares de questões no AprovaOAB.
+          Veja a resolução comentada e treine com questões de provas anteriores no AprovaOAB.
         </p>
         <Link
           href="/cadastro"

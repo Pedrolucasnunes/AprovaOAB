@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { getClientUser } from "@/lib/auth-client"
+import { PAREDE_CTA_CLICADO, trackClient } from "@/lib/events-client"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Clock, Target, BarChart2, Loader2, Trash2, AlertTriangle, ArrowRight, BarChart, Lock, Sparkles } from "lucide-react"
@@ -40,6 +41,12 @@ export default function SimuladosPage() {
 
   const trialDisponivel =
     process.env.NEXT_PUBLIC_TRIAL_ENABLED === "true" && plano === "free" && !trialUsed
+
+  // O simulado não tem parede: o free nunca chega a tentar, porque o botão já é
+  // trial/assinar. Então o gatilho que medimos é o clique neste hero — o
+  // `estado` "simulado" o separa dos dois estados do limite diário.
+  const marcarCta = (destino: "trial" | "planos") =>
+    trackClient(PAREDE_CTA_CLICADO, { estado: "simulado", origem: "simulado_hero", destino })
 
   useEffect(() => {
     async function init() {
@@ -81,6 +88,11 @@ export default function SimuladosPage() {
       const data = await res.json()
       if (!res.ok) {
         if (res.status === 403 && data.upgrade) {
+          // Backstop do servidor: a UI já troca o botão pro free, então cair
+          // aqui significa plano mudado no meio da sessão. Explica antes de
+          // navegar — até agora o usuário era jogado noutra página em silêncio.
+          toast.info("Simulados completos são do plano Pro.")
+          marcarCta(trialDisponivel ? "trial" : "planos")
           router.push(trialDisponivel ? "/dashboard/perfil/trial" : "/#planos")
           return
         }
@@ -231,10 +243,16 @@ export default function SimuladosPage() {
               Simulado completo · 1ª fase OAB
             </div>
             <h2 className="text-2xl font-extrabold text-foreground mb-2">
-              Simule a prova da OAB
+              {plano === "free" ? "O simulado mostra se você passaria hoje" : "Simule a prova da OAB"}
             </h2>
+            {/* Copy diferente pro free de propósito: aqui não existe parede (o
+                botão já é trial/assinar), então este hero É o momento de
+                conversão do simulado. Ele diz o que o produto entrega, não o
+                que o plano bloqueia. */}
             <p className="text-sm text-muted-foreground max-w-lg">
-              Réplica fiel da estrutura oficial: 80 questões em 5 horas, com peso por disciplina igual ao exame. Use para medir seu nível real e calibrar a estratégia.
+              {plano === "free"
+                ? "Réplica fiel da estrutura oficial: 80 questões em 5 horas, com o mesmo peso de matéria da FGV. É a única medição que responde \"eu passaria?\" — treino avulso não prevê a prova."
+                : "Réplica fiel da estrutura oficial: 80 questões em 5 horas, com peso por disciplina igual ao exame. Use para medir seu nível real e calibrar a estratégia."}
             </p>
             <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
@@ -259,7 +277,7 @@ export default function SimuladosPage() {
                   className="gap-2 text-base font-semibold px-6"
                   asChild
                 >
-                  <Link href="/dashboard/perfil/trial">
+                  <Link href="/dashboard/perfil/trial" onClick={() => marcarCta("trial")}>
                     <Sparkles className="h-4 w-4" /> Testar Pro 7 dias grátis
                   </Link>
                 </Button>
@@ -270,8 +288,8 @@ export default function SimuladosPage() {
                   className="gap-2 text-base font-semibold px-6"
                   asChild
                 >
-                  <Link href="/#planos">
-                    <Lock className="h-4 w-4" /> Assinar para simular
+                  <Link href="/#planos" onClick={() => marcarCta("planos")}>
+                    <Lock className="h-4 w-4" /> Ver o plano completo
                   </Link>
                 </Button>
               )

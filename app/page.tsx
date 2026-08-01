@@ -6,6 +6,7 @@ import { Hero } from "@/components/site/hero"
 import { ProblemSolution } from "@/components/site/problem-solution"
 import { HowItWorks } from "@/components/site/how-it-works"
 import { Benefits } from "@/components/site/benefits"
+import { Depoimentos } from "@/components/site/depoimentos"
 import { FreeQuestions } from "@/components/site/free-questions"
 import { Newsletter } from "@/components/site/newsletter"
 import { Pricing } from "@/components/site/pricing"
@@ -41,6 +42,10 @@ export default function HomePage() {
         <ProblemSolution />
         <HowItWorks />
         <Benefits />
+        {/* Não renderiza nada enquanto lib/depoimentos.ts tiver menos que
+            MIN_DEPOIMENTOS — colar os depoimentos lá faz a seção aparecer
+            sozinha, sem tocar neste arquivo. */}
+        <Depoimentos />
         <FreeQuestions />
         <Newsletter />
         <Pricing />

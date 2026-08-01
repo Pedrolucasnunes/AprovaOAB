@@ -7,6 +7,7 @@
 //
 // Server-only (RLS ligado sem policies). Nunca lança e nunca bloqueia a
 // resposta: gravar telemetria não pode derrubar o fluxo do usuário.
+import { PAREDE_CTA_CLICADO } from "./events-client"
 import { logWarning } from "./logger"
 import { supabaseAdmin } from "./supabase-admin"
 
@@ -26,9 +27,26 @@ export const EVENTOS = {
   DIAGNOSTICO_LEMBRETE_ENVIADO: "diagnostico_lembrete_enviado",
   TREINO_INICIADO: "treino_iniciado",
   LIMITE_DIARIO_ATINGIDO: "limite_diario_atingido",
+  // Vem de `events-client.ts` porque é o único que nasce no navegador — a tela
+  // e a whitelist da rota têm que apontar pra mesma string.
+  PAREDE_CTA_CLICADO,
 } as const
 
 export type Evento = (typeof EVENTOS)[keyof typeof EVENTOS]
+
+/**
+ * Os únicos eventos que o CLIENTE pode mandar gravar (via `POST /api/eventos`).
+ *
+ * Lista fechada, não filtro: `user_events` alimenta o `/admin/metricas`, e um
+ * endpoint de escrita que aceita nome livre deixa qualquer usuário logado
+ * inventar métrica no painel que existe justamente pra ser confiável.
+ *
+ * `parede_cta_clicado` está aqui porque não tem como nascer no servidor — o
+ * clique acontece antes de qualquer requisição, e o destino (trial ou planos) é
+ * decisão da tela. Todo o resto continua sendo emitido server-side, onde não dá
+ * pra forjar.
+ */
+export const EVENTOS_DO_CLIENTE: readonly Evento[] = [EVENTOS.PAREDE_CTA_CLICADO]
 
 /**
  * Grava um evento. Chame com `void track(...)` quando não quiser esperar —

@@ -5,6 +5,7 @@ import { Check } from "lucide-react";
 import { CtaButton } from "@/components/site/cta-button";
 import { Reveal } from "@/components/site/reveal";
 import { SectionHeading } from "@/components/site/section-heading";
+import { PRECO_PRO, PRECO_PRO_ANTERIOR, PROMOCAO_ATE } from "@/lib/planos";
 import { cn } from "@/lib/utils";
 
 type Plan = {
@@ -36,10 +37,13 @@ const PLANS: Plan[] = [
   {
     name: "Pro",
     badge: { label: "Recomendado", tone: "primary" },
-    price: "R$ 19",
-    oldPrice: "R$ 29",
+    price: PRECO_PRO,
+    // `oldPrice` e `note` saem de lib/planos.ts, e hoje os dois são null: o
+    // R$ 29 riscado nunca foi cobrado de ninguém (âncora inventada) e
+    // "promocional de lançamento" não tinha data de fim.
+    oldPrice: PRECO_PRO_ANTERIOR ?? undefined,
     period: "/mês",
-    note: "Preço promocional de lançamento",
+    note: PROMOCAO_ATE ? `Preço promocional até ${PROMOCAO_ATE}` : undefined,
     description: "Pra treinar sem limite até o dia da prova.",
     features: [
       "Tudo do Grátis",

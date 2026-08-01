@@ -8,12 +8,16 @@ import {
 } from "@/components/site/ui/accordion";
 import { Reveal } from "@/components/site/reveal";
 import { SectionHeading } from "@/components/site/section-heading";
+import { PRECO_PRO } from "@/lib/planos";
 
 const ITEMS = [
   {
     question: "Quanto custa?",
+    // Sem "(de R$ 29)": aquele valor nunca foi cobrado de ninguém, então
+    // apresentá-lo como preço anterior é âncora inventada. Preço vem de
+    // lib/planos.ts — era o mesmo número escrito à mão em quatro arquivos.
     answer:
-      "O plano Grátis é R$ 0 pra sempre: diagnóstico completo, plano de estudos básico e 10 questões por dia. Quando quiser treinar sem limite, o Pro está em promoção de lançamento por R$ 19/mês (de R$ 29). Você troca de plano ou cancela a qualquer momento.",
+      `O plano Grátis é R$ 0 pra sempre: diagnóstico completo, plano de estudos básico e 10 questões por dia. Quando quiser treinar sem limite, o Pro custa ${PRECO_PRO}/mês. Você troca de plano ou cancela a qualquer momento.`,
   },
   {
     question: "As questões são no padrão real da prova?",

@@ -12,6 +12,7 @@ import {
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { getClientUser } from "@/lib/auth-client"
+import { PRECO_PRO } from "@/lib/planos"
 import { toast } from "sonner"
 import Link from "next/link"
 
@@ -165,7 +166,7 @@ export default function TrialPage() {
             <div>
               <p className="text-sm font-medium text-foreground">Primeira cobrança: {cobrancaDate}</p>
               <p className="text-sm text-muted-foreground">
-                R$ 19/mês a partir do dia {TRIAL_DAYS + 1}, automaticamente — se você não cancelar antes.
+                {PRECO_PRO}/mês a partir do dia {TRIAL_DAYS + 1}, automaticamente — se você não cancelar antes.
               </p>
             </div>
           </div>

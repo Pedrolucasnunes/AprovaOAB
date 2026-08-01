@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireUser } from "@/lib/auth-server"
 import { rateLimit } from "@/lib/rate-limit"
-import { checkDailyLimit } from "@/lib/check-daily-limit"
+import { avaliarLimite, carregarDiasNoTeto, contarQuestoesHoje } from "@/lib/check-daily-limit"
+import { getLimitesConfig } from "@/lib/config"
+import { estadoDaParede } from "@/lib/limite-diario"
 import { fetchAllRows, fetchByIds } from "@/lib/supabase-paginate"
 import { EVENTOS, track } from "@/lib/events"
 import { TAXA_CRITICA } from "@/lib/metrics"
@@ -48,18 +50,35 @@ export async function POST(req: NextRequest) {
   // Limite diário do plano free — verificado antes de montar o treino.
   // `plano` vem do guard: sai da mesma linha de `users` que o `role`, então
   // reconsultar aqui era uma ida ao banco a troco de nada.
-  const limit = await checkDailyLimit(supabase, userId, plano)
+  //
+  // Contagem e config vão JUNTAS: o teto mora em `app_config` (mesma fonte do
+  // trigger no banco) e buscá-lo em sequência seria uma ida a mais.
+  const [limites, contagemHoje] = await Promise.all([
+    getLimitesConfig(),
+    contarQuestoesHoje(supabase, userId, plano),
+  ])
+  const limit = avaliarLimite(contagemHoje, limites.freeDailyLimit)
 
   if (limit.exceeded) {
+    // A consulta de `diasNoTeto` mora aqui dentro de propósito: no caminho de
+    // sucesso ela seria uma ida ao banco por treino iniciado.
+    const dias = await carregarDiasNoTeto(supabase, userId, limit.limit)
     void track(userId, EVENTOS.LIMITE_DIARIO_ATINGIDO, {
       origem: "treino",
       motivo: "teto",
       limite: limit.limit,
       count: limit.count,
       quantidade_pedida: totalQuestoes,
+      estado: estadoDaParede(dias.total),
+      dias_no_teto: dias.total,
+      dias_no_teto_7d: dias.ultimos7,
     })
     return NextResponse.json(
-      { error: "Você já completou suas 10 questões de hoje.", limiteDiario: true, upgrade: true },
+      {
+        error: `Você já completou suas ${limit.limit} questões de hoje.`,
+        limiteDiario: true,
+        upgrade: true,
+      },
       { status: 403 }
     )
   }
@@ -71,6 +90,7 @@ export async function POST(req: NextRequest) {
     // Motivo distinto do "teto" de propósito: aqui a intenção foi barrada ANTES
     // de gastar a cota — o usuário pediu 20 tendo 3 disponíveis. É sinal de
     // demanda mais forte que bater no limite depois de consumir tudo.
+    const dias = await carregarDiasNoTeto(supabase, userId, limit.limit)
     void track(userId, EVENTOS.LIMITE_DIARIO_ATINGIDO, {
       origem: "treino",
       motivo: "treino_maior_que_restante",
@@ -78,6 +98,9 @@ export async function POST(req: NextRequest) {
       count: limit.count,
       restante,
       quantidade_pedida: totalQuestoes,
+      estado: estadoDaParede(dias.total),
+      dias_no_teto: dias.total,
+      dias_no_teto_7d: dias.ultimos7,
     })
     return NextResponse.json(
       {

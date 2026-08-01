@@ -7,6 +7,7 @@ import { SeoCtaButton } from "@/components/seo/seo-cta"
 import {
   getPublicSubjects,
   getPublicQuestionsForSubject,
+  PUBLIC_QUESTIONS_PER_SUBJECT,
 } from "@/lib/seo/questions"
 import { getMateriaIntro } from "@/lib/seo/materia-intro"
 import { questionSlug } from "@/lib/slug"
@@ -129,8 +130,14 @@ export default async function MateriaPage({
         <p className="text-lg font-semibold text-foreground">
           Quer praticar {subject.name} de verdade?
         </p>
+        {/* Número real da matéria, não "Milhares": esta página mostra 10
+            questões, e a contagem verdadeira já vinha calculada de graça em
+            getPublicSubjects. Afirmação que a própria tela desmente é o pior
+            tipo de copy que a gente pode ter. */}
         <p className="mt-1 mb-5 text-sm text-muted-foreground">
-          Milhares de questões, resolução comentada e plano de estudos personalizado.
+          {subject.total > PUBLIC_QUESTIONS_PER_SUBJECT
+            ? `São ${subject.total} questões de ${subject.name} na plataforma, com resolução comentada e plano de estudos que se ajusta aos seus erros.`
+            : `Resolução comentada e plano de estudos que se ajusta aos seus erros.`}
         </p>
         <SeoCtaButton location="questoes_materia" />
       </div>

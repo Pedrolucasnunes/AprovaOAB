@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, Suspense } from "react"
+import { useState, useEffect, useMemo, useRef, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,10 +18,15 @@ import {
 } from "@/components/ui/alert-dialog"
 import {
   Dumbbell, Target, Lightbulb, Play, TrendingUp, TrendingDown, Sparkles,
-  ChevronLeft, ChevronRight, CheckCircle2, XCircle, Loader2, X, AlertTriangle
+  ChevronLeft, ChevronRight, CheckCircle2, XCircle, Loader2, X
 } from "lucide-react"
+import {
+  conteudoDaParede, ParedeLimiteCard, ParedeRestante,
+} from "@/components/dashboard/limite-diario"
 import { supabase } from "@/lib/supabase"
 import { getClientUser } from "@/lib/auth-client"
+import { PAREDE_CTA_CLICADO, trackClient } from "@/lib/events-client"
+import { resumirSessao, type DiasNoTeto } from "@/lib/limite-diario"
 import { META_APROVACAO, classificarTaxa, taxaLabel, metaTextColor } from "@/lib/metrics"
 
 const treinoOptions = [
@@ -32,6 +37,8 @@ const treinoOptions = [
 ]
 
 const QUANTIDADES_VALIDAS = ["5", "10", "20", "30"]
+/** Menor treino que a rota aceita — abaixo disso não dá pra montar sessão. */
+const MENOR_TREINO = Math.min(...QUANTIDADES_VALIDAS.map(Number))
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 interface MateriasRisco {
@@ -97,11 +104,28 @@ function TreinoPageInner() {
   const initialQuantidade = qParam && QUANTIDADES_VALIDAS.includes(qParam) ? qParam : "10"
 
   const [quantidadeQuestoes, setQuantidadeQuestoes] = useState(initialQuantidade)
+  /** O que foi pedido antes do recuo automático — `null` quando não houve recuo. */
+  const [quantidadePedida, setQuantidadePedida] = useState<number | null>(null)
+  /**
+   * Se a escolha partiu do usuário, e não do valor padrão da tela.
+   *
+   * Sem isso, "você pediu 20" apareceria pra quem nunca tocou no seletor — que
+   * é inventar intenção, o mesmo defeito do recuo silencioso, só que ao
+   * contrário. O aviso de ajuste continua aparecendo nos dois casos (a seleção
+   * visível mudou de fato); só a afirmação sobre o que a pessoa QUIS depende
+   * disto.
+   */
+  const escolheuQuantidade = useRef(false)
   const [materiasRisco, setMateriasRisco] = useState<MateriasRisco[]>([])
   const [progresso, setProgresso] = useState<Progresso | null>(null)
   const [loadingDados, setLoadingDados] = useState(true)
   const [materiaFiltrada, setMateriaFiltrada] = useState<{ id: string; nome: string } | null>(null)
   const [questoesHoje, setQuestoesHoje] = useState(0)
+  // Teto e frequência vêm do servidor (app_config + question_attempts). A tela
+  // não pode inventar o número que ela mesma anuncia: o trigger do banco lê
+  // `app_config` e o 10 hardcodeado aqui mentiria assim que o valor mudasse.
+  const [limiteDiario, setLimiteDiario] = useState(10)
+  const [diasNoTeto, setDiasNoTeto] = useState<DiasNoTeto>({ total: 0, ultimos7: 0 })
   const [plano, setPlano] = useState<"free" | "pro" | "aprovacao">("free")
   const [trialUsed, setTrialUsed] = useState(false)
   const [temPerfilOnboarding, setTemPerfilOnboarding] = useState(false)
@@ -129,6 +153,27 @@ function TreinoPageInner() {
     questaoAbertaEm.current = performance.now()
   }, [questaoIdAtual])
 
+  // O que a sessão barrada produziu — alimenta a copy da parede ("10 questões de
+  // Constitucional — 3 certas"). Sai de `respostas`, que só tem o que o servidor
+  // aceitou; nenhuma busca nova.
+  const sessaoParede = useMemo(() => {
+    if (!treinoAtivo) return null
+    return resumirSessao(
+      treinoAtivo.questoes
+        .filter((q) => respostas[q.id])
+        .map((q) => ({ acertou: respostas[q.id].acertou, materia: q.subject_name })),
+    )
+  }, [treinoAtivo, respostas])
+
+  const paredeModal = conteudoDaParede({
+    limite: limiteDiario,
+    diasNoTeto,
+    trialDisponivel,
+    origem: "treino_modal",
+    sessao: sessaoParede,
+    materiaFraca: materiasRisco[0]?.nome ?? null,
+  })
+
   useEffect(() => {
     async function init() {
       const user = await getClientUser()
@@ -141,6 +186,8 @@ function TreinoPageInner() {
         setMateriasRisco(data.materiasRisco ?? [])
         setProgresso(data.resumo ?? null)
         setQuestoesHoje(data.questoesHoje ?? 0)
+        if (typeof data.limiteDiario === "number") setLimiteDiario(data.limiteDiario)
+        if (data.diasNoTeto) setDiasNoTeto(data.diasNoTeto)
         setPlano(data.plano ?? "free")
         setTrialUsed(data.trialUsed ?? false)
         setTemPerfilOnboarding(data.temPerfilOnboarding ?? false)
@@ -175,14 +222,20 @@ function TreinoPageInner() {
 
   // Free: se a quantidade selecionada não cabe mais no limite diário, recua para
   // a maior opção que ainda cabe — evita o usuário tentar iniciar um treino barrado.
+  //
+  // O recuo continua, mas deixa de ser silencioso: `quantidadePedida` guarda o
+  // que a pessoa tinha escolhido antes do rebaixamento. Até aqui o app trocava
+  // 20 por 5 sem dizer nada, destruindo a intenção sem reconhecê-la — e essa
+  // intenção é exatamente o sinal de demanda que queremos enxergar.
   useEffect(() => {
     if (plano !== "free") return
-    const restante = Math.max(0, 10 - questoesHoje)
+    const restante = Math.max(0, limiteDiario - questoesHoje)
     if (Number(quantidadeQuestoes) > restante) {
       const valida = [...QUANTIDADES_VALIDAS].reverse().find((v) => Number(v) <= restante)
+      setQuantidadePedida(Number(quantidadeQuestoes))
       if (valida) setQuantidadeQuestoes(valida)
     }
-  }, [plano, questoesHoje, quantidadeQuestoes])
+  }, [plano, questoesHoje, quantidadeQuestoes, limiteDiario])
 
   function limparFiltroMateria() {
     setMateriaFiltrada(null)
@@ -244,7 +297,7 @@ function TreinoPageInner() {
     setVerificando(false)
 
     if (res.status === 403 && data.limiteDiario) {
-      setQuestoesHoje(10)
+      setQuestoesHoje(limiteDiario)
       setLimiteAtingido(true)
       return
     }
@@ -459,22 +512,32 @@ function TreinoPageInner() {
           </AlertDialogContent>
         </AlertDialog>
 
+        {/* A parede no meio da sessão. O resumo vem das respostas SALVAS
+            (`respostas`), não das tentadas: o 403 chega na resposta seguinte ao
+            teto, e contar tentativas faria a parede dizer 11 de 10. */}
         <AlertDialog open={limiteAtingido}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Limite diário atingido</AlertDialogTitle>
+              <AlertDialogTitle>{paredeModal.titulo}</AlertDialogTitle>
               <AlertDialogDescription>
-                Você completou suas 10 questões de hoje no plano Grátis. As respostas
-                já enviadas estão salvas — veja o resultado da sessão
-                {trialDisponivel
-                  ? " ou teste o Pro grátis por 7 dias para continuar agora."
-                  : " e volte amanhã, ou conheça o Pro para questões ilimitadas."}
+                {paredeModal.corpo}
+                {paredeModal.alternativa ? ` ${paredeModal.alternativa}` : ""}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel asChild>
-                <Link href={trialDisponivel ? "/dashboard/perfil/trial" : "/#planos"}>
-                  {trialDisponivel ? "Testar Pro 7 dias grátis" : "Conhecer o Pro"}
+                <Link
+                  href={paredeModal.cta.href}
+                  onClick={() =>
+                    trackClient(PAREDE_CTA_CLICADO, {
+                      estado: paredeModal.estado,
+                      origem: "treino_modal",
+                      destino: paredeModal.cta.destino,
+                      dias_no_teto: diasNoTeto.total,
+                    })
+                  }
+                >
+                  {paredeModal.cta.label}
                 </Link>
               </AlertDialogCancel>
               <AlertDialogAction onClick={concluirTreino}>
@@ -664,8 +727,8 @@ function TreinoPageInner() {
 
           {(() => {
             const diagnosticoPendente = temPerfilOnboarding && !diagnosticoCompleto
-            const limiteBatido = plano === "free" && questoesHoje >= 10
-            const restante = Math.max(0, 10 - questoesHoje)
+            const limiteBatido = plano === "free" && questoesHoje >= limiteDiario
+            const restante = Math.max(0, limiteDiario - questoesHoje)
 
             if (diagnosticoPendente) {
               return (
@@ -698,98 +761,31 @@ function TreinoPageInner() {
 
             if (limiteBatido) {
               return (
-                <Card>
-                  <CardContent className="p-6 text-center space-y-4">
-                    <div className="flex justify-center">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10">
-                        <AlertTriangle className="h-6 w-6 text-amber-500" />
-                      </div>
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-foreground">
-                        Limite diário atingido
-                      </h3>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        Você completou suas 10 questões de hoje no plano Grátis.
-                        {materiasRisco[0] && (
-                          <>
-                            {" "}Seu ponto mais fraco é{" "}
-                            <strong className="text-foreground">{materiasRisco[0].nome}</strong> —
-                            no Pro você continuaria treinando exatamente isso agora.
-                          </>
-                        )}
-                        {trialDisponivel
-                          ? " Teste grátis por 7 dias, sem limite diário."
-                          : " Volte amanhã pra continuar o plano — ou veja seu calendário agora."}
-                      </p>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-2 pt-2">
-                      {trialDisponivel ? (
-                        <>
-                          <Button asChild className="flex-1 gap-1.5">
-                            <Link href="/dashboard/perfil/trial">
-                              <Sparkles className="h-4 w-4" /> Testar Pro 7 dias grátis
-                            </Link>
-                          </Button>
-                          <Button asChild variant="outline" className="flex-1">
-                            <Link href="/dashboard/calendario">Ver meu calendário</Link>
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button asChild className="flex-1">
-                            <Link href="/dashboard/calendario">Ver meu calendário</Link>
-                          </Button>
-                          <Button asChild variant="outline" className="flex-1">
-                            <Link href="/#planos">Conhecer o Pro</Link>
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                <ParedeLimiteCard
+                  limite={limiteDiario}
+                  diasNoTeto={diasNoTeto}
+                  trialDisponivel={trialDisponivel}
+                  origem="treino_card"
+                  materiaFraca={materiasRisco[0]?.nome ?? null}
+                  secundario="calendario"
+                />
               )
             }
 
-            // Free com saldo positivo, mas menor que o menor treino (5 questões):
-            // não dá pra montar treino — direciona para as questões avulsas.
-            if (plano === "free" && restante > 0 && restante < 5) {
+            // Free com saldo positivo, mas menor que o menor treino: não dá pra
+            // montar treino — direciona para as questões avulsas. Não é a
+            // parede (ainda há cota), é aviso de que o treino não cabe.
+            if (plano === "free" && restante > 0 && restante < MENOR_TREINO) {
               return (
-                <Card>
-                  <CardContent className="p-6 text-center space-y-4">
-                    <div className="flex justify-center">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10">
-                        <AlertTriangle className="h-6 w-6 text-amber-500" />
-                      </div>
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-foreground">
-                        Poucas questões restantes hoje
-                      </h3>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        Você tem {restante} {restante === 1 ? "questão restante" : "questões restantes"} no
-                        plano Grátis — menos que o menor treino (5 questões). Responda em
-                        Questões avulsas ou volte amanhã para um treino completo.
-                      </p>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-2 pt-2">
-                      <Button asChild className="flex-1">
-                        <Link href="/dashboard/questoes">Ir para Questões avulsas</Link>
-                      </Button>
-                      {trialDisponivel ? (
-                        <Button asChild variant="outline" className="flex-1 gap-1.5">
-                          <Link href="/dashboard/perfil/trial">
-                            <Sparkles className="h-4 w-4" /> Testar Pro 7 dias grátis
-                          </Link>
-                        </Button>
-                      ) : (
-                        <Button asChild variant="outline" className="flex-1">
-                          <Link href="/#planos">Conhecer o Pro</Link>
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                <ParedeRestante
+                  restante={restante}
+                  pedido={escolheuQuantidade.current ? quantidadePedida : null}
+                  menorTreino={MENOR_TREINO}
+                  limite={limiteDiario}
+                  diasNoTeto={diasNoTeto}
+                  trialDisponivel={trialDisponivel}
+                  materiaFraca={materiasRisco[0]?.nome ?? null}
+                />
               )
             }
             return (
@@ -814,13 +810,26 @@ function TreinoPageInner() {
                     </Label>
                     {plano === "free" && (
                       <p className="mb-3 text-xs text-muted-foreground">
-                        Plano Grátis · {restante} de 10 questões restantes hoje
-                        {restante < 10 && " — opções maiores que o restante ficam indisponíveis"}
+                        Plano Grátis · {restante} de {limiteDiario} questões restantes hoje
+                        {restante < limiteDiario && " — opções maiores que o restante ficam indisponíveis"}
+                      </p>
+                    )}
+                    {/* O recuo automático deixa de ser silencioso: trocar 20 por
+                        5 sem avisar apaga a intenção do usuário. Aqui a
+                        afirmação é sobre a SELEÇÃO ter mudado, o que é verdade
+                        mesmo quando o valor anterior era o padrão da tela. */}
+                    {plano === "free" && quantidadePedida !== null && quantidadePedida > restante && (
+                      <p className="mb-3 text-xs text-warning">
+                        A seleção de {quantidadePedida} não cabe hoje — ajustamos para o que resta.
+                        Amanhã as {limiteDiario} do dia voltam.
                       </p>
                     )}
                     <RadioGroup
                       value={quantidadeQuestoes}
-                      onValueChange={setQuantidadeQuestoes}
+                      onValueChange={(v) => {
+                        escolheuQuantidade.current = true
+                        setQuantidadeQuestoes(v)
+                      }}
                       className="grid gap-3 grid-cols-2 sm:grid-cols-4"
                     >
                       {treinoOptions.map((option) => {

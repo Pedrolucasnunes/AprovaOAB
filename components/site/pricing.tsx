@@ -26,9 +26,12 @@ const PLANS: Plan[] = [
     name: "Grátis",
     price: "R$ 0",
     period: "/pra sempre",
-    description: "Pra descobrir seu nível e criar o hábito de treinar.",
+    description: "Pra descobrir onde você está fraco e treinar todo dia.",
     features: [
-      "Diagnóstico completo por matéria",
+      // "por matéria" prometia cobertura que o produto não entrega: o Módulo 1
+      // são 8 matérias, não todas as da 1ª fase. Mesma frase que o dashboard e
+      // o onboarding já usam.
+      "Diagnóstico das 8 matérias mais pesadas",
       "Plano de estudos básico",
       "10 questões por dia",
     ],
@@ -44,13 +47,22 @@ const PLANS: Plan[] = [
     oldPrice: PRECO_PRO_ANTERIOR ?? undefined,
     period: "/mês",
     note: PROMOCAO_ATE ? `Preço promocional até ${PROMOCAO_ATE}` : undefined,
-    description: "Pra treinar sem limite até o dia da prova.",
+    description: "Pra saber se você passaria hoje — e fechar o que falta até a prova.",
+    // ORDEM DELIBERADA: simulado primeiro, questões ilimitadas em terceiro.
+    //
+    // Era o inverso. Dos 10 depoimentos de `lib/depoimentos.ts`, 4 citam o
+    // simulado por nome e 8 elogiam o relatório por matéria ("ver exatamente
+    // quais matérias preciso melhorar", "onde eu tô errando", "já tenho um
+    // norte"); nenhum menciona volume de questões. E o teto de 10/dia é batido
+    // por uma minoria dos usuários free — o que ninguém consome não é o que
+    // vende. O primeiro bullet promete o VEREDITO, não o formato: é o relatório
+    // que as pessoas descrevem, o simulado é o veículo.
     features: [
-      "Tudo do Grátis",
-      "Questões ilimitadas",
-      "Simulados completos no padrão FGV",
+      "Simulados completos no padrão FGV — com o relatório que mostra se você passaria hoje",
       "Plano dinâmico — se ajusta aos seus erros",
+      "Questões ilimitadas",
       "Revisão dos erros",
+      "Tudo do Grátis",
     ],
     cta: "Assinar o Pro",
     featured: true,

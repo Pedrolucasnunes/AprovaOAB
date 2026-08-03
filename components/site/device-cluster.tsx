@@ -163,15 +163,18 @@ function NavPanel({
     <div className="hidden border-r border-border bg-muted p-3 sm:block sm:p-4">
       <div className="flex items-baseline justify-between">
         <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-          Mini-diagnóstico
+          Amostra do diagnóstico
         </p>
         <p className="font-mono text-[9px] text-muted-foreground">
-          2 questões
+          2 de 16
         </p>
       </div>
 
-      <div className="mt-3 grid grid-cols-5 gap-1 sm:gap-1.5" aria-hidden>
-        {Array.from({ length: 20 }).map((_, i) =>
+      {/* 16 células porque o Módulo 1 são 16 questões (8 matérias × 2). Os
+          números são visíveis, então a grade não pode contradizer o "2 de 16"
+          acima — a demo é uma amostra do diagnóstico, não um diagnóstico menor. */}
+      <div className="mt-3 grid grid-cols-4 gap-1 sm:gap-1.5" aria-hidden>
+        {Array.from({ length: 16 }).map((_, i) =>
           i < 2 ? (
             <NavCell
               key={i}
@@ -413,7 +416,7 @@ function ResultView({
   return (
     <div>
       <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-        Mini-diagnóstico concluído
+        Amostra concluída
       </p>
       <p className="mt-2 font-display text-xl tracking-tight text-foreground">
         Você acertou {score} de 2
@@ -451,8 +454,8 @@ function ResultView({
 
       <p className="mt-3 text-[10.5px] leading-relaxed text-muted-foreground">
         {wrong.length > 0
-          ? `No diagnóstico completo, ${wrong[0].subject} entraria como prioridade do seu plano — é assim que o AprovaOAB monta o treino pelos seus erros.`
-          : "Você gabaritou os exemplos. No diagnóstico completo, o algoritmo encontra seus pontos fracos reais — e monta o plano em cima deles."}
+          ? `No diagnóstico completo são 16 questões nas 8 matérias mais pesadas — e ${wrong[0].subject} entraria como prioridade do seu plano.`
+          : "Você gabaritou os exemplos. No diagnóstico completo — 16 questões nas 8 matérias mais pesadas — o algoritmo encontra seus pontos fracos reais."}
       </p>
 
       <div className="mt-4 space-y-2">

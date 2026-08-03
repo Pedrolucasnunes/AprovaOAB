@@ -84,9 +84,9 @@ export function Hero() {
               variants={item}
               className="mt-6 max-w-md text-base leading-relaxed text-night-muted sm:text-lg"
             >
-              Um diagnóstico curto mede seu nível em cada matéria. A partir dos
-              seus erros, o AprovaOAB monta um plano personalizado — e
-              concentra o treino onde você mais perde pontos.
+              Um diagnóstico curto mede seu nível nas 8 matérias mais pesadas da
+              prova. A partir dos seus erros, o AprovaOAB monta um plano
+              personalizado — e concentra o treino onde você mais perde pontos.
             </motion.p>
 
             <motion.div variants={item} className="mt-9">

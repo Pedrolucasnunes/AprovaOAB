@@ -145,7 +145,7 @@ function SimuladoVignette() {
 const STEPS = [
   {
     title: "Faça o diagnóstico",
-    body: "Um teste curto, com questões objetivas de cada matéria da 1ª fase. Você descobre seu nível real, matéria por matéria — sem achismo.",
+    body: "Um teste curto, com questões objetivas das 8 matérias mais pesadas da 1ª fase. Você descobre seu nível real, matéria por matéria — sem achismo.",
     visual: <DiagnosisVignette />,
   },
   {

@@ -552,6 +552,54 @@ export const EDICAO_8: NewsletterEdicao = {
   examDays: 40,
 }
 
+export const EDICAO_9: NewsletterEdicao = {
+  numero: 9,
+  subject: "☕ Café com OAB #9 — a alternativa que estava certa até 2021",
+  preheader:
+    "A FGV pôs no meio das opções um texto que a lei já tinha revogado. Quem estudou por material velho marcou. E a repescagem do 47 fecha sexta, 17h.",
+  intro: [
+    "Semana de prazo curto: as inscrições da <strong>repescagem do 47º Exame</strong> fecham <strong>sexta-feira (7/8), às 17h</strong> — taxa de R$ 175, só pelo portal da FGV. É pra quem passou na objetiva do 46 e não fechou a 2ª fase (ou faltou, ou foi eliminado). Depois das 17h de sexta não tem segunda chamada. ⏰",
+    "E hoje faltam <strong>33 dias</strong> pra 1ª fase. A matéria da vez é <strong>Direito Empresarial</strong> — metade das pessoas erra na plataforma. A questão que escolhi tem uma armadilha que eu acho a mais cruel que a FGV usa: uma das alternativas reproduz, palavra por palavra, um trecho do Código Civil que <strong>foi revogado em 2021</strong>. Quem decorou por material desatualizado marca com confiança. ⚖️",
+  ],
+  termometro:
+    "🟡 <strong>Direito Empresarial — 50% de acerto na plataforma.</strong> Metade erra. É a matéria em que a lei mais mudou nos últimos anos (Liberdade Econômica em 2019, Lei do Ambiente de Negócios em 2021), e é exatamente aí que mora o problema: muito material de estudo ainda ensina a redação antiga.",
+  questao: {
+    // Sem estatística da plataforma aqui de propósito: as respostas desta questão
+    // foram corrigidas contra gabarito errado, então qualquer taxa seria falsa.
+    fonte: "FGV · Exame de Ordem XLII/2024 · dificuldade média",
+    enunciado:
+      "F. Beltrão, G. Carneiro e S. Moreira decidiram constituir uma sociedade do tipo simples de prazo indeterminado, que entrou em atividade na data da assinatura do contrato, levado a registro na semana seguinte, no Registro Civil de Pessoas Jurídicas. Assinale a opção que indica a hipótese de dissolução de pleno direito dessa sociedade.",
+    alternativas: [
+      { letra: "A", texto: "A deliberação dos sócios, por maioria absoluta do capital." },
+      { letra: "B", texto: "O esgotamento da exploração do objeto social ou verificada a sua inexequibilidade." },
+      { letra: "C", texto: "O falecimento de qualquer dos sócios, independentemente de optarem pela dissolução." },
+      { letra: "D", texto: "A existência de apenas um sócio, não reconstituída a pluralidade em até 180 (cento e oitenta) dias." },
+    ],
+    gabarito: "A",
+    comentario:
+      "A chave está em duas palavras do enunciado: <strong>“de pleno direito”</strong>. O Código Civil separa as coisas em dois artigos vizinhos — o <strong>art. 1.033</strong> lista o que dissolve a sociedade <em>automaticamente</em>, e o <strong>art. 1.034</strong> lista o que só dissolve <em>por decisão judicial</em>. A letra A é o art. 1.033, III: sociedade de prazo indeterminado se dissolve por deliberação dos sócios em maioria absoluta — e o enunciado faz questão de dizer que o prazo é indeterminado.",
+  },
+  pegadinha:
+    "A letra <strong>D</strong> é a armadilha, e ela é diferente das outras: não é um raciocínio errado, é <strong>lei que não existe mais</strong>. Aquele texto era o art. 1.033, IV — a sociedade que ficasse com um sócio só tinha 180 dias pra recompor a pluralidade, senão dissolvia. A <strong>Lei nº 14.195/2021</strong> revogou esse inciso (e o parágrafo único junto). Desde então a limitada pode ser unipessoal <strong>pra sempre</strong>, sem prazo nenhum. Repare que a prova é de <strong>dezembro de 2024</strong>: a FGV colocou o texto revogado três anos depois da revogação, sabendo que muito resumo ainda traz a redação velha. A letra <strong>B</strong> é a segunda mais votada e o erro é sutil — “exaurimento do fim social ou sua inexequibilidade” existe mesmo, mas está no <strong>art. 1.034, II</strong>, que é dissolução <strong>judicial</strong>; alguém tem que ir a juízo pedir. E a letra <strong>C</strong> troca dissolução por outra coisa: morte de sócio gera <strong>resolução em relação àquele sócio</strong> (art. 1.028), a sociedade continua viva com os demais. 🧠 <strong>Fixa assim:</strong> 1.033 = morre sozinha · 1.034 = precisa de juiz · 1.028 = não morre, encolhe.",
+  noticia: {
+    titulo: "📰 Tá rolando: repescagem fecha sexta às 17h",
+    texto:
+      "As inscrições da <strong>repescagem do 47º Exame</strong> encerram <strong>nesta sexta-feira (7/8), às 17h</strong> (horário de Brasília), exclusivamente pelo portal da FGV, com taxa de <strong>R$ 175</strong>. Podem pedir o reaproveitamento da 1ª fase os aprovados na prova objetiva do 46º Exame que não foram aprovados na prático-profissional — inclusive quem faltou ou foi eliminado. Quem entrar pela repescagem faz direto a <strong>2ª fase, em 18 de outubro de 2026</strong>, das 13h às 18h. Para todo mundo mais, a <strong>1ª fase é em 6 de setembro</strong> — daqui a 33 dias. ⏰",
+  },
+  curiosidade: {
+    titulo: "💡 Você sabia?",
+    texto:
+      "A mesma Lei nº 14.195/2021 que revogou o prazo dos 180 dias também <strong>extinguiu a EIRELI</strong> — aquela empresa individual que exigia capital mínimo de 100 salários mínimos integralizados. E fez isso de um jeito raro no direito brasileiro: as EIRELIs que existiam foram <strong>transformadas automaticamente</strong> em sociedades limitadas unipessoais, <strong>sem ninguém precisar assinar nada</strong> nem alterar o ato constitutivo. Milhares de empresas trocaram de tipo societário dormindo. Se você ainda encontra “EIRELI” em questão de simulado, é sinal de que o material é de antes de agosto de 2021. 😉",
+  },
+  dica:
+    "Empresarial rende ponto fácil pra quem sabe onde a lei mudou. Reserve 15 minutos hoje pra ler lado a lado os arts. 1.028, 1.033 e 1.034 do Código Civil — resolução, dissolução de pleno direito e dissolução judicial. Três artigos seguidos que a FGV adora embaralhar, e você já sai na frente de quem estudou por resumo velho.",
+  examDays: 33,
+}
+
 // Edição "atual" — a que o cron semanal e o /send usam por padrão. Ao montar uma
 // edição nova, atualize este ponteiro (ou edite o conteúdo acima).
-export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_8
+//
+// ATENÇÃO: o cron de segunda recria o rascunho da CURRENT_EDICAO sem checar se ela
+// já foi enviada. Esquecer de mover este ponteiro gera, no Resend, um rascunho
+// idêntico ao da semana passada — foi o que aconteceu em 03/ago/2026 com a #8.
+export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_9

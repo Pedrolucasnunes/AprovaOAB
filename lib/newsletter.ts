@@ -596,10 +596,56 @@ export const EDICAO_9: NewsletterEdicao = {
   examDays: 33,
 }
 
+// ── Edição #10 (dados reais do banco: Processo do Trabalho, 43% de acerto) ────
+export const EDICAO_10: NewsletterEdicao = {
+  numero: 10,
+  subject: "☕ Café com OAB #10 — o reflexo do CPC que entrega a causa no fórum errado",
+  preheader:
+    "No processo civil, incompetência vai na contestação. Na CLT, quem faz isso já perdeu o prazo. E o calendário do 47 entrou em silêncio.",
+  intro: [
+    "O calendário do <strong>47º Exame</strong> entrou na parte silenciosa: as inscrições da repescagem fecharam <strong>sexta passada (7/8), às 17h</strong>, e a próxima data oficial só vem em <strong>31 de agosto</strong>, quando saem os locais de prova. São <strong>três semanas sem nenhum prazo</strong> — e é exatamente nesse vazio que a rotina de estudo costuma escorregar, porque não tem mais nada empurrando de fora. ⏰",
+    "Faltam <strong>26 dias</strong>. A matéria de hoje ainda não tinha aparecido por aqui: <strong>Processo do Trabalho</strong>, com <strong>43% de acerto</strong> na plataforma — quase 6 em cada 10 erram. E a questão que escolhi é do <strong>XLV, o exame mais recente</strong>, com a armadilha que eu considero a mais cara dessa matéria: o reflexo de resolver na CLT o que você aprendeu no CPC. ⚖️",
+  ],
+  termometro:
+    "🔴 <strong>Processo do Trabalho — 43% de acerto na plataforma.</strong> Quase 6 em cada 10 erram. É a matéria em que a CLT tem <strong>regra própria</strong> pra quase tudo que o CPC também trata — prazo, forma, momento — e a FGV cobra justamente onde as duas divergem.",
+  questao: {
+    // Sem estatística da plataforma nesta edição: Processo do Trabalho tem 23
+    // respostas espalhadas por 21 questões (maior n = 2), então nenhuma taxa por
+    // questão sustentaria a frase "a que mais derruba". Mesma decisão da #9.
+    fonte: "FGV · Exame de Ordem XLV/2025 · dificuldade média",
+    enunciado:
+      "João Paulo trabalhou como vendedor em uma loja de calçados de 20/02/2022 a 30/01/2023, situada próxima de sua residência, no município de Duque de Caxias, RJ. Pela proximidade, menos de 50 m de distância, João Paulo ia a pé para o serviço e não optou por receber vale-transporte. Ocorre que, ao ser dispensado, ajuizou ação trabalhista reclamando a concessão do benefício, ação que seu advogado distribuiu para a 100ª Vara do Trabalho (VT) do Rio de Janeiro, que lhe designou uma audiência presencial. A loja está localizada em Duque de Caxias e você, advogado(a) da loja, tem seu escritório na mesma cidade. Sobre a competência territorial e a medida processual a ser adotada, assinale a afirmativa correta.",
+    alternativas: [
+      { letra: "A", texto: "A ação poderá transcorrer no Rio de Janeiro, tendo sido essa a opção do empregado, pelo que se prorrogou a competência." },
+      { letra: "B", texto: "Deverá ser apresentada exceção de incompetência territorial em preliminar de contestação, podendo também ser suscitada oralmente no momento da audiência, antes da defesa." },
+      { letra: "C", texto: "Deverá ser apresentada petição de exceção de incompetência territorial até cinco dias após o recebimento da notificação citatória, em peça autônoma e antes da audiência." },
+      { letra: "D", texto: "Deverá ser apresentada exceção de incompetência territorial no ato da audiência em peça autônoma, mas junto com a apresentação da defesa, de modo a evitar eventual preclusão." },
+    ],
+    gabarito: "C",
+    comentario:
+      "A CLT tem regra própria e ela é bem específica (<strong>art. 800</strong>): a exceção de incompetência territorial vai em <strong>peça autônoma</strong>, no prazo de <strong>cinco dias contados da notificação</strong>, e <strong>antes da audiência</strong>. Protocolada, o processo é suspenso e a audiência não acontece até a exceção ser decidida. No caso, a competência era mesmo de Duque de Caxias — na Justiça do Trabalho a regra é o <strong>local da prestação de serviços</strong> (art. 651), não a escolha do reclamante.",
+  },
+  pegadinha:
+    "A letra <strong>B</strong> é a mais marcada, e o motivo é bonito de ver: ela está <strong>certa — no processo civil</strong>. No CPC, a incompetência é alegada como <strong>preliminar de contestação</strong> (art. 64). Quem estudou Processo Civil primeiro — quase todo mundo — carrega esse reflexo pra prova de Trabalho e marca B sem desconfiar. Só que a CLT não faz assim: peça separada, cinco dias, antes da audiência. E tem uma <strong>segunda camada</strong>: aquele “podendo também ser suscitada oralmente na audiência”, no finalzinho da B, é como a exceção funcionava <strong>até 2017</strong> — a <strong>Reforma Trabalhista (Lei 13.467/2017)</strong> reescreveu o art. 800 justamente pra que o advogado não precisasse viajar até a comarca errada só pra dizer que ela é errada. Material anterior à Reforma ainda ensina a versão oral. A letra <strong>D</strong> acerta a peça autônoma e erra o momento (junto com a defesa, em audiência — tarde demais), e a <strong>A</strong> inverte a lógica: a competência até se prorroga, mas <strong>só se ninguém alegar no prazo</strong> — não porque o reclamante escolheu o fórum. 🧠 <strong>Fixa assim:</strong> CPC = dentro da contestação · CLT = peça separada, 5 dias, <strong>antes</strong> da audiência.",
+  noticia: {
+    titulo: "📰 Tá rolando: o calendário ficou em silêncio até 31 de agosto",
+    texto:
+      "As inscrições da <strong>repescagem do 47º Exame</strong> encerraram <strong>sexta (7/8), às 17h</strong>, e não reabrem. Atenção a um detalhe que confunde: quem se inscreveu tem até <strong>24 de setembro</strong> pra pagar o boleto de R$ 175 (e pode reimprimi-lo até lá), mas esse prazo maior <strong>não reabre a inscrição</strong> — quem não pediu o reaproveitamento até sexta ficou de fora, independentemente de boleto. A próxima data oficial é <strong>31 de agosto</strong>, quando os <strong>locais de prova</strong> saem em oab.fgv.br. Depois é a <strong>1ª fase, em 6 de setembro</strong>: 80 questões, das <strong>13h às 18h</strong>. Ou seja: três semanas sem nenhuma cobrança externa. Quem mantém o ritmo agora chega inteiro. ⏰",
+  },
+  curiosidade: {
+    titulo: "💡 Você sabia?",
+    texto:
+      "Na Justiça do Trabalho o trabalhador pode reclamar seus direitos <strong>pessoalmente, sem advogado e sem teto de valor</strong>: é o <em>jus postulandi</em> do <strong>art. 791 da CLT</strong>, herança da época em que ela nem fazia parte do Poder Judiciário — só entrou com a Constituição de 1946. (Nos Juizados Especiais Cíveis também dá, mas <strong>só até 20 salários mínimos</strong>.) O TST, porém, pôs limite: a <strong>Súmula 425</strong> restringe o <em>jus postulandi</em> às <strong>Varas do Trabalho e aos TRTs</strong> — não alcança ação rescisória, ação cautelar, mandado de segurança nem recurso de competência do próprio TST. Traduzindo: dá pra entrar sozinho, mas não dá pra subir sozinho. E veja a ironia da questão de hoje: a Justiça que dispensa o advogado na porta de entrada é a mesma que fulmina a competência de quem erra a forma da peça por cinco dias. 😉",
+  },
+  dica:
+    "Processo do Trabalho rende ponto pra quem sabe onde a CLT diverge do CPC — e é uma lista curta. Reserve 15 minutos hoje pros arts. <strong>651</strong> (competência é o local da prestação de serviços) e <strong>800</strong> (exceção: 5 dias, peça autônoma, antes da audiência) da CLT. E confira a data do seu material: se ele mandar arguir a incompetência oralmente na audiência, é anterior à Reforma de 2017.",
+  examDays: 26,
+}
+
 // Edição "atual" — a que o cron semanal e o /send usam por padrão. Ao montar uma
 // edição nova, atualize este ponteiro (ou edite o conteúdo acima).
 //
 // ATENÇÃO: o cron de segunda recria o rascunho da CURRENT_EDICAO sem checar se ela
 // já foi enviada. Esquecer de mover este ponteiro gera, no Resend, um rascunho
 // idêntico ao da semana passada — foi o que aconteceu em 03/ago/2026 com a #8.
-export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_9
+export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_10

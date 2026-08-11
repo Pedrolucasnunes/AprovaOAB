@@ -6,8 +6,8 @@ import { SeoShell } from "@/components/seo/seo-shell"
 import { SeoCtaButton } from "@/components/seo/seo-cta"
 import { JsonLd } from "@/components/seo/json-ld"
 import { getEditais, getEditalBySlug } from "@/lib/editais"
+import { breadcrumb } from "@/lib/seo/jsonld"
 import { OG_BASE } from "@/lib/seo/og"
-import { APP_URL } from "@/lib/app-url"
 import { cn } from "@/lib/utils"
 
 export const revalidate = 86400
@@ -65,19 +65,10 @@ export default async function EditalPage({
     (new Date(`${edital.dataPrimeiraFase}T00:00:00-03:00`).getTime() - Date.now()) / 86_400_000,
   )
 
-  const breadcrumbLd = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Editais", item: `${APP_URL}/editais` },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: `${edital.ordinal} Exame de Ordem`,
-        item: `${APP_URL}/editais/${edital.slug}`,
-      },
-    ],
-  }
+  const breadcrumbLd = breadcrumb([
+    { name: "Editais da OAB", path: "/editais" },
+    { name: `${edital.ordinal} Exame de Ordem`, path: `/editais/${edital.slug}` },
+  ])
 
   const faqLd = {
     "@context": "https://schema.org",

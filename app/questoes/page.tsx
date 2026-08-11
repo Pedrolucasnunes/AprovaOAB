@@ -2,7 +2,9 @@ import Link from "next/link"
 import type { Metadata } from "next"
 import { SeoShell } from "@/components/seo/seo-shell"
 import { SeoCtaButton } from "@/components/seo/seo-cta"
+import { JsonLd } from "@/components/seo/json-ld"
 import { getPublicSubjects } from "@/lib/seo/questions"
+import { breadcrumb, collectionPage, itemList } from "@/lib/seo/jsonld"
 import { OG_BASE } from "@/lib/seo/og"
 
 export const revalidate = 86400
@@ -24,8 +26,27 @@ export const metadata: Metadata = {
 export default async function QuestoesHubPage() {
   const subjects = await getPublicSubjects()
 
+  // A página de questão avulsa já publicava Quiz + BreadcrumbList, mas os hubs —
+  // que são justamente as páginas capazes de ranquear em "questões de X da OAB" —
+  // não tinham dado estruturado nenhum.
+  const jsonLd = [
+    collectionPage({
+      name: "Questões da OAB por matéria",
+      description:
+        "Questões da 1ª fase da OAB no padrão FGV, organizadas por matéria e com gabarito.",
+      path: "/questoes",
+    }),
+    breadcrumb([{ name: "Questões da OAB", path: "/questoes" }]),
+    itemList(
+      "Matérias da 1ª fase da OAB",
+      subjects.map((s) => ({ name: s.name, path: `/questoes/${s.slug}` })),
+    ),
+  ]
+
   return (
     <SeoShell>
+      <JsonLd data={jsonLd} />
+
       <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
         Questões da OAB por matéria
       </h1>

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 import { SeoShell } from "@/components/seo/seo-shell"
 import { SeoCtaButton } from "@/components/seo/seo-cta"
+import { JsonLd } from "@/components/seo/json-ld"
 import {
   getPublicSubjects,
   getPublicQuestionsForSubject,
@@ -11,6 +12,7 @@ import {
   PUBLIC_QUESTIONS_PER_SUBJECT,
 } from "@/lib/seo/questions"
 import { getMateriaIntro } from "@/lib/seo/materia-intro"
+import { breadcrumb, collectionPage, itemList } from "@/lib/seo/jsonld"
 import { OG_BASE } from "@/lib/seo/og"
 
 export const revalidate = 86400
@@ -62,8 +64,31 @@ export default async function MateriaPage({
   const questions = await getPublicQuestionsForSubject(subject.id)
   const intro = getMateriaIntro(subject.slug)
 
+  // O `name` de cada item é o mesmo H1 da página de destino (tema + edição) — se
+  // aqui dissesse outra coisa, o ItemList descreveria páginas que não existem.
+  const jsonLd = [
+    collectionPage({
+      name: `Questões de ${subject.name} — OAB 1ª fase`,
+      description: `Questões de ${subject.name} no padrão FGV para a 1ª fase da OAB, com gabarito.`,
+      path: `/questoes/${subject.slug}`,
+    }),
+    breadcrumb([
+      { name: "Questões da OAB", path: "/questoes" },
+      { name: subject.name, path: `/questoes/${subject.slug}` },
+    ]),
+    itemList(
+      `Questões de ${subject.name}`,
+      questions.map((q) => ({
+        name: q.topicName ?? subject.name,
+        path: `/questoes/${subject.slug}/${slugDaQuestao(q)}`,
+      })),
+    ),
+  ]
+
   return (
     <SeoShell>
+      <JsonLd data={jsonLd} />
+
       <Link
         href="/questoes"
         className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"

@@ -74,8 +74,16 @@ export async function proxy(req: NextRequest) {
   return res
 }
 
+// As rotas públicas de SEO (/questoes, /provas, /editais) e os arquivos que os
+// robôs leem ficam FORA do matcher.
+//
+// Elas são 100% prerenderizadas (X-Nextjs-Prerender: 1) e não têm nada de
+// protegido: o middleware rodava `supabase.auth.getUser()` — uma ida à rede —
+// antes de servir HTML que já estava pronto em cache. Era latência pura em cada
+// visita de bot, e nenhuma das regras abaixo (dashboard, admin, login) se aplica
+// a esses caminhos.
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|questoes|provas|editais|sitemap\\.xml|robots\\.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 }

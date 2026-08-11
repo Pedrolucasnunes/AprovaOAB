@@ -19,6 +19,16 @@ import { APP_URL } from "@/lib/app-url"
 
 export const revalidate = 86400
 
+// Ver comentário em app/provas/[exame]/page.tsx: com `revalidate`, `notFound()`
+// responde 200 (soft 404), e aqui isso era pior que nos outros segmentos —
+// qualquer UUID inventado na URL virava página 200 indexável.
+//
+// ATENÇÃO ao mudar o formato do slug: com `false`, um slug fora do build recebe
+// 404 do roteador e a página nem roda. Quem for introduzir o redirect canônico
+// (slug antigo → novo) precisa voltar isto para `true` no MESMO commit, senão as
+// URLs antigas passam a 404 em vez de redirecionar.
+export const dynamicParams = false
+
 export async function generateStaticParams() {
   const questions = await getAllPublicQuestions()
   return questions.map((q) => ({ materia: q.subjectSlug, slug: questionSlug(q) }))
@@ -47,8 +57,8 @@ export async function generateMetadata({
   const ctx = [q.banca, q.ano].filter(Boolean).join(" ")
   // Título por tópico (único por questão); fallback à matéria quando não há topic_id.
   const title = q.topicName
-    ? `Questão de ${q.topicName} — ${q.subjectName} OAB${ctx ? " " + ctx : ""} | AprovaOAB`
-    : `Questão de ${q.subjectName} — OAB${ctx ? " " + ctx : ""} | AprovaOAB`
+    ? `Questão de ${q.topicName} — ${q.subjectName} OAB${ctx ? " " + ctx : ""}`
+    : `Questão de ${q.subjectName} — OAB${ctx ? " " + ctx : ""}`
   const description = preview(q.enunciado)
   const canonical = `/questoes/${q.subjectSlug}/${questionSlug(q)}`
   return {

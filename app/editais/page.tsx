@@ -9,7 +9,7 @@ import { OG_BASE } from "@/lib/seo/og"
 export const revalidate = 86400
 
 export const metadata: Metadata = {
-  title: "Editais da OAB — datas e cronograma dos Exames de Ordem | AprovaOAB",
+  title: "Editais da OAB — datas e cronograma dos Exames de Ordem",
   description:
     "Consulte o edital de cada Exame de Ordem: datas da 1ª e 2ª fase, inscrição, taxa e cronograma completo, conferidos na fonte oficial da FGV.",
   alternates: { canonical: "/editais" },

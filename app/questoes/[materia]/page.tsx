@@ -15,6 +15,11 @@ import { OG_BASE } from "@/lib/seo/og"
 
 export const revalidate = 86400
 
+// Ver comentário em app/provas/[exame]/page.tsx: com `revalidate`, `notFound()`
+// responde 200 (soft 404). As matérias saem todas de `getPublicSubjects()` no
+// build, então barrar no roteador devolve 404 de verdade e não perde nada.
+export const dynamicParams = false
+
 export async function generateStaticParams() {
   const subjects = await getPublicSubjects()
   return subjects.map((s) => ({ materia: s.slug }))
@@ -29,7 +34,7 @@ export async function generateMetadata({
   const subject = (await getPublicSubjects()).find((s) => s.slug === materia)
   if (!subject) return {}
 
-  const title = `Questões de ${subject.name} — OAB 1ª fase (FGV) | AprovaOAB`
+  const title = `Questões de ${subject.name} — OAB 1ª fase (FGV)`
   const description = `Questões de ${subject.name} no padrão FGV para a 1ª fase da OAB, com gabarito e resolução comentada. Pratique de graça no AprovaOAB.`
   return {
     title,

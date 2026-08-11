@@ -8,7 +8,7 @@ import { OG_BASE } from "@/lib/seo/og"
 export const revalidate = 86400
 
 export const metadata: Metadata = {
-  title: "Questões da OAB por matéria — grátis e comentadas | AprovaOAB",
+  title: "Questões da OAB por matéria — grátis e comentadas",
   description:
     "Pratique questões da 1ª fase da OAB no padrão FGV, organizadas por matéria e com gabarito. Resolução comentada e plano de estudos personalizado no AprovaOAB.",
   alternates: { canonical: "/questoes" },

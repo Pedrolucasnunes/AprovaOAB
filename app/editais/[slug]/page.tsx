@@ -12,6 +12,11 @@ import { cn } from "@/lib/utils"
 
 export const revalidate = 86400
 
+// Ver comentário em app/provas/[exame]/page.tsx: com `revalidate`, `notFound()`
+// responde 200 (soft 404). Aqui a troca é grátis — os editais vivem em
+// lib/editais.ts, arquivo versionado, então edital novo já exige deploy.
+export const dynamicParams = false
+
 export function generateStaticParams() {
   return getEditais().map((e) => ({ slug: e.slug }))
 }
@@ -30,7 +35,7 @@ export async function generateMetadata({
   const edital = getEditalBySlug(slug)
   if (!edital) return {}
 
-  const title = `Edital do ${edital.ordinal} Exame OAB — datas, inscrição e cronograma | AprovaOAB`
+  const title = `Edital do ${edital.ordinal} Exame OAB — datas, inscrição e cronograma`
   const description =
     `Cronograma do ${edital.ordinal} Exame de Ordem (OAB): 1ª fase em ` +
     `${formatBr(edital.dataPrimeiraFase)}, 2ª fase em ${formatBr(edital.dataSegundaFase)}, ` +

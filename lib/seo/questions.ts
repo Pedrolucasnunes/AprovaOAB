@@ -38,7 +38,9 @@ export type PublicSubject = {
   total: number
 }
 
-const QUESTION_FIELDS =
+// Exportado para que lib/seo/provas.ts projete exatamente os mesmos campos —
+// uma lista só, e `explicacao` fica fora dela em todas as superfícies públicas.
+export const QUESTION_FIELDS =
   "id, enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d, resposta_correta, banca, ano, dificuldade, subject_id, topic_id"
 
 // Prioridade por incidência na prova (campo livre `incidencia_prova`): alta cai mais

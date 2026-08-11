@@ -81,9 +81,32 @@ const dmMono = DM_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
-  title: 'AprovaOAB - Preparação Inteligente para OAB',
+  // `template` monta o sufixo da marca uma vez só. Ele estava escrito à mão no fim
+  // de cada `generateMetadata` das páginas públicas, comendo ~13 dos ~60 caracteres
+  // que o Google exibe no resultado. As páginas agora declaram só o próprio título.
+  title: {
+    default: 'AprovaOAB - Preparação Inteligente para OAB',
+    template: '%s | AprovaOAB',
+  },
   description: 'Plataforma de diagnóstico e gestão de desempenho para aprovação na OAB através da resolução inteligente de questões.',
-  generator: 'v0.app',
+  // Sem isto o Google usa os padrões conservadores: miniatura pequena e trecho
+  // curto. As páginas de conteúdo (/questoes, /provas, /editais) vivem justamente
+  // de trecho longo. /dashboard e /admin seguem barrados pelo robots.txt.
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@AprovaOAB_app',
+  },
   openGraph: {
     type: 'website',
     siteName: 'AprovaOAB',

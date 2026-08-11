@@ -2,7 +2,6 @@ import type { MetadataRoute } from "next"
 import { getPublicSubjects, getAllPublicQuestions } from "@/lib/seo/questions"
 import { listarExames } from "@/lib/seo/provas"
 import { getEditais } from "@/lib/editais"
-import { questionSlug } from "@/lib/slug"
 import { APP_URL } from "@/lib/app-url"
 
 const BASE = APP_URL
@@ -44,8 +43,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "yearly" as const,
       priority: 0.7,
     })),
+    // `q.slug` vem pronto de getAllPublicQuestions — mesma string que a página usa
+    // como canonical. Montar aqui de novo era como as duas versões divergiam.
     ...questions.map((q) => ({
-      url: `${BASE}/questoes/${q.subjectSlug}/${questionSlug(q)}`,
+      url: `${BASE}/questoes/${q.subjectSlug}/${q.slug}`,
       changeFrequency: "monthly" as const,
       priority: 0.6,
     })),

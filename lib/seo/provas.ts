@@ -10,12 +10,15 @@
 // mostra enunciado + alternativas + gabarito; a resolução comentada continua sendo
 // o que fica atrás do cadastro.
 import { supabaseAdmin } from "@/lib/supabase-admin"
-import { fetchAllRows, fetchByIds } from "@/lib/supabase-paginate"
+import { fetchAllRows } from "@/lib/supabase-paginate"
 import { edicaoDaBanca } from "@/lib/exames"
 import { subjectSlug } from "@/lib/slug"
+import { memo } from "@/lib/seo/memo"
 import {
+  carregarTopicos,
   getAllPublicQuestions,
   QUESTION_FIELDS,
+  type LinhaQuestao,
   type PublicQuestion,
 } from "@/lib/seo/questions"
 
@@ -57,26 +60,6 @@ export function parseExameSlug(slug: string): number | null {
   if (!m) return null
   const n = Number(m[1])
   return Number.isInteger(n) && n > 0 ? n : null
-}
-
-// Memo de processo com TTL curto. O build prerenderiza 28 páginas de prova, e cada
-// uma precisa do mesmo índice de edições e do mesmo conjunto de questões públicas —
-// sem isto seria a mesma varredura ~30 vezes. O TTL existe para que um lambda quente
-// não sirva índice velho entre revalidações do ISR (que é de 24h de qualquer jeito).
-function memo<T>(fn: () => Promise<T>, ttlMs = 60_000): () => Promise<T> {
-  let cache: { at: number; valor: Promise<T> } | null = null
-  return () => {
-    const agora = Date.now()
-    if (!cache || agora - cache.at > ttlMs) {
-      const valor = fn()
-      cache = { at: agora, valor }
-      // Falha não pode ficar grudada no cache até o TTL vencer.
-      valor.catch(() => {
-        if (cache?.valor === valor) cache = null
-      })
-    }
-    return cache.valor
-  }
 }
 
 // Romano tal como aparece na banca. O número canônico vem de `edicaoDaBanca` —
@@ -160,24 +143,20 @@ export async function getExame(numero: number): Promise<ExameDetalhe | null> {
     .ilike("banca", `%- ${resumo.romano} (%`)
     .limit(1000)
 
-  const linhas = ((data ?? []) as PublicQuestion[]).filter(
+  const linhas = ((data ?? []) as LinhaQuestao[]).filter(
     (q) => edicaoDaBanca(q.banca) === numero,
   )
   if (linhas.length === 0) return null
 
-  const [subjects, topics, idsPublicos] = await Promise.all([
+  const [subjects, nomeTopico, idsPublicos] = await Promise.all([
     supabaseAdmin.from("subjects").select("id, name"),
-    fetchByIds<{ id: string; name: string }>(
-      (ids) => supabaseAdmin.from("topics").select("id, name").in("id", ids),
-      [...new Set(linhas.map((q) => q.topic_id).filter((t): t is string => !!t))],
-    ),
+    carregarTopicos(),
     carregarIdsPublicos(),
   ])
 
   const nomeMateria = new Map(
     ((subjects.data ?? []) as { id: string; name: string }[]).map((s) => [s.id, s.name]),
   )
-  const nomeTopico = new Map(topics.map((t) => [t.id, t.name]))
 
   const grupos = new Map<string, GrupoMateria>()
   for (const q of linhas.slice().sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))) {

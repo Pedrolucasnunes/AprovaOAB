@@ -2,13 +2,16 @@
 // Usa supabaseAdmin: roda exclusivamente no servidor (SSG/ISR), a service role key
 // nunca vai pro cliente. O campo `explicacao` NUNCA é selecionado aqui — fica gated.
 import { supabaseAdmin } from "@/lib/supabase-admin"
-import { subjectSlug } from "@/lib/slug"
+import { questionSlug, subjectSlug } from "@/lib/slug"
+import { edicaoDaBanca } from "@/lib/exames"
+import { memo } from "@/lib/seo/memo"
 
 // Quantas questões de cada matéria viram página pública. Suba este número para
 // expor mais conteúdo ao SEO (e canibalizar mais o produto pago).
 export const PUBLIC_QUESTIONS_PER_SUBJECT = 10
 
-export type PublicQuestion = {
+/** Linha crua de `questions` — exatamente o que QUESTION_FIELDS projeta. */
+export type LinhaQuestao = {
   id: string
   enunciado: string
   alternativa_a: string
@@ -21,6 +24,38 @@ export type PublicQuestion = {
   dificuldade: string | null
   subject_id: string
   topic_id: string | null
+}
+
+/**
+ * Linha + o nome do tópico já resolvido.
+ *
+ * `topicName` mora aqui porque é o que dá título, H1 e slug à questão — sem ele
+ * as páginas caíam no nome da matéria e ficavam idênticas entre si (medido em
+ * ago/2026: 138 das 200 páginas tinham H1 repetido).
+ */
+export type PublicQuestion = LinhaQuestao & { topicName: string | null }
+
+/**
+ * Slug canônico de uma questão, a partir da linha do banco. PONTO ÚNICO.
+ *
+ * `questionSlug` (lib/slug.ts) precisa da edição já em número, e quem tem a regra
+ * de extraí-la de `banca` é `edicaoDaBanca` — que vive num módulo com supabaseAdmin
+ * e por isso não pode ser importado de lib/slug.ts. Sem este intermediário, cada
+ * chamador faria a conversão por conta própria: bastaria um esquecer para o sitemap
+ * apontar uma URL que a página redireciona, ou para o link interno cair no 301.
+ */
+export function slugDaQuestao(q: {
+  id: string
+  topicName: string | null
+  banca: string | null
+  enunciado?: string
+}): string {
+  return questionSlug({
+    id: q.id,
+    topicName: q.topicName,
+    edicao: edicaoDaBanca(q.banca),
+    enunciado: q.enunciado,
+  })
 }
 
 export type PublicSubject = {
@@ -43,6 +78,14 @@ export type PublicSubject = {
 export const QUESTION_FIELDS =
   "id, enunciado, alternativa_a, alternativa_b, alternativa_c, alternativa_d, resposta_correta, banca, ano, dificuldade, subject_id, topic_id"
 
+// A tabela inteira de tópicos são ~91 linhas. Buscar uma vez e resolver em memória
+// evita uma consulta por questão (era assim em getPublicQuestionById) e uma por
+// matéria no build.
+export const carregarTopicos = memo(async (): Promise<Map<string, string>> => {
+  const { data } = await supabaseAdmin.from("topics").select("id, name")
+  return new Map(((data ?? []) as { id: string; name: string }[]).map((t) => [t.id, t.name]))
+})
+
 // Prioridade por incidência na prova (campo livre `incidencia_prova`): alta cai mais
 // → mais demanda de busca → entra primeiro. Desconhecido fica no meio.
 function incidenciaRank(v: string | null | undefined): number {
@@ -62,33 +105,52 @@ function compareById(a: { id: string }, b: { id: string }): number {
 //   1) ordem base: maior incidência na prova, desempate por id;
 //   2) diversidade de tópico: pega 1 por topic_id distinto (evita 10 páginas do mesmo
 //      tema canibalizando entre si). Questões sem tópico contam como um único balde;
-//   3) completa as vagas restantes seguindo a ordem base;
-//   4) retorna ordenado por id (estabilidade).
-function selectBest<T extends { id: string; topic_id: string | null; incidencia_prova?: string | null }>(
-  rows: T[],
-  n: number,
-): T[] {
+//   3) completa as vagas preferindo pares (tópico, edição) inéditos — é o par que dá
+//      título e slug, então repeti-lo produz duas páginas com o MESMO H1. Matérias com
+//      um único tópico cadastrado (Ambiental, ECA, Filosofia, Processo do Trabalho)
+//      dependem inteiramente deste passo;
+//   4) se ainda faltar vaga, completa na ordem base aceitando repetição — página a
+//      menos seria pior que título repetido;
+//   5) retorna ordenado por id (estabilidade).
+function selectBest<
+  T extends {
+    id: string
+    topic_id: string | null
+    banca?: string | null
+    incidencia_prova?: string | null
+  },
+>(rows: T[], n: number): T[] {
   const base = rows
     .slice()
     .sort((a, b) => incidenciaRank(a.incidencia_prova) - incidenciaRank(b.incidencia_prova) || compareById(a, b))
 
   const picked: T[] = []
+  const pickedIds = new Set<string>()
   const seenTopics = new Set<string>()
+  const seenPares = new Set<string>()
+
+  const par = (q: T) => `${q.topic_id ?? "__none"}|${edicaoDaBanca(q.banca) ?? "__sem"}`
+
+  const tomar = (q: T) => {
+    picked.push(q)
+    pickedIds.add(q.id)
+    seenTopics.add(q.topic_id ?? "__none")
+    seenPares.add(par(q))
+  }
+
   for (const q of base) {
     if (picked.length >= n) break
-    const key = q.topic_id ?? "__none"
-    if (!seenTopics.has(key)) {
-      seenTopics.add(key)
-      picked.push(q)
-    }
+    if (!seenTopics.has(q.topic_id ?? "__none")) tomar(q)
   }
-  if (picked.length < n) {
-    const pickedIds = new Set(picked.map((q) => q.id))
-    for (const q of base) {
-      if (picked.length >= n) break
-      if (!pickedIds.has(q.id)) picked.push(q)
-    }
+  for (const q of base) {
+    if (picked.length >= n) break
+    if (!pickedIds.has(q.id) && !seenPares.has(par(q))) tomar(q)
   }
+  for (const q of base) {
+    if (picked.length >= n) break
+    if (!pickedIds.has(q.id)) tomar(q)
+  }
+
   return picked.sort(compareById).slice(0, n)
 }
 
@@ -129,21 +191,26 @@ export async function getPublicSubjects(): Promise<PublicSubject[]> {
 // por incidência na prova + diversidade de tópico (ver `selectBest`). `incidencia_prova`
 // só é usado aqui para a seleção — não vai para o tipo público.
 export async function getPublicQuestionsForSubject(subjectId: string): Promise<PublicQuestion[]> {
-  const { data } = await supabaseAdmin
-    .from("questions")
-    .select(`${QUESTION_FIELDS}, incidencia_prova`)
-    .eq("subject_id", subjectId)
-    .order("id", { ascending: true })
-    .limit(1000)
+  const [{ data }, topicos] = await Promise.all([
+    supabaseAdmin
+      .from("questions")
+      .select(`${QUESTION_FIELDS}, incidencia_prova`)
+      .eq("subject_id", subjectId)
+      .order("id", { ascending: true })
+      .limit(1000),
+    carregarTopicos(),
+  ])
 
-  const rows = (data ?? []) as (PublicQuestion & { incidencia_prova: string | null })[]
-  return selectBest(rows, PUBLIC_QUESTIONS_PER_SUBJECT).map(({ incidencia_prova: _omit, ...q }) => q)
+  const rows = (data ?? []) as (LinhaQuestao & { incidencia_prova: string | null })[]
+  return selectBest(rows, PUBLIC_QUESTIONS_PER_SUBJECT).map(({ incidencia_prova: _omit, ...q }) => ({
+    ...q,
+    topicName: q.topic_id ? (topicos.get(q.topic_id) ?? null) : null,
+  }))
 }
 
 export type PublicQuestionDetail = PublicQuestion & {
   subjectName: string
   subjectSlug: string
-  topicName: string | null
 }
 
 // Questão única + verificação de que ela pertence ao subconjunto público da matéria.
@@ -156,40 +223,44 @@ export async function getPublicQuestionById(id: string): Promise<PublicQuestionD
     .maybeSingle()
 
   if (!data) return null
-  const q = data as PublicQuestion
+  const q = data as LinhaQuestao
 
   const publicOnes = await getPublicQuestionsForSubject(q.subject_id)
   if (!publicOnes.some((p) => p.id === q.id)) return null
 
-  const { data: subj } = await supabaseAdmin
-    .from("subjects")
-    .select("name")
-    .eq("id", q.subject_id)
-    .maybeSingle()
-
-  let topicName: string | null = null
-  if (q.topic_id) {
-    const { data: topic } = await supabaseAdmin
-      .from("topics")
-      .select("name")
-      .eq("id", q.topic_id)
-      .maybeSingle()
-    topicName = (topic as { name: string } | null)?.name ?? null
-  }
+  const [{ data: subj }, topicos] = await Promise.all([
+    supabaseAdmin.from("subjects").select("name").eq("id", q.subject_id).maybeSingle(),
+    carregarTopicos(),
+  ])
 
   const name = (subj as { name: string } | null)?.name ?? "Direito"
-  return { ...q, subjectName: name, subjectSlug: subjectSlug(name), topicName }
+  return {
+    ...q,
+    topicName: q.topic_id ? (topicos.get(q.topic_id) ?? null) : null,
+    subjectName: name,
+    subjectSlug: subjectSlug(name),
+  }
 }
 
-// Lista achatada de todas as questões públicas — para sitemap e generateStaticParams.
+/**
+ * Lista achatada de todas as questões públicas — para sitemap e generateStaticParams.
+ *
+ * Devolve o `slug` JÁ MONTADO, não os ingredientes: sitemap, `generateStaticParams`
+ * e o `canonical` da página têm que produzir exatamente a mesma URL. Se divergirem,
+ * o sitemap passa a apontar para endereços que redirecionam e as páginas somem do
+ * conjunto prerenderizado.
+ */
 export async function getAllPublicQuestions(): Promise<
-  { id: string; enunciado: string; subjectSlug: string }[]
+  { id: string; subjectSlug: string; slug: string }[]
 > {
   const subjects = await getPublicSubjects()
-  const all: { id: string; enunciado: string; subjectSlug: string }[] = []
-  for (const s of subjects) {
-    const qs = await getPublicQuestionsForSubject(s.id)
-    for (const q of qs) all.push({ id: q.id, enunciado: q.enunciado, subjectSlug: s.slug })
-  }
-  return all
+  // Em paralelo: são ~20 consultas independentes, uma por matéria. Em série isto era
+  // o trecho mais lento do build.
+  const porMateria = await Promise.all(
+    subjects.map(async (s) => {
+      const qs = await getPublicQuestionsForSubject(s.id)
+      return qs.map((q) => ({ id: q.id, subjectSlug: s.slug, slug: slugDaQuestao(q) }))
+    }),
+  )
+  return porMateria.flat()
 }

@@ -337,50 +337,71 @@ export default function PerfilPage() {
                   )
                 }
 
-                // O selo tem que olhar o `subscription_status`, não só o `plano`.
-                // Quem está em `past_due` continua com `plano = "pro"` de propósito
-                // (é carência, ver o webhook) — e o card dizia "Ativo" com selo verde
-                // pra quem tinha acabado de receber o e-mail "sua cobrança falhou".
-                // A pessoa chegava aqui justamente pra resolver e lia que estava tudo
-                // certo. Acesso ativo e cobrança em dia são duas coisas diferentes.
+                // O card do plano pago tem TRÊS estados, e mostrava um só. O campo
+                // `plano` não distingue nenhum deles: quem está em `past_due` e quem
+                // já pediu cancelamento seguem ambos com `plano = "pro"` de propósito
+                // (carência e período já pago, respectivamente). O resultado era um
+                // selo verde de "Ativo" para quem tinha acabado de receber "sua
+                // cobrança falhou" e vinha aqui justamente para resolver.
+                //
+                // Nenhum dos dois avisos traz data: o `users` não guarda o fim do
+                // período nem a próxima tentativa. Prometer "até 08/09" exigiria
+                // gravar isso pelo webhook — sem o dado, a frase fica sem data em
+                // vez de ganhar uma inventada.
                 const emAtraso = trialUser.subscription_status === "past_due"
+                const semRenovacao = !emAtraso && cancelAtPeriodEnd
+
+                const estado = emAtraso
+                  ? {
+                      caixa: "border-amber-500/40 bg-amber-500/5",
+                      selo: (
+                        <Badge className="bg-amber-500 text-amber-950 gap-1 hover:bg-amber-500">
+                          <AlertTriangle className="h-3 w-3" /> Pagamento pendente
+                        </Badge>
+                      ),
+                      descricao: "Sua última cobrança não passou. O acesso segue liberado enquanto tentamos de novo.",
+                      acao: "Atualizar cartão",
+                      variante: "default" as const,
+                    }
+                  : semRenovacao
+                    ? {
+                        caixa: "border-border bg-muted/30",
+                        selo: <Badge variant="outline">Cancelado</Badge>,
+                        descricao: "Sem renovação automática. Seu acesso continua até o fim do período já pago.",
+                        acao: "Reativar",
+                        variante: "default" as const,
+                      }
+                    : {
+                        caixa: "border-primary bg-primary/5",
+                        selo: <Badge className="bg-primary">Ativo</Badge>,
+                        descricao:
+                          plano === "pro"
+                            ? "Questões ilimitadas · Simulados completos"
+                            : "Tudo do Pro · Suporte prioritário",
+                        acao: "Gerenciar",
+                        variante: "outline" as const,
+                      }
 
                 return (
-                  <div
-                    className={`flex items-center justify-between rounded-lg border p-4 gap-3 ${
-                      emAtraso ? "border-amber-500/40 bg-amber-500/5" : "border-primary bg-primary/5"
-                    }`}
-                  >
+                  <div className={`flex items-center justify-between rounded-lg border p-4 gap-3 ${estado.caixa}`}>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-lg font-semibold text-foreground">
                           {plano === "pro" ? "Plano Pro" : "Plano Aprovação"}
                         </span>
-                        {emAtraso ? (
-                          <Badge className="bg-amber-500 text-amber-950 gap-1 hover:bg-amber-500">
-                            <AlertTriangle className="h-3 w-3" /> Pagamento pendente
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-primary">Ativo</Badge>
-                        )}
+                        {estado.selo}
                       </div>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {emAtraso
-                          ? "Sua última cobrança não passou. O acesso segue liberado enquanto tentamos de novo."
-                          : plano === "pro"
-                            ? "Questões ilimitadas · Simulados completos"
-                            : "Tudo do Pro · Suporte prioritário"}
-                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground">{estado.descricao}</p>
                     </div>
                     {stripeCustomerId && (
                       <Button
-                        variant={emAtraso ? "default" : "outline"}
+                        variant={estado.variante}
                         onClick={handlePortal}
                         disabled={abrindoPortal}
                         className="gap-1.5 shrink-0"
                       >
                         {abrindoPortal ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
-                        {emAtraso ? "Atualizar cartão" : "Gerenciar"}
+                        {estado.acao}
                       </Button>
                     )}
                   </div>

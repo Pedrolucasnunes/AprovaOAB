@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from "next/server"
 import * as Sentry from "@sentry/nextjs"
 import { stripe, planoFromPriceId } from "@/lib/stripe"
 import { supabaseAdmin } from "@/lib/supabase-admin"
-import { sendWelcomeProEmail, sendPaymentFailedEmail, sendSubscriptionEndedEmail } from "@/lib/email"
+import {
+  sendWelcomeProEmail,
+  sendPaymentFailedEmail,
+  sendLastPaymentAttemptEmail,
+  sendSubscriptionEndedEmail,
+} from "@/lib/email"
 import { logWarning } from "@/lib/logger"
 import Stripe from "stripe"
 
@@ -211,23 +216,42 @@ export async function POST(req: NextRequest) {
           .update({ subscription_status: "past_due" })
           .eq("stripe_customer_id", customerId)
 
-        // E-mail de recuperação só na 1ª falha do ciclo. invoice.payment_failed
-        // dispara a cada retentativa (~4 ao longo de 2-3 semanas); o banner do
-        // dashboard cobre o estado contínuo, então não reenviamos a cada tentativa.
-        if (invoice.attempt_count === 1) {
-          const email = invoice.customer_email
-          const firstName = invoice.customer_name
-            ? invoice.customer_name.split(" ")[0]
-            : null
-          if (email) {
-            await sendPaymentFailedEmail({ toEmail: email, firstName })
-          } else {
-            logWarning("invoice.payment_failed sem customer_email, pulando email de cobrança", {
-              area: "stripe-webhook",
-              customerId,
-              event_id: event.id,
-            })
-          }
+        // `invoice.payment_failed` dispara a CADA retentativa (~4 ao longo de 2-3
+        // semanas). Escrever em todas seria spam; escrever só na primeira deixa o
+        // aluno sem aviso justamente quando ainda dava pra salvar. Então são dois
+        // momentos, e só dois:
+        //
+        //   1ª falha  -> "sua cobrança falhou, o acesso continua, vamos tentar de novo"
+        //   última    -> "não vamos tentar mais; ainda dá pra regularizar"
+        //
+        // `next_payment_attempt === null` é o que identifica a última: a Stripe
+        // zera esse campo quando não há mais retentativa agendada. É melhor do que
+        // comparar `attempt_count` com um número fixo — o calendário do Smart
+        // Retries muda sozinho, e um literal aqui envelheceria em silêncio.
+        //
+        // A ordem importa: se as retentativas estiverem desligadas, a 1ª falha JÁ É
+        // a última, e o aviso certo é o de última chance.
+        const email = invoice.customer_email
+        const firstName = invoice.customer_name ? invoice.customer_name.split(" ")[0] : null
+        const ultimaTentativa = invoice.next_payment_attempt === null
+
+        if (!email) {
+          logWarning("invoice.payment_failed sem customer_email, pulando email de cobrança", {
+            area: "stripe-webhook",
+            customerId,
+            event_id: event.id,
+            attempt_count: invoice.attempt_count,
+          })
+        } else if (ultimaTentativa) {
+          await sendLastPaymentAttemptEmail({
+            toEmail: email,
+            firstName,
+            // Link do Stripe pra pagar a fatura em aberto direto, sem passar pelo
+            // login. Na última chance, cada passo a mais é gente que desiste no meio.
+            invoiceUrl: invoice.hosted_invoice_url ?? null,
+          })
+        } else if (invoice.attempt_count === 1) {
+          await sendPaymentFailedEmail({ toEmail: email, firstName })
         }
         break
       }

@@ -111,6 +111,50 @@ export async function sendPaymentFailedEmail(opts: {
   }
 }
 
+/**
+ * Aviso de que o acesso pago acabou, depois de a Stripe esgotar as retentativas.
+ *
+ * Existe porque o `sendPaymentFailedEmail` só dispara na PRIMEIRA tentativa, e o
+ * banner do painel só alcança quem entra no app. Verificado em 12/ago/2026: a
+ * primeira aluna a passar por isso não tinha logado havia três semanas quando a
+ * cobrança começou a falhar — ou seja, o único aviso saiu semanas antes de o
+ * acesso cair, e no dia em que caiu, ninguém falou nada.
+ *
+ * Quem chamar precisa garantir que a perda foi por PAGAMENTO (ver o webhook):
+ * mandar "seu acesso terminou" pra quem clicou em cancelar é dar notícia velha
+ * com cara de cobrança.
+ */
+export async function sendSubscriptionEndedEmail(opts: {
+  toEmail: string
+  firstName: string | null
+}): Promise<void> {
+  if (!resend) {
+    logWarning("RESEND_API_KEY não configurada, pulando email", {
+      area: "email",
+      phase: "send-subscription-ended",
+    })
+    return
+  }
+
+  const greeting = opts.firstName ? `Olá, ${opts.firstName}!` : "Olá!"
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: opts.toEmail,
+      subject: "Seu acesso Pro terminou — sua conta continua no plano grátis",
+      html: buildSubscriptionEndedHtml({
+        greeting,
+        dashboardUrl: `${APP_URL}/dashboard`,
+        planosUrl: `${APP_URL}/#planos`,
+      }),
+    })
+  } catch (err) {
+    logError(err, { area: "email", phase: "send-subscription-ended" })
+    // Não propaga — webhook não deve falhar por causa de email
+  }
+}
+
 const FREE_FEATURES = [
   "10 questões comentadas por dia",
   "Treino inteligente focado nas suas dificuldades",
@@ -180,6 +224,57 @@ function buildPaymentFailedHtml(o: {
     </a>
     <p style="margin: 32px 0 0 0; color: #4b5563; font-size: 14px; line-height: 1.6;">
       Já atualizou ou pagou? Pode ignorar este aviso — a próxima tentativa deve passar normalmente.
+    </p>
+    <p style="margin: 24px 0 0 0; color: #9ca3af; font-size: 13px; line-height: 1.5;">
+      Time AprovaOAB
+    </p>
+  </div>
+</body>
+</html>`
+}
+
+// O tom aqui é o da parede do limite diário: o caminho gratuito aparece PRIMEIRO
+// e por inteiro, e a volta pro Pro vem depois, como opção. Quem perdeu o acesso
+// por cartão recusado quase nunca decidiu sair — tratar como churn e fechar a
+// porta com um "assine de novo" seria ler errado o que aconteceu. Também não
+// citamos preço, pela mesma razão do resto do produto: ele muda, e o e-mail fica.
+function buildSubscriptionEndedHtml(o: {
+  greeting: string
+  dashboardUrl: string
+  planosUrl: string
+}): string {
+  const featuresHtml = FREE_FEATURES
+    .map((f) => `<li style="margin: 8px 0; color: #1f2937; padding-left: 24px; position: relative;"><span style="position: absolute; left: 0; color: #10b981; font-weight: bold;">✓</span> ${f}</li>`)
+    .join("")
+
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Seu acesso Pro terminou</title></head>
+<body style="margin: 0; padding: 32px 16px; background-color: #f9fafb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <div style="max-width: 560px; margin: 0 auto; background-color: white; border-radius: 12px; padding: 40px 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+    <h1 style="margin: 0 0 8px 0; color: #1f2937; font-size: 24px; font-weight: 700;">Seu acesso Pro terminou</h1>
+    <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 16px;">${o.greeting}</p>
+    <p style="margin: 0 0 16px 0; color: #1f2937; font-size: 15px; line-height: 1.6;">
+      Não conseguimos renovar sua assinatura depois de algumas tentativas, então ela foi encerrada.
+      Nada de errado com sua conta — quase sempre é cartão vencido ou banco bloqueando cobrança recorrente.
+    </p>
+    <div style="margin: 0 0 28px 0; padding: 16px; background-color: #f0fdf4; border-left: 4px solid #10b981; border-radius: 0 8px 8px 0;">
+      <p style="margin: 0 0 8px 0; color: #1f2937; font-size: 14px; line-height: 1.6;">
+        <strong>Sua conta continua funcionando</strong>, agora no plano grátis:
+      </p>
+      <ul style="margin: 0; padding: 0; list-style: none;">
+        ${featuresHtml}
+      </ul>
+    </div>
+    <p style="margin: 0 0 28px 0; color: #1f2937; font-size: 15px; line-height: 1.6;">
+      Seu histórico, seu diagnóstico e todo o seu progresso continuam salvos — nada foi apagado.
+    </p>
+    <a href="${o.dashboardUrl}" style="display: inline-block; padding: 12px 24px; background-color: #10b981; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px;">
+      Continuar estudando
+    </a>
+    <p style="margin: 32px 0 0 0; color: #4b5563; font-size: 14px; line-height: 1.6;">
+      Quando quiser as questões ilimitadas e os simulados completos de volta,
+      <a href="${o.planosUrl}" style="color: #10b981; font-weight: 600;">é só reativar o Pro</a>.
     </p>
     <p style="margin: 24px 0 0 0; color: #9ca3af; font-size: 13px; line-height: 1.5;">
       Time AprovaOAB

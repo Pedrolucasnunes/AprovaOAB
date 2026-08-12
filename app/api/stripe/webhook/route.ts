@@ -2,9 +2,43 @@ import { NextRequest, NextResponse } from "next/server"
 import * as Sentry from "@sentry/nextjs"
 import { stripe, planoFromPriceId } from "@/lib/stripe"
 import { supabaseAdmin } from "@/lib/supabase-admin"
-import { sendWelcomeProEmail, sendPaymentFailedEmail } from "@/lib/email"
+import { sendWelcomeProEmail, sendPaymentFailedEmail, sendSubscriptionEndedEmail } from "@/lib/email"
 import { logWarning } from "@/lib/logger"
 import Stripe from "stripe"
+
+// O e-mail de fim de acesso. Diferente do `invoice.payment_failed`, aqui o evento
+// não carrega o e-mail do cliente — só o id — então é preciso buscar na Stripe.
+// Best-effort como todos os outros: nunca deixa o webhook falhar.
+async function avisarFimDoAcesso(customerId: string, eventId: string): Promise<void> {
+  try {
+    const cliente = await stripe.customers.retrieve(customerId)
+    if (cliente.deleted) {
+      logWarning("cliente apagado na Stripe, pulando aviso de fim de acesso", {
+        area: "stripe-webhook",
+        customerId,
+        event_id: eventId,
+      })
+      return
+    }
+    if (!cliente.email) {
+      logWarning("cliente sem email, pulando aviso de fim de acesso", {
+        area: "stripe-webhook",
+        customerId,
+        event_id: eventId,
+      })
+      return
+    }
+    await sendSubscriptionEndedEmail({
+      toEmail: cliente.email,
+      firstName: cliente.name ? cliente.name.split(" ")[0] : null,
+    })
+  } catch (err) {
+    Sentry.captureException(err, {
+      tags: { area: "stripe-webhook" },
+      extra: { event_id: eventId, customerId, phase: "aviso-fim-de-acesso" },
+    })
+  }
+}
 
 export async function POST(req: NextRequest) {
   const body = await req.text()
@@ -134,6 +168,10 @@ export async function POST(req: NextRequest) {
             .from("users")
             .update({ plano: "free", subscription_status: "canceled" })
             .eq("stripe_customer_id", customerId)
+
+          // `unpaid` é, por definição, retentativa esgotada sem pagamento — não
+          // precisa da checagem de motivo que o `.deleted` faz.
+          await avisarFimDoAcesso(customerId, event.id)
         }
         break
       }
@@ -151,6 +189,16 @@ export async function POST(req: NextRequest) {
             cancel_at_period_end: false,
           })
           .eq("stripe_customer_id", customerId)
+
+        // Este evento cobre DOIS casos diferentes: quem pediu cancelamento e quem
+        // teve o acesso cortado por cobrança recusada. Só o segundo recebe aviso —
+        // pra quem acabou de clicar em "cancelar", "seu acesso terminou" é notícia
+        // velha com cara de cobrança. `cancellation_details.reason` é quem separa
+        // os dois (verificado em produção: a Stripe carimba `payment_failed` quando
+        // é ela que cancela ao esgotar as retentativas).
+        if (sub.cancellation_details?.reason === "payment_failed") {
+          await avisarFimDoAcesso(customerId, event.id)
+        }
         break
       }
 

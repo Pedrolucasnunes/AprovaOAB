@@ -102,7 +102,7 @@ Quatro momentos, três e-mails (`lib/email.ts`), e o silêncio no meio é delibe
 | última tentativa | `sendLastPaymentAttemptEmail` | não vem mais nenhuma; ainda dá pra regularizar |
 | assinatura encerrada | `sendSubscriptionEndedEmail` | conta segue no grátis, progresso salvo |
 
-**A última tentativa é detectada por `next_payment_attempt === null`, NUNCA comparando `attempt_count` com um literal.** A Stripe zera esse campo quando não há mais retentativa agendada. O número de tentativas **não é fixo**: é o Smart Retries, que decide por cartão e por cliente. Medido nesta conta (ago/2026) — uma fatura chegou a `attempt_count = 9` antes do cancelamento, outra estava em 2 com a 3ª agendada. Qualquer número escrito à mão aqui erraria, e erraria em silêncio. Verificado no único ciclo que chegou ao fim: `next_payment_attempt` **foi a null** na última.
+**A última tentativa é detectada por `next_payment_attempt === null`, NUNCA comparando `attempt_count` com um literal.** A Stripe zera esse campo quando não há mais retentativa agendada. O número de tentativas **não é fixo**: quem decide é o Smart Retries, por cartão e por cliente, e o contador ainda pode ser inflado por retentativa manual no painel — que também incrementa `attempt_count`. Medido nesta conta (ago/2026): uma fatura registrou `attempt_count = 9` antes do cancelamento, outra estava em 2 com a 3ª agendada. Qualquer número escrito à mão aqui erraria, e erraria em silêncio. Verificado no único ciclo que chegou ao fim: `next_payment_attempt` **foi a null** na última.
 
 A ordem dos `if` importa: com retentativas desligadas, a 1ª falha **já é** a última, e o aviso certo é o de última chance.
 

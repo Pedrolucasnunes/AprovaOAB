@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { User, Mail, Lock, Trophy, BookOpen, Target, Loader2, ExternalLink, ArrowRight, Sparkles, MessageCircle } from "lucide-react"
+import { User, Mail, Lock, Trophy, BookOpen, Target, Loader2, ExternalLink, ArrowRight, Sparkles, MessageCircle, AlertTriangle } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { getClientUser } from "@/lib/auth-client"
 import { whatsappSupportUrl } from "@/lib/support"
@@ -337,23 +337,50 @@ export default function PerfilPage() {
                   )
                 }
 
+                // O selo tem que olhar o `subscription_status`, não só o `plano`.
+                // Quem está em `past_due` continua com `plano = "pro"` de propósito
+                // (é carência, ver o webhook) — e o card dizia "Ativo" com selo verde
+                // pra quem tinha acabado de receber o e-mail "sua cobrança falhou".
+                // A pessoa chegava aqui justamente pra resolver e lia que estava tudo
+                // certo. Acesso ativo e cobrança em dia são duas coisas diferentes.
+                const emAtraso = trialUser.subscription_status === "past_due"
+
                 return (
-                  <div className="flex items-center justify-between rounded-lg border border-primary bg-primary/5 p-4">
-                    <div>
-                      <div className="flex items-center gap-2">
+                  <div
+                    className={`flex items-center justify-between rounded-lg border p-4 gap-3 ${
+                      emAtraso ? "border-amber-500/40 bg-amber-500/5" : "border-primary bg-primary/5"
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-lg font-semibold text-foreground">
                           {plano === "pro" ? "Plano Pro" : "Plano Aprovação"}
                         </span>
-                        <Badge className="bg-primary">Ativo</Badge>
+                        {emAtraso ? (
+                          <Badge className="bg-amber-500 text-amber-950 gap-1 hover:bg-amber-500">
+                            <AlertTriangle className="h-3 w-3" /> Pagamento pendente
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-primary">Ativo</Badge>
+                        )}
                       </div>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        {plano === "pro" ? "Questões ilimitadas · Simulados completos" : "Tudo do Pro · Suporte prioritário"}
+                        {emAtraso
+                          ? "Sua última cobrança não passou. O acesso segue liberado enquanto tentamos de novo."
+                          : plano === "pro"
+                            ? "Questões ilimitadas · Simulados completos"
+                            : "Tudo do Pro · Suporte prioritário"}
                       </p>
                     </div>
                     {stripeCustomerId && (
-                      <Button variant="outline" onClick={handlePortal} disabled={abrindoPortal} className="gap-1.5 shrink-0">
+                      <Button
+                        variant={emAtraso ? "default" : "outline"}
+                        onClick={handlePortal}
+                        disabled={abrindoPortal}
+                        className="gap-1.5 shrink-0"
+                      >
                         {abrindoPortal ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
-                        Gerenciar
+                        {emAtraso ? "Atualizar cartão" : "Gerenciar"}
                       </Button>
                     )}
                   </div>

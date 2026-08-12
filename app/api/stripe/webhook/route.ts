@@ -216,9 +216,11 @@ export async function POST(req: NextRequest) {
           .update({ subscription_status: "past_due" })
           .eq("stripe_customer_id", customerId)
 
-        // `invoice.payment_failed` dispara a CADA retentativa (~4 ao longo de 2-3
-        // semanas). Escrever em todas seria spam; escrever só na primeira deixa o
-        // aluno sem aviso justamente quando ainda dava pra salvar. Então são dois
+        // `invoice.payment_failed` dispara a CADA retentativa, e a quantidade NÃO é
+        // fixa — quem decide é o Smart Retries, por cartão e por cliente. Medido
+        // nesta conta (ago/2026): uma fatura chegou a `attempt_count = 9`, outra
+        // estava em 2. Escrever em todas seria spam; escrever só na primeira deixa
+        // o aluno sem aviso justamente quando ainda dava pra salvar. Então são dois
         // momentos, e só dois:
         //
         //   1ª falha  -> "sua cobrança falhou, o acesso continua, vamos tentar de novo"

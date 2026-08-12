@@ -89,6 +89,31 @@ Planos live:
 
 O plano **Aprovação** foi removido da vitrine: não aparece mais na landing e o checkout rejeita `plano !== "pro"` (`app/api/stripe/checkout/route.ts`). O valor `"aprovacao"` permanece nos tipos, no webhook (`planoFromPriceId`) e nos badges admin apenas como plumbing defensivo, para reintroduzir um tier premium real no futuro (ex.: 2ª fase). `STRIPE_PRICE_APROVACAO` segue no env mas o price está arquivado na Stripe.
 
+### Cobrança recusada — a régua de avisos
+
+**A lista de `enabled_events` mora no painel do Stripe, não no repositório.** Handler sem evento habilitado falha em silêncio: nenhum erro, nenhum log, nenhum teste vermelho. Foi o que aconteceu de abr a ago/2026 — o webhook tratava `invoice.payment_failed` desde sempre, o evento nunca esteve habilitado no endpoint, e **nenhum aluno com cartão recusado foi avisado**. O `past_due` chegava certo pelo `customer.subscription.updated`, então só o e-mail sumia. **Ao adicionar um `case` novo no switch, habilitar o evento no painel é parte da tarefa** — conferir com `stripe.webhookEndpoints.list()`.
+
+Quatro momentos, três e-mails (`lib/email.ts`), e o silêncio no meio é deliberado:
+
+| Momento | O que dispara | Tom |
+|---|---|---|
+| 1ª falha | `sendPaymentFailedEmail` | o acesso continua, vamos tentar de novo |
+| retentativas do meio | **nada** | escrever em todas seria spam |
+| última tentativa | `sendLastPaymentAttemptEmail` | não vem mais nenhuma; ainda dá pra regularizar |
+| assinatura encerrada | `sendSubscriptionEndedEmail` | conta segue no grátis, progresso salvo |
+
+**A última tentativa é detectada por `next_payment_attempt === null`, NUNCA comparando `attempt_count` com um literal.** A Stripe zera esse campo quando não há mais retentativa agendada. O número de tentativas **não é fixo**: é o Smart Retries, que decide por cartão e por cliente. Medido nesta conta (ago/2026) — uma fatura chegou a `attempt_count = 9` antes do cancelamento, outra estava em 2 com a 3ª agendada. Qualquer número escrito à mão aqui erraria, e erraria em silêncio. Verificado no único ciclo que chegou ao fim: `next_payment_attempt` **foi a null** na última.
+
+A ordem dos `if` importa: com retentativas desligadas, a 1ª falha **já é** a última, e o aviso certo é o de última chance.
+
+**O e-mail de fim de acesso só vai pra quem perdeu por pagamento.** `customer.subscription.deleted` cobre também quem clicou em cancelar; `cancellation_details.reason === "payment_failed"` é o que separa os dois (a Stripe carimba esse motivo quando é ela que cancela ao esgotar as tentativas — verificado em produção). Mandar "seu acesso terminou" pra quem acabou de cancelar é notícia velha com cara de cobrança. O ramo `unpaid` não precisa da checagem: é, por definição, retentativa esgotada.
+
+**Em `past_due` o plano continua `"pro"` de propósito** — é carência, não se pune soluço de cartão. Por isso `plano` sozinho não descreve o estado da assinatura: `app/dashboard/perfil/page.tsx` deriva três estados do `subscription_status` + `cancel_at_period_end` (Ativo · Pagamento pendente · Cancelado), porque o card dizia "Ativo" com selo verde pra quem tinha acabado de receber "sua cobrança falhou". Nenhum dos avisos traz data: `users` não guarda o fim do período nem a próxima tentativa.
+
+O CTA da última chance usa o `hosted_invoice_url` da própria fatura — paga direto, sem login —, com fallback pro `/dashboard/perfil` se vier nulo. O portal sustenta os dois caminhos (`payment_method_update` e `invoice_history` habilitados na config default).
+
+**O domínio não tem MX: `oi@aprovaoab.app.br` só envia.** Toda resposta a qualquer e-mail do produto cai no vazio. Enquanto isso não mudar, e-mail nenhum pode prometer "é só responder".
+
 ### Regras de negócio por plano
 
 | Funcionalidade | Free | Pro |

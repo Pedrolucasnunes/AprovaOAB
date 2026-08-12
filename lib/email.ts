@@ -112,6 +112,52 @@ export async function sendPaymentFailedEmail(opts: {
 }
 
 /**
+ * Última tentativa de cobrança falhou — não vem mais nenhuma.
+ *
+ * Diferente do `sendPaymentFailedEmail`, que é tranquilizador de propósito ("o
+ * acesso continua, vamos tentar de novo"), aqui a informação é o contrário: não
+ * vamos tentar de novo. É o último momento em que a pessoa ainda pode agir, e
+ * quem decide o disparo é o webhook, pelo `next_payment_attempt === null`.
+ *
+ * `invoiceUrl` é o link do Stripe pra pagar a fatura em aberto sem passar pelo
+ * login. Quando vier nulo, o CTA cai pro perfil — mais passos, mas nunca um
+ * botão morto.
+ */
+export async function sendLastPaymentAttemptEmail(opts: {
+  toEmail: string
+  firstName: string | null
+  invoiceUrl: string | null
+}): Promise<void> {
+  if (!resend) {
+    logWarning("RESEND_API_KEY não configurada, pulando email", {
+      area: "email",
+      phase: "send-last-payment-attempt",
+    })
+    return
+  }
+
+  const greeting = opts.firstName ? `Olá, ${opts.firstName}!` : "Olá!"
+  const billingUrl = `${APP_URL}/dashboard/perfil`
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: opts.toEmail,
+      subject: "Última tentativa de cobrança — ainda dá pra manter seu Pro",
+      html: buildLastPaymentAttemptHtml({
+        greeting,
+        ctaUrl: opts.invoiceUrl ?? billingUrl,
+        ctaLabel: opts.invoiceUrl ? "Pagar e manter meu Pro" : "Atualizar forma de pagamento",
+        billingUrl,
+      }),
+    })
+  } catch (err) {
+    logError(err, { area: "email", phase: "send-last-payment-attempt" })
+    // Não propaga — webhook não deve falhar por causa de email
+  }
+}
+
+/**
  * Aviso de que o acesso pago acabou, depois de a Stripe esgotar as retentativas.
  *
  * Existe porque o `sendPaymentFailedEmail` só dispara na PRIMEIRA tentativa, e o
@@ -224,6 +270,52 @@ function buildPaymentFailedHtml(o: {
     </a>
     <p style="margin: 32px 0 0 0; color: #4b5563; font-size: 14px; line-height: 1.6;">
       Já atualizou ou pagou? Pode ignorar este aviso — a próxima tentativa deve passar normalmente.
+    </p>
+    <p style="margin: 24px 0 0 0; color: #9ca3af; font-size: 13px; line-height: 1.5;">
+      Time AprovaOAB
+    </p>
+  </div>
+</body>
+</html>`
+}
+
+// Este é o único e-mail da série com urgência real, e ela é factual: não existe
+// próxima tentativa. Mesmo assim o caminho de não pagar aparece por escrito —
+// quem não vai continuar merece saber que a conta sobrevive, em vez de sentir
+// que perdeu tudo por não ter respondido a tempo.
+function buildLastPaymentAttemptHtml(o: {
+  greeting: string
+  ctaUrl: string
+  ctaLabel: string
+  billingUrl: string
+}): string {
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Última tentativa de cobrança</title></head>
+<body style="margin: 0; padding: 32px 16px; background-color: #f9fafb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <div style="max-width: 560px; margin: 0 auto; background-color: white; border-radius: 12px; padding: 40px 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+    <h1 style="margin: 0 0 8px 0; color: #b45309; font-size: 24px; font-weight: 700;">Última tentativa de cobrança</h1>
+    <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 16px;">${o.greeting}</p>
+    <p style="margin: 0 0 16px 0; color: #1f2937; font-size: 15px; line-height: 1.6;">
+      Tentamos renovar sua assinatura do <strong style="color: #1f2937;">AprovaOAB</strong> algumas vezes
+      e não conseguimos. Desta vez não haverá nova tentativa automática.
+    </p>
+    <div style="margin: 0 0 28px 0; padding: 16px; background-color: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 0 8px 8px 0;">
+      <p style="margin: 0; color: #1f2937; font-size: 14px; line-height: 1.6;">
+        Seu acesso Pro ainda está no ar, mas será encerrado nos próximos dias.
+        Se resolver o pagamento agora, <strong>nada muda</strong> — você continua de onde parou.
+      </p>
+    </div>
+    <a href="${o.ctaUrl}" style="display: inline-block; padding: 12px 24px; background-color: #10b981; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px;">
+      ${o.ctaLabel}
+    </a>
+    <p style="margin: 28px 0 0 0; color: #4b5563; font-size: 14px; line-height: 1.6;">
+      Prefere trocar o cartão pelo app? Está em
+      <a href="${o.billingUrl}" style="color: #10b981; font-weight: 600;">Perfil → Atualizar cartão</a>.
+    </p>
+    <p style="margin: 20px 0 0 0; color: #4b5563; font-size: 14px; line-height: 1.6;">
+      E se preferir não continuar no Pro, tudo bem: sua conta volta pro plano grátis e
+      seu histórico, seu diagnóstico e seu progresso continuam salvos.
     </p>
     <p style="margin: 24px 0 0 0; color: #9ca3af; font-size: 13px; line-height: 1.5;">
       Time AprovaOAB

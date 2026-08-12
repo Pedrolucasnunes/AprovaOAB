@@ -24,9 +24,13 @@ const SITE_JSON_LD = [
     description:
       "Plataforma de preparação para a OAB com diagnóstico por matéria, questões no padrão FGV, simulados completos e plano de estudos personalizado.",
     areaServed: "BR",
+    // Mesmos perfis do SOCIAL_LINKS de components/site/footer.tsx — os dois
+    // andam juntos: é o par (link no site + sameAs) que o Google usa pra casar
+    // o domínio com as contas.
     sameAs: [
       "https://x.com/AprovaOAB_app",
       "https://www.instagram.com/aprovaoab.app/",
+      "https://www.linkedin.com/company/aprovaoab/",
     ],
   },
   {

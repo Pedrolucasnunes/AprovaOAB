@@ -93,10 +93,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Token inválido" }, { status: 400 })
   }
 
+  // `.is(null)` faz o segundo clique ser no-op em vez de reescrever a data.
+  // Sem ele, quem clicasse de novo num e-mail antigo moveria `email_optout_at`
+  // pra hoje — e a coluna é timestamp justamente pra responder "há quanto
+  // tempo" e "saiu antes ou depois de qual campanha". Reescrever perde isso em
+  // silêncio, e o efeito visível (está descadastrado) continua idêntico.
   const { error } = await supabaseAdmin
     .from("users")
     .update({ email_optout_at: new Date().toISOString() })
     .eq("id", userId)
+    .is("email_optout_at", null)
 
   if (error) {
     logError(error, { area: "email-optout", phase: "update", userId })

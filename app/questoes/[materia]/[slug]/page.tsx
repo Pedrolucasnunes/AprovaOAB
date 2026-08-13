@@ -90,9 +90,13 @@ export async function generateMetadata({
   const { materia, slug } = await params
   const q = await resolve(slug)
 
-  // `dynamicParams = true` deixa qualquer UUID inventado renderizar esta rota, e
-  // com `revalidate` o notFound() responde 200 (Next 16.1.6). O noindex é o que
-  // impede esse 200 de virar página indexada.
+  // `dynamicParams = true` deixa qualquer UUID inventado renderizar esta rota.
+  // Hoje o `notFound()` da página responde 404 de verdade (medido no build de
+  // produção: UUID inexistente → 404), então este noindex não é o que segura a
+  // indexação — é backstop. Ele existe porque `generateMetadata` roda ANTES da
+  // página, e no cenário descrito acima em `dynamicParams` (se um `loading.tsx`
+  // voltar ao segmento e a resposta passar a sair 200 antes de renderizar) seria
+  // a única defesa restante. Custa uma linha e cobre a falha silenciosa.
   if (!q) return { robots: { index: false, follow: false } }
 
   const title = tituloDaQuestao(q)

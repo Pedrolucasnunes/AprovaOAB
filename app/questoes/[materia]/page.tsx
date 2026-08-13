@@ -7,17 +7,17 @@ import { SeoCtaButton } from "@/components/seo/seo-cta"
 import {
   getPublicSubjects,
   getPublicQuestionsForSubject,
+  slugDaQuestao,
   PUBLIC_QUESTIONS_PER_SUBJECT,
 } from "@/lib/seo/questions"
 import { getMateriaIntro } from "@/lib/seo/materia-intro"
-import { questionSlug } from "@/lib/slug"
 import { OG_BASE } from "@/lib/seo/og"
 
 export const revalidate = 86400
 
-// Ver comentário em app/provas/[exame]/page.tsx: com `revalidate`, `notFound()`
-// responde 200 (soft 404). As matérias saem todas de `getPublicSubjects()` no
-// build, então barrar no roteador devolve 404 de verdade e não perde nada.
+// As matérias saem todas de `getPublicSubjects()` no build, então barrar no
+// roteador é 404 real e mais barato — não chega a renderizar. Ver a explicação
+// sobre streaming e status code em app/questoes/[materia]/[slug]/page.tsx.
 export const dynamicParams = false
 
 export async function generateStaticParams() {
@@ -84,7 +84,7 @@ export default async function MateriaPage({
         {questions.map((q, i) => (
           <Link
             key={q.id}
-            href={`/questoes/${subject.slug}/${questionSlug(q)}`}
+            href={`/questoes/${subject.slug}/${slugDaQuestao(q)}`}
             className="block rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/40 hover:bg-muted/40"
           >
             <div className="mb-2 flex items-center gap-2">

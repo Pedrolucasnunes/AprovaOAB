@@ -12,9 +12,9 @@ import { cn } from "@/lib/utils"
 
 export const revalidate = 86400
 
-// Ver comentário em app/provas/[exame]/page.tsx: com `revalidate`, `notFound()`
-// responde 200 (soft 404). Aqui a troca é grátis — os editais vivem em
-// lib/editais.ts, arquivo versionado, então edital novo já exige deploy.
+// 404 real no roteador. Aqui a troca é grátis — os editais vivem em lib/editais.ts,
+// arquivo versionado, então edital novo já exige deploy de qualquer forma. Ver a
+// explicação sobre streaming e status code em app/questoes/[materia]/[slug]/page.tsx.
 export const dynamicParams = false
 
 export function generateStaticParams() {

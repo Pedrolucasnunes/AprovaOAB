@@ -7,15 +7,16 @@ import { SeoCtaButton } from "@/components/seo/seo-cta"
 import { JsonLd } from "@/components/seo/json-ld"
 import { getExame, listarExames, parseExameSlug } from "@/lib/seo/provas"
 import { breadcrumb, collectionPage, itemList } from "@/lib/seo/jsonld"
-import { questionSlug } from "@/lib/slug"
+import { slugDaQuestao } from "@/lib/seo/questions"
 import { OG_BASE } from "@/lib/seo/og"
 
 export const revalidate = 86400
 
-// Com `revalidate` no segmento, o Next 16.1.6 responde 200 ao `notFound()` — um
-// soft 404: conteúdo de "não encontrado" servido como página válida, que o Google
-// indexa. Com `dynamicParams = false` o próprio roteador devolve 404 real para
-// qualquer edição fora do build, sem chegar a executar esta página.
+// Barra no roteador qualquer edição fora do build: 404 real, sem sequer executar
+// esta página. Importa porque existe um `loading.tsx` neste segmento, e uma
+// resposta transmitida (streaming) já saiu com 200 antes de o `notFound()` rodar —
+// viraria soft 404, indexável (ver a explicação longa em
+// app/questoes/[materia]/[slug]/page.tsx).
 //
 // A troca é aceitável aqui porque o conjunto de exames é integralmente conhecido
 // no build: prova nova entra por importação em lote, que já vem com deploy junto.
@@ -231,7 +232,7 @@ export default async function ProvaPage({
                       <>
                         {" · "}
                         <Link
-                          href={`/questoes/${q.subjectSlug}/${questionSlug(q)}`}
+                          href={`/questoes/${q.subjectSlug}/${slugDaQuestao(q)}`}
                           className="underline-offset-4 transition-colors hover:text-foreground hover:underline"
                         >
                           resolver esta questão

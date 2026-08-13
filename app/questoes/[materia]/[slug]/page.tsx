@@ -1,6 +1,6 @@
 import Link from "next/link"
 import type { Metadata } from "next"
-import { notFound } from "next/navigation"
+import { notFound, permanentRedirect } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 import { SeoShell } from "@/components/seo/seo-shell"
 import { SeoCtaButton } from "@/components/seo/seo-cta"
@@ -10,28 +10,44 @@ import {
   getAllPublicQuestions,
   getPublicQuestionById,
   getPublicQuestionsForSubject,
+  slugDaQuestao,
   type PublicQuestionDetail,
 } from "@/lib/seo/questions"
-import { parseQuestionId, questionSlug } from "@/lib/slug"
+import { parseQuestionId } from "@/lib/slug"
+import { edicaoDaBanca } from "@/lib/exames"
 import { getQuestionErrorRate } from "@/lib/seo/stats"
 import { OG_BASE } from "@/lib/seo/og"
 import { APP_URL } from "@/lib/app-url"
 
 export const revalidate = 86400
 
-// Ver comentário em app/provas/[exame]/page.tsx: com `revalidate`, `notFound()`
-// responde 200 (soft 404), e aqui isso era pior que nos outros segmentos —
-// qualquer UUID inventado na URL virava página 200 indexável.
+// `true` aqui é DELIBERADO, ao contrário dos outros segmentos dinâmicos.
 //
-// ATENÇÃO ao mudar o formato do slug: com `false`, um slug fora do build recebe
-// 404 do roteador e a página nem roda. Quem for introduzir o redirect canônico
-// (slug antigo → novo) precisa voltar isto para `true` no MESMO commit, senão as
-// URLs antigas passam a 404 em vez de redirecionar.
-export const dynamicParams = false
+// A questão é sempre resolvida pelo UUID no fim do slug, então o prefixo textual é
+// livre: as URLs antigas (que traziam o enredo do caso) e qualquer variante já
+// indexada precisam CHEGAR nesta página para receber o 301 canônico. Com `false`
+// elas virariam 404 e o histórico de indexação seria descartado em vez de migrado.
+//
+// ─────────────────────────────────────────────────────────────────────────────
+// POR QUE NÃO EXISTE app/questoes/loading.tsx (e não deve voltar a existir)
+//
+// Um `loading.tsx` no segmento cria uma fronteira de Suspense: o Next começa a
+// transmitir a resposta com status 200 antes de a página terminar de renderizar.
+// Depois disso, nem `notFound()` nem `permanentRedirect()` conseguem mais trocar o
+// status — o redirect vira um salto do lado do cliente, embutido no payload RSC, e
+// o 404 vira soft 404. Um robô lê os dois como página 200 válida.
+//
+// Medido em 11/ago/2026, mesma questão e mesmo build: com `loading.tsx`, o slug
+// antigo respondia 200 (e o UUID inexistente também); sem ele, 308 para o
+// canônico e 404 de verdade. Se o esqueleto de carregamento voltar, esta rota
+// volta a servir conteúdo duplicado sem ninguém perceber — nada quebra, os testes
+// passam, só o status code muda.
+// ─────────────────────────────────────────────────────────────────────────────
+export const dynamicParams = true
 
 export async function generateStaticParams() {
   const questions = await getAllPublicQuestions()
-  return questions.map((q) => ({ materia: q.subjectSlug, slug: questionSlug(q) }))
+  return questions.map((q) => ({ materia: q.subjectSlug, slug: q.slug }))
 }
 
 async function resolve(slug: string): Promise<PublicQuestionDetail | null> {
@@ -45,6 +61,27 @@ function preview(enunciado: string, max = 155): string {
   return clean.length > max ? clean.slice(0, max).trimEnd() + "…" : clean
 }
 
+/**
+ * Título e H1 da questão: tema + edição do exame.
+ *
+ * Antes era "Questão de {tópico} — {matéria} OAB {banca} {ano}", com a `banca`
+ * inteira ("Exame de Ordem Unificado - XXXVI (FGV)") dentro do título: ~120
+ * caracteres, dos quais o Google mostra ~60 — o tema aparecia e o resto era
+ * cortado. E como o H1 não trazia a edição, as matérias com um único tópico
+ * cadastrado ficavam com dez páginas de H1 idêntico (138 das 200 no total).
+ *
+ * Só o par (tema, edição) é usado, porque é o mesmo par que dá o slug: título,
+ * H1 e URL passam a contar a mesma coisa.
+ */
+function tituloDaQuestao(q: PublicQuestionDetail): string {
+  const edicao = edicaoDaBanca(q.banca)
+  const tema = q.topicName ?? q.subjectName
+  if (edicao) {
+    return `${tema} — Questão do ${edicao}º Exame OAB${q.ano ? ` ${q.ano}` : ""}`
+  }
+  return `${tema} — Questão da OAB 1ª fase (${q.subjectName})`
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -52,15 +89,20 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { materia, slug } = await params
   const q = await resolve(slug)
-  if (!q || q.subjectSlug !== materia) return {}
 
-  const ctx = [q.banca, q.ano].filter(Boolean).join(" ")
-  // Título por tópico (único por questão); fallback à matéria quando não há topic_id.
-  const title = q.topicName
-    ? `Questão de ${q.topicName} — ${q.subjectName} OAB${ctx ? " " + ctx : ""}`
-    : `Questão de ${q.subjectName} — OAB${ctx ? " " + ctx : ""}`
-  const description = preview(q.enunciado)
-  const canonical = `/questoes/${q.subjectSlug}/${questionSlug(q)}`
+  // `dynamicParams = true` deixa qualquer UUID inventado renderizar esta rota, e
+  // com `revalidate` o notFound() responde 200 (Next 16.1.6). O noindex é o que
+  // impede esse 200 de virar página indexada.
+  if (!q) return { robots: { index: false, follow: false } }
+
+  const title = tituloDaQuestao(q)
+  // Description híbrida: rótulo primeiro, enredo depois. Só o enunciado (o que
+  // havia antes) abria com "José é proprietário de imóvel rural…" — nenhuma
+  // palavra que alguém busque, nos caracteres que mais pesam. Só o rótulo seria
+  // idêntico em todas as páginas do mesmo tema.
+  const rotulo = title.replace(" — Questão d", " · questão d")
+  const description = `${rotulo}. ${preview(q.enunciado, 90)}`
+  const canonical = `/questoes/${q.subjectSlug}/${slugDaQuestao(q)}`
   return {
     title,
     description,
@@ -76,7 +118,15 @@ export default async function QuestaoPage({
 }) {
   const { materia, slug } = await params
   const q = await resolve(slug)
-  if (!q || q.subjectSlug !== materia) notFound()
+  if (!q) notFound()
+
+  // Endereço canônico desta questão. Como a resolução é sempre pelo UUID do fim do
+  // slug, TODA outra grafia servia 200: o slug antigo (com o enredo do caso), a
+  // matéria trocada, um prefixo inventado. Eram infinitas URLs equivalentes, com o
+  // `canonical` como única defesa. Aqui elas viram 301 de verdade — o que também
+  // faz a migração de formato do slug, sem tabela de-para.
+  const canonico = `/questoes/${q.subjectSlug}/${slugDaQuestao(q)}`
+  if (`/questoes/${materia}/${slug}` !== canonico) permanentRedirect(canonico)
 
   const alternativas = [
     { letra: "A", texto: q.alternativa_a },
@@ -131,10 +181,8 @@ export default async function QuestaoPage({
       {
         "@type": "ListItem",
         position: 3,
-        name: q.topicName
-          ? `Questão de ${q.topicName} — ${q.subjectName}`
-          : `Questão de ${q.subjectName} — OAB 1ª fase`,
-        item: `${APP_URL}/questoes/${q.subjectSlug}/${questionSlug(q)}`,
+        name: tituloDaQuestao(q),
+        item: `${APP_URL}${canonico}`,
       },
     ],
   }
@@ -172,10 +220,10 @@ export default async function QuestaoPage({
         )}
       </div>
 
+      {/* Mesmo texto do <title> e do breadcrumb: o par (tema, edição) que também
+          monta a URL. Ver `tituloDaQuestao`. */}
       <h1 className="text-xl font-bold leading-snug text-foreground sm:text-2xl">
-        {q.topicName
-          ? `Questão de ${q.topicName} — ${q.subjectName} (OAB)`
-          : `Questão de ${q.subjectName} — OAB 1ª fase`}
+        {tituloDaQuestao(q)}
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">
         No <strong className="font-semibold text-foreground">AprovaOAB</strong> você resolve questões
@@ -215,7 +263,7 @@ export default async function QuestaoPage({
             {related.map((r) => (
               <Link
                 key={r.id}
-                href={`/questoes/${q.subjectSlug}/${questionSlug(r)}`}
+                href={`/questoes/${q.subjectSlug}/${slugDaQuestao(r)}`}
                 className="block rounded-lg border border-border bg-card px-4 py-3 text-sm leading-relaxed text-muted-foreground transition-colors hover:border-primary/40 hover:bg-muted/40"
               >
                 {preview(r.enunciado, 120)}

@@ -114,6 +114,16 @@ O CTA da última chance usa o `hosted_invoice_url` da própria fatura — paga d
 
 **O domínio não tem MX: `oi@aprovaoab.app.br` só envia.** Toda resposta a qualquer e-mail do produto cai no vazio. Enquanto isso não mudar, e-mail nenhum pode prometer "é só responder".
 
+### Descadastro de e-mail
+
+**O opt-out separa marketing de conta, e a separação é a regra.** `users.email_optout_at` bloqueia newsletter e e-mails de estudo; **não** bloqueia OTP, boas-vindas, falha de pagamento, fim de acesso nem lembrete que a própria pessoa pediu. Cortar aviso de cobrança por opt-out de newsletter esconde do usuário que ele está prestes a perder o acesso.
+
+O link é uma URL assinada por HMAC-SHA256 (`lib/email-optout.ts`, `EMAIL_UNSUBSCRIBE_SECRET`) — não expira e não consulta o banco pra validar. Era `mailto:oi@aprovaoab.app.br`, que **não funcionava**: sem MX, quem pedia pra sair mandava e-mail pro vazio e continuava recebendo. Sem saída funcional a pessoa usa o botão de spam, e a reputação queimada leva junto o transacional, que não tem substituto.
+
+**`GET /api/email/descadastrar` NÃO descadastra — só o `POST`.** Filtro de segurança corporativo (Defender, Proofpoint) faz GET em todo link da mensagem antes de a pessoa abrir; se o GET aplicasse o opt-out, o antivírus do destinatário o removeria sozinho, e o sintoma ("meus e-mails não chegam em empresa grande") não aponta pra esta rota. O POST é também o que a RFC 8058 exige, e é por isso que o envio manda **os dois** headers — `List-Unsubscribe` e `List-Unsubscribe-Post` —, que juntos ligam o botão nativo do Gmail.
+
+**Quem não tem conta no Auth não recebe e-mail de marketing:** sem `user_id` não há token assinado, e o envio prefere pular a mandar mensagem sem saída (`app/api/admin/newsletter/enviar/route.ts`).
+
 ### Regras de negócio por plano
 
 | Funcionalidade | Free | Pro |
@@ -308,6 +318,9 @@ STRIPE_SECRET_KEY
 STRIPE_WEBHOOK_SECRET
 STRIPE_PRICE_PRO
 STRIPE_PRICE_APROVACAO
+EMAIL_UNSUBSCRIBE_SECRET
 ```
 
 Valores ficam em `.env.local` (ignorado pelo git via `.gitignore`). Em produção, estão no painel do Vercel.
+
+`EMAIL_UNSUBSCRIBE_SECRET` (mínimo 32 chars) assina os links de descadastro. **Trocar o valor invalida todos os links já enviados** — os e-mails que estão na caixa de entrada das pessoas passam a mostrar "esse link não vale mais". Só rotacionar com motivo.

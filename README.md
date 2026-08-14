@@ -142,4 +142,4 @@ produção — o código não está licenciado para uso, cópia ou redistribuiç
 
 ## Autor
 
-**Pedro Lucas** — [GitHub](https://github.com/Pedrolucasnunes) · [aprovaoab.app.br](https://www.aprovaoab.app.br)
+**Pedro Nunes** — [GitHub](https://github.com/Pedrolucasnunes) · [aprovaoab.app.br](https://www.aprovaoab.app.br)

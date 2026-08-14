@@ -13,6 +13,8 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { getClientUser } from "@/lib/auth-client"
+import { ContagemProva } from "@/components/dashboard/contagem-prova"
+import type { ProximaProva } from "@/lib/editais"
 import {
   META_APROVACAO as META, MIN_TENTATIVAS_BANDA, MIN_RESPOSTAS_TAXA_GERAL,
   classificarTaxa, taxaTextColor, taxaBarColor,
@@ -145,6 +147,11 @@ interface DashboardData {
   questoesHoje?: number
   plano?: "free" | "pro" | "aprovacao"
   subscriptionStatus?: "active" | "past_due" | "canceled"
+  /**
+   * Próxima 1ª fase. Vem `null` quando não há nenhuma no futuro em
+   * `lib/editais.ts` — nesse caso o card SOME. Nunca renderizar dias negativos.
+   */
+  proximaProva?: ProximaProva | null
 }
 
 interface FocoDiagnostico {
@@ -284,6 +291,23 @@ export default function DashboardPage() {
             </Button>
           </div>
         </div>
+      )}
+
+      {/* ── Contagem regressiva da prova + próximo passo ──
+           FORA do gate `isNewUser` de propósito: quem já respondeu alguma coisa
+           e sumiu é justamente quem precisa da urgência. Só não renderiza quando
+           não há 1ª fase futura cadastrada (ver proximaPrimeiraFase). */}
+      {data?.proximaProva && (
+        <ContagemProva
+          prova={data.proximaProva}
+          estado={{
+            proximoModulo: data.diagnosticoProximoModulo ?? null,
+            piorMateria: data.materiasRisco?.[0]
+              ? { id: data.materiasRisco[0].subject_id, nome: data.materiasRisco[0].nome }
+              : null,
+            simuladosFinalizados: data.resumo?.totalSimuladosFinalizados ?? 0,
+          }}
+        />
       )}
 
       {/* ── Diagnóstico completo (cenário A) ── */}

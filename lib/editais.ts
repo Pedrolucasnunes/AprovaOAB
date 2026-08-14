@@ -9,6 +9,8 @@
 // (provadaordem.com.br/blog/post/edital-oab-47). Revisar contra o edital da FGV
 // antes de publicar qualquer mudança.
 
+import { ymdBrasil } from "./datas"
+
 export type EditalEtapa = {
   label: string
   data: string // exibição, "06/09/2026"
@@ -126,4 +128,82 @@ export function getEditais(): Edital[] {
 /** Um edital pelo slug da URL, ou null se não existir. */
 export function getEditalBySlug(slug: string): Edital | null {
   return EDITAIS.find((e) => e.slug === slug) ?? null
+}
+
+export type ProximaProva = {
+  ordinal: string // "47º"
+  slug: string // "47-exame-oab" — link pro edital
+  data: string // ISO "2026-09-06"
+  diasRestantes: number // 0 = é hoje
+  /** `oficial` = calendário da FGV. `usuario` = a data que a pessoa declarou. */
+  origem: "oficial" | "usuario"
+}
+
+/**
+ * A próxima 1ª fase, ou `null` quando não há nenhuma no futuro.
+ *
+ * **O `null` é a parte que importa.** `EDITAIS` hoje tem uma única edição (a
+ * 47ª, 06/09/2026): a partir de 07/09/2026 esta função devolve `null` e quem
+ * consome tem que sumir da tela. Sem isso o dashboard passaria a anunciar
+ * "faltam -3 dias" e ninguém perceberia — nada quebra, nada falha no build,
+ * só o número fica errado. É o mesmo raciocínio do `lastModified` ausente no
+ * sitemap: campo vazio vale mais que campo inventado.
+ *
+ * A 1ª fase é data nacional única, então o calendário oficial é o default
+ * correto pra todo mundo. `examDateDoUsuario` só sobrepõe quando é data
+ * COMPLETA (`YYYY-MM-DD`): `/api/user/exam-date` também aceita `YYYY-MM`, e
+ * mês solto não vira contagem regressiva.
+ *
+ * Pura e sem I/O — `EDITAIS` é dado estático versionado no git.
+ */
+export function proximaPrimeiraFase(
+  examDateDoUsuario?: string | null,
+  hoje: Date = new Date(),
+): ProximaProva | null {
+  const hojeYmd = ymdBrasil(hoje)
+
+  const futuras = EDITAIS.filter((e) => e.dataPrimeiraFase >= hojeYmd).sort((a, b) =>
+    a.dataPrimeiraFase < b.dataPrimeiraFase ? -1 : 1,
+  )
+  const oficial = futuras[0]
+
+  // Data completa declarada pelo usuário e ainda no futuro tem prioridade: é
+  // afirmação dele sobre a prova dele.
+  if (examDateDoUsuario && DATA_COMPLETA.test(examDateDoUsuario) && examDateDoUsuario >= hojeYmd) {
+    // Casa com um edital conhecido? Então dá pra nomear a edição e linkar.
+    const casado = EDITAIS.find((e) => e.dataPrimeiraFase === examDateDoUsuario)
+    return {
+      ordinal: casado?.ordinal ?? "",
+      slug: casado?.slug ?? "",
+      data: examDateDoUsuario,
+      diasRestantes: diasEntreYmd(hojeYmd, examDateDoUsuario),
+      origem: "usuario",
+    }
+  }
+
+  if (!oficial) return null
+
+  return {
+    ordinal: oficial.ordinal,
+    slug: oficial.slug,
+    data: oficial.dataPrimeiraFase,
+    diasRestantes: diasEntreYmd(hojeYmd, oficial.dataPrimeiraFase),
+    origem: "oficial",
+  }
+}
+
+const DATA_COMPLETA = /^\d{4}-\d{2}-\d{2}$/
+
+/**
+ * Dias entre dois "YYYY-MM-DD" civis.
+ *
+ * Ancorado ao MEIO-DIA UTC de propósito: comparar meia-noite de dois dias civis
+ * dá 23h ou 25h em qualquer fuso com transição, e o arredondamento erra um dia
+ * inteiro. Com âncora ao meio-dia sobra folga de 12h dos dois lados.
+ */
+function diasEntreYmd(de: string, ate: string): number {
+  const MS_DIA = 86_400_000
+  return Math.round(
+    (Date.parse(`${ate}T12:00:00Z`) - Date.parse(`${de}T12:00:00Z`)) / MS_DIA,
+  )
 }

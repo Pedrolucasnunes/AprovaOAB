@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth-server"
 import { getDiagnosticoConfig, getLimitesConfig } from "@/lib/config"
 import { inicioDoDiaBR, hojeStringBR, diaDaSemanaBR } from "@/lib/check-daily-limit"
 import { parseDbDate } from "@/lib/datas"
+import { proximaPrimeiraFase } from "@/lib/editais"
 import { contarDiasNoTeto } from "@/lib/limite-diario"
 import { fetchAllRows } from "@/lib/supabase-paginate"
 import { classificarTaxa, TAXA_CRITICA, MIN_TENTATIVAS_BANDA, MIN_RESPOSTAS_TAXA_GERAL } from "@/lib/metrics"
@@ -163,6 +164,14 @@ export async function GET(req: NextRequest) {
   const trialUsed: boolean = userPlanoRow?.trial_used ?? false
   const trialEndsAt: string | null = userPlanoRow?.trial_ends_at ?? null
   const examDate: string | null = (user.user_metadata?.exam_date as string | null) ?? null
+
+  // Contagem regressiva da 1ª fase. ZERO ida a mais ao banco de propósito, na
+  // rota mais chamada do app: `EDITAIS` é dado estático em memória e `examDate`
+  // acabou de sair do user_metadata que o guard já trouxe.
+  //
+  // Vem `null` quando não há 1ª fase futura cadastrada — a tela tem que sumir
+  // com o card nesse caso, nunca mostrar dias negativos. Ver proximaPrimeiraFase.
+  const proximaProva = proximaPrimeiraFase(examDate, todayDate)
 
   // 1. Tentativas avulsas (diagnóstico + treino + questões).
   // CUIDADO: a view desempenho_materia NÃO serve aqui — verificado no banco,
@@ -431,6 +440,7 @@ export async function GET(req: NextRequest) {
     trialUsed,
     trialEndsAt,
     examDate,
+    proximaProva,
   }, {
     status: 200,
     headers: { "Cache-Control": "private, max-age=60, stale-while-revalidate=120" },

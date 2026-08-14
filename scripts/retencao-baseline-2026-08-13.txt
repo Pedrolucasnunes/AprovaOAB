@@ -1,0 +1,37 @@
+
+=== RETENÇÃO — retrato de 2026-08-13 ===
+base: 69 contas (1 admin excluído; 70 no total)
+atividade = qualquer resposta de treino, questão, diagnóstico ou simulado
+ATENÇÃO: 4 user_id com respostas no banco não existe(m) em auth.users (linhas órfãs, ignoradas)
+
+--- FUNIL (base inteira, desde o primeiro cadastro) ---
+  cadastrou                       69  100% do topo   
+  logou ao menos 1x               59   86% do topo   (-10)
+  concluiu onboarding             41   59% do topo   (-18)
+  respondeu >=1 questão           36   52% do topo   (-5)
+  concluiu módulo do diag.         3    4% do topo   (-33)
+  voltou num 2º dia               14   20% do topo   
+
+--- DIAS DISTINTOS DE USO POR PESSOA ---
+  0 dias (nunca usou)             33   48%
+  1 dia (nunca voltou)            22   32%
+  2 dias                           7   10%
+  3-4 dias                         4    6%
+  5-7 dias                         2    3%
+  8+ dias                          1    1%
+
+--- VOLTOU NUM 2º DIA DENTRO DE N DIAS DO CADASTRO ---
+    (coorte: só quem já viveu a janela inteira — nunca antes/depois)
+  dentro de  1 dia(s)              7  de  36 elegíveis    19%
+  dentro de  7 dia(s)             11  de  36 elegíveis    31%
+  dentro de 30 dia(s)             12  de  24 elegíveis    50%
+
+--- ESTÁ VIVO HOJE? ---
+  ativo nos últimos  1 dias        0    0%
+  ativo nos últimos  7 dias        0    0%
+  ativo nos últimos 14 dias        4    6%
+  ativo nos últimos 30 dias       14   20%
+
+  última atividade de qualquer usuário: 2026-08-06 (há 7 dias)
+  usaram e sumiram há 14+ dias    32  de 36 que chegaram a usar
+

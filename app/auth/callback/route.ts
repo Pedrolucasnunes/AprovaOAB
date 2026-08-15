@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import { NextRequest, NextResponse } from "next/server"
+import { marcarTurma } from "@/lib/turmas-server"
+import { TURMA_COOKIE, contaRecemCriada } from "@/lib/turmas"
 
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = new URL(req.url)
@@ -30,6 +32,14 @@ export async function GET(req: NextRequest) {
     }
 
     const { data: { user } } = await supabase.auth.getUser()
+
+    // Turma institucional — o caminho do Google. Só em conta RECÉM-CRIADA:
+    // este callback roda a cada login, e marcar sem essa checagem poria na
+    // turma um aluno antigo que apenas clicou num link compartilhado.
+    if (user && contaRecemCriada(user.created_at)) {
+      await marcarTurma(user.id, cookieStore.get(TURMA_COOKIE)?.value)
+    }
+
     const needsOnboarding = !user?.user_metadata?.onboarding_completed
     return NextResponse.redirect(
       `${origin}/dashboard${needsOnboarding ? "?onboarding=true" : ""}`

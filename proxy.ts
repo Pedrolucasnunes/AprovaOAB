@@ -1,10 +1,31 @@
 import { createServerClient } from "@supabase/ssr"
 import { createClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
+import { TURMA_COOKIE, TURMA_COOKIE_MAX_AGE, slugValido } from "@/lib/turmas"
 
 export async function proxy(req: NextRequest) {
   const res = NextResponse.next()
   const { pathname } = req.nextUrl
+
+  // `?turma=unp` em QUALQUER URL marca o visitante — é a forma curta do link
+  // institucional, alternativa a /turma/unp. O cookie tem que sobreviver a
+  // todos os desvios abaixo (o aluno pode clicar num link de dashboard e ser
+  // mandado pro login antes de criar a conta), então cada `return` passa por
+  // `comTurma`. Só a importação pura de `lib/turmas` entra aqui: o middleware
+  // roda no edge e não deve carregar o cliente de service role.
+  const turma = slugValido(req.nextUrl.searchParams.get("turma"))
+  const comTurma = (r: NextResponse) => {
+    if (turma) {
+      r.cookies.set(TURMA_COOKIE, turma, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: TURMA_COOKIE_MAX_AGE,
+        path: "/",
+      })
+    }
+    return r
+  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,12 +57,12 @@ export async function proxy(req: NextRequest) {
   if (!user && isRotaProtegida) {
     const loginUrl = new URL("/login", req.url)
     loginUrl.searchParams.set("redirect", pathname)
-    return NextResponse.redirect(loginUrl)
+    return comTurma(NextResponse.redirect(loginUrl))
   }
 
   // Já autenticado tentando acessar login/cadastro → dashboard
   if (user && (pathname === "/login" || pathname === "/cadastro")) {
-    return NextResponse.redirect(new URL("/dashboard", req.url))
+    return comTurma(NextResponse.redirect(new URL("/dashboard", req.url)))
   }
 
   if (user) {
@@ -60,22 +81,28 @@ export async function proxy(req: NextRequest) {
 
     // Conta bloqueada tentando acessar o dashboard → página de bloqueio
     if (role === "blocked" && pathname.startsWith("/dashboard")) {
-      return NextResponse.redirect(new URL("/conta-bloqueada", req.url))
+      return comTurma(NextResponse.redirect(new URL("/conta-bloqueada", req.url)))
     }
 
     // Acesso ao admin: exige role admin
     if (pathname.startsWith("/admin")) {
       if (role !== "admin") {
-        return NextResponse.redirect(new URL("/dashboard", req.url))
+        return comTurma(NextResponse.redirect(new URL("/dashboard", req.url)))
       }
     }
   }
 
-  return res
+  return comTurma(res)
 }
 
 // As rotas públicas de SEO (/questoes, /provas, /editais), o descadastro de
-// e-mail e os arquivos que os robôs leem ficam FORA do matcher.
+// e-mail, o link institucional (/turma/...) e os arquivos que os robôs leem
+// ficam FORA do matcher.
+//
+// `/turma/[slug]` só grava um cookie e redireciona pra landing: não lê sessão,
+// não tem nada protegido, e rodar `getUser()` antes dele seria uma ida à rede
+// no meio de um redirect que precisa ser instantâneo. Ele seta o próprio
+// cookie, então nada se perde ao pular o middleware.
 //
 // `/api/email/descadastrar` é deslogado por definição — o token assinado é a
 // credencial. Rodar `getUser()` antes dele seria uma ida à rede pra descobrir
@@ -88,6 +115,6 @@ export async function proxy(req: NextRequest) {
 // a esses caminhos.
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|questoes|provas|editais|api/email|sitemap\\.xml|robots\\.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|questoes|provas|editais|turma|api/email|sitemap\\.xml|robots\\.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 }

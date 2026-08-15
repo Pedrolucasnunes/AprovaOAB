@@ -3,6 +3,8 @@ import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import { z } from "zod"
 import { rateLimit } from "@/lib/rate-limit"
+import { marcarTurma } from "@/lib/turmas-server"
+import { TURMA_COOKIE } from "@/lib/turmas"
 
 const schema = z.object({
   email: z.string().email().max(254),
@@ -73,6 +75,22 @@ export async function POST(req: NextRequest) {
       { error: "Este e-mail já está cadastrado. Faça login." },
       { status: 409 },
     )
+  }
+
+  // Turma institucional (piloto UNP): o cookie foi posto pelo link da
+  // coordenação e chega aqui na própria requisição.
+  //
+  // Este é o momento certo, e não a confirmação do OTP: aquela roda no
+  // navegador (`app/cadastro/page.tsx`, `verifyOtp`) e é seguida de `signOut`,
+  // então não há servidor nem cookie do lado de lá. Aqui a linha em `users` já
+  // existe — o gatilho do banco é síncrono ao insert em `auth.users`
+  // (verificado nos 71 cadastros da base: mediana de −4 ms entre os dois
+  // `created_at`, todos dentro de 1 s), então o UPDATE encontra a linha.
+  //
+  // O cookie NÃO é apagado depois de usado: em laboratório da faculdade vários
+  // alunos usam o mesmo navegador, e limpar aqui marcaria só o primeiro.
+  if (data.user) {
+    await marcarTurma(data.user.id, cookieStore.get(TURMA_COOKIE)?.value)
   }
 
   await supabase.auth.signOut()

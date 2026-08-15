@@ -242,7 +242,8 @@ Onboarding (3 passos: welcome → data da prova → CTA do diagnóstico):
 
 | Nome | Tipo | Campos-chave | Propósito |
 |---|---|---|---|
-| `users` | tabela | `plano`, `role`, `stripe_customer_id`, `stripe_subscription_id` | Perfil e assinatura |
+| `users` | tabela | `plano`, `role`, `stripe_customer_id`, `stripe_subscription_id`, `turma_id` | Perfil e assinatura |
+| `turmas` | tabela | `slug`, `instituicao`, `rotulo`, `aberta_ate` | Parcerias institucionais. RLS ligado **sem policies** (server-only), como `user_events`. `users.turma_id` aponta pra cá e é gravado **uma única vez**, no cadastro |
 | `user_metadata` (Auth) | tabela | `full_name`, `onboarding_completed`, `exam_date` | Metadata no Supabase Auth |
 | `desempenho_materia` | **view — CUIDADO: NÃO agrega** | `user_id`, `subject_id`, `acertos`, `total` | Verificado no banco (jul/2026): retorna **1 linha por `simulado_resposta`** (`total` é sempre 1) e **NÃO inclui `question_attempts`** (avulsas ficam de fora). Quem consome precisa agregar por matéria em código (`/api/calendario/gerar` faz isso). O `/api/dashboard` **não a lê mais** — busca as tabelas direto. Não aceita INSERT/UPDATE/DELETE |
 | `materias_risco` | **view** | `user_id`, `subject_id`, `taxa` | Agregada por matéria, mas **só de respostas de simulado** e **sem filtro de risco** apesar do nome (traz até matéria com 100%). Usada só pelo treino (`/api/treino`, top 3). O dashboard não a usa mais |
@@ -285,6 +286,32 @@ Todas as contagens descartam respostas com `time_spent_ms < minTempoRespostaMs`,
 **Limite diário separa free de Pro obrigatoriamente:** Pro não tem teto, então para ele "10" é uso e não limite. A distribuição do Pro **acima** do teto é a estimativa de demanda reprimida (verificado jul/2026: média de 19 questões/dia contra o teto de 10). Ressalva registrada na própria página: `users.plano` é estado atual, então quem hoje é Pro mas bateu o teto quando era free entra classificado como Pro.
 
 `scripts/ativacao.mjs` **não** foi substituído: ele congela a baseline da Fase 0 e a coorte dos 33 usuários destravados. A página é o painel vivo; o script é o retrato de comparação.
+
+### Turmas institucionais (`turmas`, `users.turma_id`)
+
+Marca de qual parceria o aluno chegou, pra conseguir gerar um relatório **agregado** por turma. Nasceu do piloto com a coordenação de Direito da UNP (ago/2026).
+
+**Não muda nada para o aluno** — sem tela, sem badge, sem conteúdo diferente, mesmo diagnóstico. E **a instituição não tem acesso a nada**: não há painel de professor, e o único consumidor é `scripts/turma-relatorio.mjs`, que não seleciona `nome` nem `email` de lugar nenhum. A promessa de não expor aluno é sustentada por construção, não por disciplina de quem imprime.
+
+**Cookie, não localStorage, e o motivo é estrutural:** os dois pontos onde o cadastro se completa rodam no servidor — `/api/auth/signup` (e-mail) e `/auth/callback` (Google). localStorage é invisível pro segundo, que responde por 30 das 72 contas da base. O cookie (`aoab_turma`, httpOnly, 90 dias) chega nos dois de graça. É posto por `/turma/[slug]` **ou** por `?turma=<slug>` em qualquer URL, capturado no `proxy.ts` — e **todo `return` do middleware passa por `comTurma`**, porque o aluno pode clicar num link de dashboard e ser desviado pro login antes de criar a conta.
+
+**Não é `/unp` na raiz:** um `app/[slug]/route.ts` no nível de cima capturaria todo caminho inexistente do site e viraria armadilha na primeira rota nova. `/turma/[slug]` está fora do matcher do `proxy.ts` — só grava cookie e redireciona, não lê sessão.
+
+- **Write-once, garantido no `WHERE`** (`.is("turma_id", null)`), como o `email_optout_at`: sem isso, um link de outra instituição clicado depois moveria o aluno de turma e o sumiria do primeiro relatório.
+- **No caminho do Google a marcação exige conta recém-criada** (`contaRecemCriada`, 5 min): `/auth/callback` roda em **todo** login, e sem essa checagem um aluno antigo que clicou num link compartilhado entraria na turma.
+- **O cookie NÃO é apagado depois de usado**: em laboratório da faculdade vários alunos usam o mesmo navegador, e limpar marcaria só o primeiro.
+- **`turmas.aberta_ate`** faz o link parar de marcar. O risco real não é contaminação — é o link seguir recrutando gente meses depois, esquecido num grupo de WhatsApp. Comparado com `ymdBrasil`, nunca com `now()` cru.
+- `marcarTurma` **nunca lança** (mesma postura do `track()`): erro aqui custa uma linha num relatório interno, exceção custaria a conta do aluno. Sem cookie, **zero** ida ao banco.
+
+**O relatório lê `question_attempts`, não `diagnostic_subject_results` — e isso é deliberado.** A tabela derivada é materializada **preguiçosamente**: `recomputarResultados` roda na conclusão do módulo e `mapaConsolidado` na leitura do dashboard. Quem responde 5 das 16 questões, fecha a aba e não volta não passa por nenhum dos dois. Medido em 15/ago/2026: **32 usuários têm resposta de diagnóstico e só 22 têm linha na tabela** — 8 ausências legítimas (todas as respostas <3s, então não há matéria medida) e **2 perdas reais** de Módulo 1. É exatamente o aluno que abandona no meio, que é quem o piloto precisa contar.
+
+A régua não é reescrita: `minTempoRespostaMs` sai do `app_config`, e o script **confere o próprio cálculo contra `diagnostic_subject_results`** para todo aluno que tenha linha lá. Divergência vira erro visível — é o que protege contra a regra derivar em silêncio.
+
+**Matéria com poucos alunos medidos não é ordenada.** O relatório imprime N ao lado de toda taxa e joga as matérias abaixo do piso num bloco separado, fora do ranking: no ensaio contra a base inteira, Processo do Trabalho aparecia "melhor" que Constitucional com 3 alunos contra 19. Os pisos são julgamento declarado (ajustáveis por CLI), não constante derivada.
+
+**Alternativas descartadas com dado:** domínio de e-mail não serve (**3 de 75** contas usam domínio de faculdade; 61 usam Gmail), e janela de data não serve porque os deploys de SEO existem justamente pra aumentar cadastro orgânico, que cairia dentro da mesma janela.
+
+`scripts/turma-atribuir.mjs` é a rede de segurança: marca por e-mail na mão, pra quem clicou no celular e cadastrou no notebook, quem usa aba anônima, quem já tinha conta, e o caso de a coordenação divulgar a URL sem o link. Ambos os scripts falham **alto** em slug inexistente — o erro mais provável é um typo que só apareceria como relatório vazio uma semana depois.
 
 ### Sistema admin
 

@@ -33,3 +33,8 @@ pnpm-debug.log*
 
 # TS incremental build cache
 tsconfig.tsbuildinfo
+
+# Relatórios de turma gerados por scripts/turma-relatorio.mjs.
+# Contêm dados agregados de uma turma real — não pertencem ao repositório,
+# e o arquivo é regenerável a qualquer momento com o script.
+relatorio-*.html

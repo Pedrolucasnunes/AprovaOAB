@@ -2,10 +2,15 @@
 //
 //   node scripts/turma-relatorio.mjs unp
 //   node scripts/turma-relatorio.mjs unp --min-alunos 8
+//   node scripts/turma-relatorio.mjs unp --html        (gera o arquivo pra virar PDF)
 //
-// Saída: texto puro, pra ser lido de perto e transcrito à mão pro PDF. Não há
-// tela e não há acesso da instituição ao banco — é decisão do piloto, e é o que
-// sustenta a promessa feita à coordenação.
+// Saída padrão: texto puro no terminal, pra ser lido de perto — é o formato que
+// obriga a olhar o dado antes de apresentá-lo. Com `--html`, gera também um
+// arquivo pronto pra impressão: abra no navegador e use Ctrl+P → "Salvar como
+// PDF". Nenhuma dependência nova, e o arquivo fica no seu computador.
+//
+// Não há tela no produto e não há acesso da instituição ao banco — é decisão do
+// piloto, e é o que sustenta a promessa feita à coordenação.
 //
 // LGPD POR CONSTRUÇÃO: este script não seleciona `nome` nem `email` de lugar
 // nenhum. Não é uma regra que alguém precisa lembrar de seguir na hora de
@@ -33,7 +38,7 @@
 // de silêncio.
 // ---------------------------------------------------------------------------
 import { createClient } from "@supabase/supabase-js"
-import { readFileSync } from "node:fs"
+import { readFileSync, writeFileSync } from "node:fs"
 import { resolve } from "node:path"
 
 const env = {}
@@ -76,6 +81,15 @@ const YMD = new Intl.DateTimeFormat("en-CA", {
 })
 const hojeBrasil = () => YMD.format(new Date())
 
+/** "15 de agosto de 2026" — o relatório vai pra fora, o nome do arquivo não. */
+const dataPorExtenso = () =>
+  new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date())
+
 /** PostgREST tem teto de URL: quebra `.in()` em lotes. */
 async function porLotes(ids, tamanho, fn) {
   const out = []
@@ -102,9 +116,12 @@ async function main() {
   }
   const minAlunos = arg("min-alunos", MIN_ALUNOS_MATERIA)
   const minRespostas = arg("min-respostas", MIN_RESPOSTAS_ALUNO)
+  const gerarHtml = argv.includes("--html")
 
   if (!slug) {
-    console.error("Uso: node scripts/turma-relatorio.mjs <slug> [--min-alunos N] [--min-respostas N]")
+    console.error(
+      "Uso: node scripts/turma-relatorio.mjs <slug> [--html] [--min-alunos N] [--min-respostas N]",
+    )
     return 1
   }
 
@@ -404,9 +421,11 @@ async function main() {
     const m = porAluno.get(r.user_id)?.materias.get(r.subject_id)
     conferidas += 1
     if (!m || m.acertos !== r.acertos || m.total !== r.total) {
-      divergencias.push(
-        `    ${(nomeDaMateria.get(r.subject_id) ?? "?").padEnd(24)} tabela ${r.acertos}/${r.total}  vs  script ${m ? `${m.acertos}/${m.total}` : "sem dado"}`,
-      )
+      divergencias.push({
+        materia: nomeDaMateria.get(r.subject_id) ?? "?",
+        tabela: `${r.acertos}/${r.total}`,
+        script: m ? `${m.acertos}/${m.total}` : "sem dado",
+      })
     }
   }
 
@@ -418,7 +437,9 @@ async function main() {
     console.log("  A régua de <3s deste script concorda com a do produto.")
   } else {
     console.log(`  ${divergencias.length} de ${conferidas} linha(s) divergem:`)
-    divergencias.forEach((d) => console.log(d))
+    divergencias.forEach((d) =>
+      console.log(`    ${d.materia.padEnd(24)} tabela ${d.tabela}  vs  script ${d.script}`),
+    )
     console.log(`\n  Divergência tem duas causas possíveis: a linha da tabela está`)
     console.log(`  DESATUALIZADA (o aluno respondeu mais depois do último recompute,`)
     console.log(`  e aí o número deste script é o correto), ou a regra de filtro`)
@@ -427,7 +448,272 @@ async function main() {
   }
 
   console.log(`\n${linha("═")}\n`)
+
+  // ---------------------------------------------------------------- 7. HTML
+  if (gerarHtml) {
+    const arquivo = resolve(process.cwd(), `relatorio-${turma.slug}-${hojeBrasil()}.html`)
+    writeFileSync(
+      arquivo,
+      htmlDoRelatorio({
+        turma,
+        geradoEm: dataPorExtenso(),
+        materiasDoModulo: SUBJECTS_M1.length,
+        questoesDoModulo: QUESTOES_M1,
+        totalAlunos: membros.length,
+        funil,
+        suficientes,
+        insuficientes,
+        minAlunos,
+        minRespostas,
+        distribuicao:
+          elegiveis.length === 0
+            ? null
+            : {
+                acima,
+                naLinha,
+                abaixo,
+                base: elegiveis.length,
+                fora: consolidado.length - elegiveis.length,
+                taxas: elegiveis.map((c) => Math.round(taxaDe(c))).sort((a, b) => a - b),
+              },
+        geral: { acertos: totalAcertos, respostas: totalRespostas },
+        confianca: { descartadas: totalDescartadas, brutas, minTempoMs: MIN_TEMPO_MS, foraM1 },
+        conferencia: { conferidas, divergencias },
+      }),
+      "utf8",
+    )
+    console.log(`Arquivo gerado: ${arquivo}`)
+    console.log(`Abra no navegador e use Ctrl+P → "Salvar como PDF".\n`)
+  }
+
   return 0
+}
+
+// ---------------------------------------------------------------------------
+// Renderização pra impressão.
+//
+// HTML e não PDF direto: gerar PDF em Node exigiria puppeteer (um Chrome
+// inteiro) ou uma lib de layout — dependência pesada pra um script que roda
+// meia dúzia de vezes. O navegador já tem o melhor motor de impressão
+// instalado, e "Ctrl+P → Salvar como PDF" produz o mesmo arquivo.
+//
+// O arquivo NÃO contém nome nem e-mail de ninguém, pela mesma razão que o
+// terminal não contém: o dado pessoal nunca é buscado do banco.
+// ---------------------------------------------------------------------------
+
+/** Bandas de lib/metrics.ts: crítica < 40, média 40–70, boa > 70. */
+function banda(taxa) {
+  if (taxa === null) return "sem"
+  if (taxa < 40) return "critica"
+  if (taxa <= 70) return "media"
+  return "boa"
+}
+
+const esc = (s) =>
+  String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c])
+
+function linhaDeMateria(l) {
+  const largura = l.taxa === null ? 0 : l.taxa
+  return `
+      <tr>
+        <th scope="row">${esc(l.materia)}</th>
+        <td class="barra-cel">
+          <div class="barra">
+            <div class="preenche ${banda(l.taxa)}" style="width:${largura.toFixed(1)}%"></div>
+            <div class="corte" title="linha de corte da 1ª fase"></div>
+          </div>
+        </td>
+        <td class="num taxa ${banda(l.taxa)}">${l.taxa === null ? "—" : l.taxa.toFixed(1) + "%"}</td>
+        <td class="num">${l.alunos}</td>
+        <td class="num">${l.respostas}</td>
+      </tr>`
+}
+
+function htmlDoRelatorio(d) {
+  const pctD = d.confianca.brutas > 0 ? (100 * d.confianca.descartadas) / d.confianca.brutas : 0
+  const taxaGeral = d.geral.respostas > 0 ? (100 * d.geral.acertos) / d.geral.respostas : null
+
+  // O relatório avisa sozinho quando o próprio dado é fraco. Sem isto, uma
+  // tabela bonita apoiada em 40% de clique passaria por medição.
+  const avisoDescarte =
+    pctD >= 25
+      ? `<div class="aviso">
+        <strong>Atenção à confiabilidade:</strong> ${pctD.toFixed(1)}% das respostas
+        (${d.confianca.descartadas} de ${d.confianca.brutas}) vieram em menos de
+        ${d.confianca.minTempoMs / 1000} segundos e foram descartadas. Um volume alto de
+        descarte indica que parte da turma clicou sem ler — os percentuais deste
+        relatório descrevem quem respondeu de verdade, e não necessariamente a
+        turma inteira.
+      </div>`
+      : ""
+
+  return `<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Diagnóstico da turma — ${esc(d.turma.instituicao)}</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm 14mm; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px;
+    font: 15px/1.55 ui-sans-serif, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    color: #16202b; background: #fff;
+    max-width: 900px; margin-inline: auto;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  h1 { font-size: 25px; margin: 0 0 4px; letter-spacing: -.02em; }
+  h2 {
+    font-size: 12px; text-transform: uppercase; letter-spacing: .09em;
+    color: #5b6b7c; margin: 34px 0 10px;
+    border-bottom: 1px solid #dde4ea; padding-bottom: 6px;
+  }
+  .marca { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: #0f9d76; font-weight: 700; }
+  .sub { color: #5b6b7c; font-size: 14px; margin: 0; }
+  header { border-bottom: 2px solid #16202b; padding-bottom: 14px; margin-bottom: 4px; }
+  .meta { margin-top: 10px; font-size: 13px; color: #5b6b7c; }
+  .meta span { margin-right: 18px; white-space: nowrap; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid #eef2f6; vertical-align: middle; }
+  th[scope="row"] { font-weight: 600; width: 27%; }
+  thead th { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #77879a; font-weight: 600; border-bottom: 1px solid #dde4ea; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .taxa { font-weight: 700; }
+
+  .barra-cel { width: 42%; }
+  .barra { position: relative; height: 11px; background: #eef2f6; border-radius: 6px; overflow: hidden; }
+  .preenche { height: 100%; border-radius: 6px; }
+  .corte { position: absolute; top: -2px; bottom: -2px; left: 50%; width: 2px; background: #16202b; opacity: .38; }
+  .critica { background: #e5484d; color: #c02a2f; }
+  .media   { background: #f5a524; color: #a76a06; }
+  .boa     { background: #0f9d76; color: #0b7a5b; }
+  .sem     { background: #cbd5e0; color: #77879a; }
+  td.taxa.critica, td.taxa.media, td.taxa.boa, td.taxa.sem { background: none; }
+
+  .nota { font-size: 12.5px; color: #5b6b7c; margin: 9px 0 0; }
+  .fraca { opacity: .78; }
+  .fraca h3 { font-size: 13px; margin: 26px 0 6px; color: #5b6b7c; font-weight: 600; }
+
+  .destaques { display: flex; gap: 10px; margin: 0; padding: 0; list-style: none; }
+  .destaques li { flex: 1; border: 1px solid #dde4ea; border-radius: 9px; padding: 12px 14px; }
+  .destaques b { display: block; font-size: 27px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+  .destaques span { font-size: 12px; color: #5b6b7c; }
+
+  .grandao { font-size: 46px; font-weight: 800; letter-spacing: -.03em; line-height: 1.05; }
+
+  .aviso {
+    border-left: 4px solid #f5a524; background: #fff8ec;
+    padding: 12px 14px; border-radius: 0 8px 8px 0; margin: 16px 0 0; font-size: 13.5px;
+  }
+  footer { margin-top: 38px; border-top: 1px solid #dde4ea; padding-top: 14px; font-size: 12px; color: #77879a; }
+  footer p { margin: 0 0 7px; }
+  section, .destaques, table { break-inside: avoid; page-break-inside: avoid; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="marca">AprovaOAB</div>
+  <h1>Diagnóstico da turma</h1>
+  <p class="sub">${esc(d.turma.instituicao)} · ${esc(d.turma.rotulo)}</p>
+  <div class="meta">
+    <span><strong>Gerado em:</strong> ${esc(d.geradoEm)}</span>
+    <span><strong>Alunos:</strong> ${d.totalAlunos}</span>
+    <span><strong>Instrumento:</strong> ${d.materiasDoModulo} matérias, ${d.questoesDoModulo} questões de dificuldade média e difícil</span>
+  </div>
+</header>
+
+<section>
+  <h2>Participação</h2>
+  <table>
+    <tbody>
+      ${d.funil
+        .map(
+          ([rotulo, n]) => `<tr>
+        <th scope="row" style="width:52%">${esc(rotulo)}</th>
+        <td class="barra-cel"><div class="barra"><div class="preenche boa" style="width:${d.totalAlunos > 0 ? ((100 * n) / d.totalAlunos).toFixed(1) : 0}%"></div></div></td>
+        <td class="num"><strong>${n}</strong></td>
+        <td class="num">${d.totalAlunos > 0 ? ((100 * n) / d.totalAlunos).toFixed(0) : "—"}%</td>
+      </tr>`,
+        )
+        .join("")}
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Aproveitamento por matéria</h2>
+  ${
+    d.suficientes.length > 0
+      ? `<table>
+    <thead><tr><th>Matéria</th><th></th><th class="num">Acerto</th><th class="num">Alunos</th><th class="num">Respostas</th></tr></thead>
+    <tbody>${d.suficientes.map(linhaDeMateria).join("")}</tbody>
+  </table>
+  <p class="nota">Ordenadas da menor para a maior taxa de acerto. A linha vertical marca
+  os 50% — a proporção necessária para aprovação na 1ª fase.</p>`
+      : `<p class="nota">Nenhuma matéria alcançou o mínimo de ${d.minAlunos} alunos medidos.
+  Com a amostra atual, nenhuma comparação entre matérias se sustenta.</p>`
+  }
+
+  ${
+    d.insuficientes.length > 0
+      ? `<div class="fraca">
+    <h3>Sem amostra suficiente — não ordenadas</h3>
+    <table>
+      <thead><tr><th>Matéria</th><th></th><th class="num">Acerto</th><th class="num">Alunos</th><th class="num">Respostas</th></tr></thead>
+      <tbody>${d.insuficientes.map(linhaDeMateria).join("")}</tbody>
+    </table>
+    <p class="nota">Menos de ${d.minAlunos} alunos medidos. Os números estão aqui por
+    transparência, mas ficam fora do ranking: uma taxa apoiada em poucos alunos não é
+    comparável com uma apoiada na turma inteira, e ordená-las lado a lado afirmaria
+    algo que o dado não sustenta.</p>
+  </div>`
+      : ""
+  }
+</section>
+
+<section>
+  <h2>Distribuição interna</h2>
+  ${
+    d.distribuicao
+      ? `<ul class="destaques">
+    <li><b class="boa" style="background:none">${d.distribuicao.acima}</b><span>acima dos 50%</span></li>
+    <li><b class="media" style="background:none">${d.distribuicao.naLinha}</b><span>exatamente na linha</span></li>
+    <li><b class="critica" style="background:none">${d.distribuicao.abaixo}</b><span>abaixo dos 50%</span></li>
+  </ul>
+  <p class="nota">Base: ${d.distribuicao.base} aluno(s) com ao menos ${d.minRespostas} respostas válidas.
+  ${d.distribuicao.fora > 0 ? `${d.distribuicao.fora} aluno(s) responderam pouco para entrar nesta conta — eles aparecem na participação, não aqui.` : ""}</p>
+  <p class="nota">Taxas individuais, sem identificação: ${d.distribuicao.taxas.join("% · ")}%</p>`
+      : `<p class="nota">Nenhum aluno alcançou ${d.minRespostas} respostas válidas — sem distribuição.</p>`
+  }
+</section>
+
+<section>
+  <h2>Aproveitamento geral</h2>
+  <div class="grandao ${banda(taxaGeral)}" style="background:none">${taxaGeral === null ? "—" : taxaGeral.toFixed(1) + "%"}</div>
+  <p class="nota">${d.geral.acertos} acertos em ${d.geral.respostas} respostas válidas.</p>
+  ${avisoDescarte}
+</section>
+
+<footer>
+  <p><strong>Como estes números foram apurados.</strong> Cada aluno respondeu questões de
+  exames anteriores da OAB, de dificuldade média e difícil, distribuídas entre as
+  ${d.materiasDoModulo} matérias de maior peso na 1ª fase.</p>
+  <p>Respostas enviadas em menos de ${d.confianca.minTempoMs / 1000} segundos são descartadas:
+  abaixo desse tempo o acerto fica inferior ao do chute aleatório, ou seja, é clique e não
+  leitura. Nesta turma foram ${d.confianca.descartadas} de ${d.confianca.brutas}
+  (${pctD.toFixed(1)}%). Matéria sem nenhuma resposta válida é tratada como
+  <em>não medida</em>, nunca como 0% de acerto.</p>
+  ${d.confianca.foraM1 > 0 ? `<p>${d.confianca.foraM1} resposta(s) em matérias fora deste conjunto não entram em nenhum número acima.</p>` : ""}
+  <p><strong>Privacidade.</strong> Este relatório é agregado. Nenhum aluno é identificado,
+  e a instituição não tem acesso a dados individuais nem à plataforma.</p>
+  <p>AprovaOAB · gerado em ${esc(d.geradoEm)}</p>
+</footer>
+
+</body>
+</html>
+`
 }
 
 try {

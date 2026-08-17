@@ -2,9 +2,24 @@ import { NextRequest, NextResponse } from "next/server"
 import { TURMA_COOKIE, TURMA_COOKIE_MAX_AGE, slugValido } from "@/lib/turmas"
 
 /**
+ * Para onde o link institucional leva.
+ *
+ * Era a landing (`/`), e em sala de aula isso custava caro: 40 alunos tendo que
+ * achar o botão de cadastro sozinhos, cada um num tempo, com o professor
+ * esperando. O link existe para uma coisa só — criar conta — e a landing é uma
+ * página de convencimento para quem ainda não decidiu. Quem chegou por aqui já
+ * foi convencido pela coordenação.
+ *
+ * Quem já tem conta não trava: `/cadastro` tem "Já tem uma conta? Entrar" no
+ * rodapé do formulário, e quem já está logado é mandado pro dashboard pelo
+ * próprio `proxy.ts`.
+ */
+const DESTINO = "/cadastro"
+
+/**
  * Link institucional: `https://www.aprovaoab.app.br/turma/unp`.
  *
- * Grava a turma num cookie e manda o aluno pra landing. **Ele não vê nada
+ * Grava a turma num cookie e manda o aluno pro cadastro. **Ele não vê nada
  * diferente** — nem aqui, nem no cadastro, nem depois. A marca serve só pra
  * conseguir agregar o resultado da turma no fim do piloto.
  *
@@ -23,8 +38,7 @@ import { TURMA_COOKIE, TURMA_COOKIE_MAX_AGE, slugValido } from "@/lib/turmas"
  */
 export async function GET(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const destino = new URL("/", req.url)
-  const res = NextResponse.redirect(destino)
+  const res = NextResponse.redirect(new URL(DESTINO, req.url))
 
   const valido = slugValido(slug)
   if (valido) {

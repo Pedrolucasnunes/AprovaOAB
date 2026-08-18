@@ -238,6 +238,28 @@ Onboarding (3 passos: welcome → data da prova → CTA do diagnóstico):
 - `temPerfilOnboarding` (no `/api/dashboard`) = `onboarding_completed`. Antes olhava `onboarding_data.dificuldades`, que o wizard não coleta mais — todo usuário novo daria falso e cairia no card de "usuário antigo sem perfil"
 - O diagnóstico **não exige** onboarding nenhum
 
+### Reenvio do código de ativação
+
+`POST /api/auth/reativar` + `components/auth/reenviar-ativacao-modal.tsx` são o caminho de quem criou a conta, não confirmou o e-mail e voltou dias depois. Os dois botões de "Reenviar" que já existiam não servem para ele: o do cadastro só existe na mesma aba do cadastro, e o do login só aparece depois de o `signInWithPassword` falhar com "not confirmed" — ou seja, exige acertar a senha de uma conta que a pessoa nunca chegou a usar. Errando a senha, o login responde "E-mail ou senha incorretos" e não há mais caminho. (Medido em ago/2026: 4 contas paradas assim, de 6 a 94 dias.)
+
+**A rota responde SEMPRE igual, exista a conta ou não**, e o modal repete a mesma frase. Não é copy preguiçosa — mensagem que varie conforme o e-mail existir transforma a tela numa sonda de enumeração, o mesmo motivo do "E-mail ou senha incorretos" genérico do `/api/auth/login` e do "se o endereço estiver cadastrado" do recuperar senha.
+
+**Pelo mesmo motivo, o erro de `max_frequency` do GoTrue (60s entre e-mails) nunca é repassado ali.** Ele só ocorre para e-mail que existe **e** está pendente, então mostrá-lo seria exatamente o oráculo que a mensagem genérica evita — e é uma armadilha traiçoeira, porque quem "melhorar" o texto não percebe o que abriu. A espera vira contagem regressiva no botão, igual para qualquer endereço digitado. **Dentro do login é diferente e pode aparecer o "aguarde Ns"**: ali o app já disse que a conta existe e está pendente, não há o que vazar.
+
+Não é preciso consultar o banco antes de reenviar: o `/auth/v1/resend` do GoTrue já não faz nada para e-mail inexistente (verificado: HTTP 200 e corpo vazio) e não manda confirmação para conta já confirmada.
+
+O modal tem **dois passos, e-mail → código**, porque reenviar sem ter onde digitar não resolveria nada — as duas telas de OTP existentes são justamente as inalcançáveis. Confirmar pelo código já cria sessão: é o mesmo `verifyOtp` da tela de login, e quem tem a caixa de entrada já entraria pelo "Esqueci a senha".
+
+`app/auth/callback/route.ts` trata o link vencido (`error_code=otp_expired`) na query e a tela de login traduz o mesmo erro quando ele vem no **fragmento** — que não chega ao servidor. Sem isso, link expirado caía no redirect para `/dashboard`, o proxy desviava para o login, e a pessoa via uma tela limpa sem explicação nenhuma.
+
+### Avatar — `lib/avatar.ts`
+
+Fonte única das duas metades do avatar, e as duas já se fragmentaram uma vez.
+
+`fotoDoPerfil(metadata, px)` lê a foto do login social (30 das 74 contas em ago/2026; **nenhuma** das 44 contas de e-mail e senha tem — para elas as iniciais são o caminho normal, não fallback de erro) e reescreve o sufixo `=sN-c` do endereço do Google, porque o padrão é 96px e um avatar de 80 CSS px precisa de 160 em tela retina. Só reescreve quando o padrão bate exato; endereço quebrado não sangra na tela, o `AvatarImage` do Radix cai sozinho nas iniciais.
+
+`iniciaisDoNome(nome, alternativa?)` existia em **quatro** cópias. Três usavam primeira + última palavra e o perfil usava as duas primeiras, então o card dizia "CD" e a barra logo abaixo dizia "CT" para a mesma pessoa. Duas delas partiam em `" "` cru e perdiam uma inicial em nome com espaço duplicado — falha silenciosa, com cara de escolha de design. **Não reimplementar em tela nova.**
+
 ### Tabelas e views do banco (não óbvias pelo código)
 
 | Nome | Tipo | Campos-chave | Propósito |

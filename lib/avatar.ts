@@ -35,3 +35,30 @@ export function fotoDoPerfil(
 function comTamanho(url: string, px: number): string {
   return url.replace(/=s\d+-c$/, `=s${px}-c`)
 }
+
+/**
+ * Iniciais do avatar de quem não tem foto — que são as 44 contas de e-mail e
+ * senha, não um punhado de casos de erro.
+ *
+ * Existia em quatro lugares. Três concordavam (primeira + última palavra) e o
+ * perfil usava as DUAS PRIMEIRAS, então o card dizia "CD" e a barra logo abaixo
+ * dizia "CT" para a mesma pessoa — invisível enquanto os dois cantos da tela
+ * não mostravam avatar ao mesmo tempo.
+ *
+ * O `filter(Boolean)` não é adorno: as duas cópias que partiam em `" "` cru
+ * perdiam uma inicial em nome com espaço duplicado ou espaço no começo — o que
+ * acontece sempre que alguém cola o nome de outro lugar. Falha silenciosa, com
+ * cara de escolha de design.
+ *
+ * @param alternativa usada quando não há nome (o admin cai no e-mail).
+ */
+export function iniciaisDoNome(
+  nome: string | null | undefined,
+  alternativa?: string | null,
+): string {
+  const fonte = (nome || alternativa || "").trim()
+  const partes = fonte.split(/\s+/).filter(Boolean)
+  if (partes.length === 0) return "??"
+  if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase()
+  return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase()
+}

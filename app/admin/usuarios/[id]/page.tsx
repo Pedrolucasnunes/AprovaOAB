@@ -13,6 +13,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { ArrowLeft, AlertTriangle, Loader2, BookOpen, ShieldOff, ShieldCheck, Stethoscope, Target } from "lucide-react"
 import { toast } from "sonner"
 import { formatarDataBrasil, formatarDataHoraBrasil, parseDbDate } from "@/lib/datas"
+import { iniciaisDoNome } from "@/lib/avatar"
 
 interface Resumo {
   hoje: number
@@ -66,14 +67,6 @@ interface AtividadeData {
 }
 
 const ALERTA_MAX_HORA = 60
-
-function iniciais(nome: string | null, email: string | null): string {
-  const fonte = (nome || email || "??").trim()
-  const partes = fonte.split(/\s+/).filter(Boolean)
-  if (partes.length === 0) return "??"
-  if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase()
-  return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase()
-}
 
 function PlanoBadge({ plano }: { plano: string }) {
   if (plano === "pro") {
@@ -193,7 +186,7 @@ export default function UsuarioAtividadePage() {
           <div className="flex items-start gap-4 min-w-0">
             <Avatar className="h-14 w-14 shrink-0">
               <AvatarFallback className="bg-primary/10 text-primary text-base font-semibold">
-                {iniciais(user.nome, user.email)}
+                {iniciaisDoNome(user.nome, user.email)}
               </AvatarFallback>
             </Avatar>
 

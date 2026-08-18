@@ -13,6 +13,7 @@ import {
 } from "recharts"
 import { toast } from "sonner"
 import { tempoRelativo } from "@/lib/datas"
+import { iniciaisDoNome } from "@/lib/avatar"
 
 interface UsuarioRecente {
   id: string
@@ -43,13 +44,6 @@ function PlanoBadge({ plano }: { plano: string }) {
     return <Badge className="bg-[#fff4cc] text-[#b8860b] hover:bg-[#fff4cc] dark:bg-[#b8860b]/15 dark:text-[#f0c75e] border-0">Aprovação</Badge>
   }
   return <Badge variant="secondary">Grátis</Badge>
-}
-
-function iniciais(nome: string): string {
-  const partes = nome.trim().split(/\s+/).filter(Boolean)
-  if (partes.length === 0) return "??"
-  if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase()
-  return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase()
 }
 
 export default function AdminDashboardPage() {
@@ -246,7 +240,7 @@ export default function AdminDashboardPage() {
                   <div className="flex items-center gap-3 min-w-0">
                     <Avatar className="h-9 w-9">
                       <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                        {iniciais(u.nome)}
+                        {iniciaisDoNome(u.nome)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col min-w-0">

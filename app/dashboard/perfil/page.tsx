@@ -17,7 +17,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import Link from "next/link"
 import { PRECO_PRO } from "@/lib/planos"
 import { getTrialState, isTrialEnabledClient, type TrialUser } from "@/lib/trial"
-import { fotoDoPerfil } from "@/lib/avatar"
+import { fotoDoPerfil, iniciaisDoNome } from "@/lib/avatar"
 
 export default function PerfilPage() {
   const [isEditing, setIsEditing] = useState(false)
@@ -118,9 +118,6 @@ export default function PerfilPage() {
     }
   }
 
-  const getIniciais = (nome: string) =>
-    nome.split(" ").slice(0, 2).map(n => n[0]).join("").toUpperCase() || "?"
-
   const handleSalvar = async () => {
     setSalvando(true)
     try {
@@ -208,7 +205,7 @@ export default function PerfilPage() {
                     />
                   )}
                   <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
-                    {getIniciais(nome)}
+                    {iniciaisDoNome(nome)}
                   </AvatarFallback>
                 </Avatar>
               </div>

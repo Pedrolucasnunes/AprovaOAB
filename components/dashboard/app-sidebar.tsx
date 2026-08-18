@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { supabase } from "@/lib/supabase"
 import { getClientUser } from "@/lib/auth-client"
-import { fotoDoPerfil } from "@/lib/avatar"
+import { fotoDoPerfil, iniciaisDoNome } from "@/lib/avatar"
 import {
   LayoutDashboard,
   FileText,
@@ -80,13 +80,8 @@ export function AppSidebar() {
       // Formata prefixo de email: "pedrolucasnunes2011" → "Pedrolucasnunes2011"
       const nome = nomeRaw.charAt(0).toUpperCase() + nomeRaw.slice(1)
 
-      const partes = nome.trim().split(" ")
-      const iniciais = partes.length >= 2
-        ? `${partes[0][0]}${partes[partes.length - 1][0]}`.toUpperCase()
-        : nome.slice(0, 2).toUpperCase()
-
       // 64px porque o avatar da barra tem 32 CSS px e a maioria das telas é 2x.
-      setUserInfo({ nome, email, iniciais, foto: fotoDoPerfil(user.user_metadata, 64) })
+      setUserInfo({ nome, email, iniciais: iniciaisDoNome(nome), foto: fotoDoPerfil(user.user_metadata, 64) })
       setLoadingUser(false)
     }
 

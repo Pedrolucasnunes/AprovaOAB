@@ -38,3 +38,7 @@ tsconfig.tsbuildinfo
 # Contêm dados agregados de uma turma real — não pertencem ao repositório,
 # e o arquivo é regenerável a qualquer momento com o script.
 relatorio-*.html
+
+# Previews da newsletter renderizados localmente a partir de buildNewsletterHtml.
+# São saída, não fonte: a edição mora em lib/newsletter.ts e o HTML é regerável.
+preview-edicao*.html

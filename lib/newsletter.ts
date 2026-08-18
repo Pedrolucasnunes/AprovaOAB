@@ -18,6 +18,14 @@ export type NewsletterEdicao = {
   /** Linha de dado real da plataforma (ex.: matéria que mais reprova). Opcional. */
   termometro?: string
   questao: {
+    /**
+     * Cabeçalho da seção. O padrão ("A questão que derrubou geral") afirma que
+     * ESTA questão derruba muita gente — o que só é verdade quando a `fonte`
+     * traz a taxa da plataforma. Sem essa taxa (matéria de cauda, em que cada
+     * questão tem 1 ou 2 respostas), sobrescrever aqui: o termômetro fala da
+     * matéria, o título não pode falar da questão.
+     */
+    titulo?: string
     /** Procedência + estatística, ex.: "FGV · Exame XXXIX/2023 · 25% de acerto". */
     fonte: string
     enunciado: string
@@ -165,7 +173,7 @@ export function buildNewsletterHtml(
 
             ${termometro}
 
-            ${sectionTitle("🎯 A questão que derrubou geral")}
+            ${sectionTitle(ed.questao.titulo || "🎯 A questão que derrubou geral")}
             <tr><td>
               <p style="margin:0 0 12px 0;color:${MUTED};font-size:12px;font-style:italic;">Questão real · ${ed.questao.fonte}</p>
               <p style="margin:0 0 16px 0;color:${INK};font-size:15px;line-height:1.6;">${ed.questao.enunciado}</p>
@@ -642,10 +650,58 @@ export const EDICAO_10: NewsletterEdicao = {
   examDays: 26,
 }
 
+// ── Edição #11 (dados reais do banco: Direito do Trabalho, 48% de acerto) ─────
+export const EDICAO_11: NewsletterEdicao = {
+  numero: 11,
+  subject: "☕ Café com OAB #11 — por que 7h às 13h15 não é jornada de 6h15",
+  preheader:
+    "A FGV desenhou os horários pra você somar errado. Faltam 19 dias — e os locais de prova saem no dia 31.",
+  intro: [
+    "Faltam <strong>19 dias</strong>, e o calendário volta a se mexer: em <strong>31 de agosto</strong> — daqui a 13 dias — saem os <strong>locais de prova</strong> da 1ª fase. A prova é <strong>domingo, 6 de setembro, das 13h às 18h</strong>, e tem um detalhe que quase ninguém lembra: o <strong>gabarito preliminar sai na mesma noite</strong>, até as 22h. ⏰",
+    "A matéria de hoje é <strong>Direito do Trabalho</strong> — <strong>48% de acerto</strong> na plataforma, pouco mais da metade erra. Semana passada foi o <em>processo</em>; hoje é o <em>direito material</em>, e as duas juntas não são pouca coisa: nas duas provas mais recentes, <strong>Trabalho + Processo do Trabalho somaram 10 das 80 questões</strong> — o mesmo peso de Ética e Filosofia juntas. A questão que escolhi é do <strong>XLV, o exame mais recente</strong>, e é aritmética disfarçada de direito: quem soma errado marca a alternativa errada com toda a confiança do mundo. ⚖️",
+  ],
+  termometro:
+    "🟡 <strong>Direito do Trabalho — 48% de acerto na plataforma.</strong> Pouco mais da metade erra. É a matéria que a <strong>Reforma de 2017</strong> reescreveu em bloco — e a FGV cobra exatamente nos pontos em que a regra nova contraria a súmula antiga, que segue circulando em resumo desatualizado.",
+  questao: {
+    // Sem estatística por questão nesta edição, pelo mesmo motivo das #9 e #10:
+    // Direito do Trabalho tem 29 respostas espalhadas por 29 questões distintas
+    // (maior n = 1), então nenhuma taxa por questão sustentaria "a que mais derruba"
+    // — e é por isso que o título da seção também muda.
+    titulo: "🎯 A questão da semana",
+    fonte: "FGV · Exame de Ordem XLV/2025 · dificuldade média",
+    enunciado:
+      "Luana Moreira trabalha em uma sociedade empresária do setor de cosméticos das 7h às 13h15min e desfruta de 15 minutos de intervalo que ocorre das 10h às 10h15min, mas está pressionando sua chefia, aduzindo que teria direito a 1 hora de intervalo, no mínimo, razão pela qual pretende receber 1 hora como extraordinária, com repercussão nas demais parcelas salariais do contrato. A sociedade empresária consultou você, como advogado(a), para saber como agir. Sobre a hipótese apresentada, de acordo com a legislação trabalhista em vigor, assinale a afirmativa que, corretamente, apresenta a sua resposta.",
+    alternativas: [
+      { letra: "A", texto: "Luana deverá receber o restante do período do intervalo para inteirar 1 hora de forma indenizatória." },
+      { letra: "B", texto: "Luana não tem direito ao pagamento do intervalo, considerando que a jornada não excede 6 horas e os 15 minutos são de intervalo." },
+      { letra: "C", texto: "Luana deverá receber o valor correspondente a uma hora integral, com os devidos reflexos nas parcelas salariais do contrato de trabalho." },
+      { letra: "D", texto: "Luana deverá receber a diferença de 45 minutos de forma indenizatória, com repercussão nas parcelas salariais do contrato de trabalho." },
+    ],
+    gabarito: "B",
+    comentario:
+      "Antes de qualquer artigo, a conta. Luana fica na empresa das <strong>7h às 13h15</strong> — <strong>6h15 de presença</strong>. Só que presença não é jornada: o <strong>art. 71, §2º, da CLT</strong> diz que <strong>os intervalos de descanso não são computados na duração do trabalho</strong>. Tirando os 15 minutos, a jornada é de <strong>6 horas exatas</strong>. E o <strong>§1º</strong> exige exatamente 15 minutos de intervalo quando o trabalho passa de 4h e <strong>não excede</strong> 6h — a 1 hora do <em>caput</em> só entra quando a jornada <strong>ultrapassa</strong> 6 horas. A empresa concedeu o que a lei manda: não há nada a pagar.",
+  },
+  pegadinha:
+    "O desenho dos horários não é acaso: <strong>7h às 13h15</strong> foi escolhido pra dar <strong>6h15 na subtração ingênua</strong> e te empurrar pro <em>caput</em> (“passou de 6h, logo 1 hora de intervalo”). Quem cai nisso ainda precisa escolher entre três armadilhas, e a mais bonita é a <strong>C</strong>: ela está <strong>certa — na lei velha</strong>. Até 2017, a <strong>Súmula 437, I, do TST</strong> mandava pagar a <strong>hora inteira</strong>, com <strong>natureza salarial</strong> e reflexos, ainda que a supressão fosse de poucos minutos. A <strong>Reforma (Lei 13.467/2017)</strong> reescreveu o <strong>art. 71, §4º</strong>: paga-se <strong>apenas o período suprimido</strong>, com acréscimo de 50% e <strong>natureza indenizatória</strong> — sem reflexos. A súmula nunca foi formalmente revogada, e é por isso que ela continua aparecendo em material antigo; para os contratos posteriores a <strong>11/11/2017</strong>, quem vale é o §4º. A <strong>D</strong> é essa mesma armadilha meio consertada: acerta o “só o período suprimido” (45 minutos) e erra o resto — indenizatório <strong>não repercute</strong> nas parcelas salariais. E a <strong>A</strong> parte do mesmo erro de conta das outras duas. 🧠 <strong>Fixa assim:</strong> presença − intervalo = jornada · até 6h → 15 min · mais de 6h → 1h · e, quando falta intervalo, hoje se paga <strong>só o pedaço suprimido</strong>, indenizatório.",
+  noticia: {
+    titulo: "📰 Tá rolando: o calendário do fim, data por data",
+    texto:
+      "<strong>31 de agosto</strong>: saem os <strong>locais de prova</strong> da 1ª fase, na página do candidato em oab.fgv.br. <strong>6 de setembro</strong> (domingo): <strong>prova objetiva das 13h às 18h</strong>, 80 questões — e o <strong>gabarito preliminar até as 22h do mesmo dia</strong>. <strong>8 a 10 de setembro</strong>: prazo de <strong>recurso contra o gabarito</strong>. <strong>23 de setembro</strong> (data provável): <strong>gabarito definitivo</strong> e resultado preliminar. <strong>5 de outubro</strong>: resultado final da 1ª fase. E a <strong>2ª fase é em 18 de outubro</strong>. Vale pôr duas dessas no celular agora: a de <strong>31/8</strong>, pra conferir endereço e trajeto com calma, e a de <strong>8 a 10/9</strong> — recurso de gabarito tem prazo curto e não espera ninguém. ⏰",
+  },
+  curiosidade: {
+    titulo: "💡 Você sabia?",
+    texto:
+      "A CLT é milimétrica com o relógio, e tem uma regra que quase ninguém acredita ao ouvir pela primeira vez. O <strong>art. 58, §1º</strong> diz que variações de até <strong>5 minutos por marcação</strong> de ponto, no limite de <strong>10 minutos por dia</strong>, não contam como hora extra — é a tolerância que todo mundo conhece. A parte surpreendente está na <strong>Súmula 366 do TST</strong>: se esse limite for <strong>ultrapassado</strong>, não se paga só o excedente — conta como extra <strong>a totalidade do tempo</strong> que passar da jornada normal, e <strong>não importa o que a pessoa estava fazendo</strong> naquele tempo residual (trocar de uniforme, lanchar, higiene pessoal). Ou seja: <strong>10 minutos = zero; 11 minutos = 11 minutos</strong>. É o mesmo espírito da questão de hoje — em jornada, minuto é matéria de lei, não de bom senso. 😉",
+  },
+  dica:
+    "Trabalho é matéria de artigo curto e regra exata: dá pra ganhar ponto ainda hoje. Reserve 15 minutos pro <strong>art. 71 da CLT</strong> inteiro — <em>caput</em> (mais de 6h → 1 hora), <strong>§1º</strong> (de 4h a 6h → 15 min), <strong>§2º</strong> (intervalo não entra na jornada) e <strong>§4º</strong> (o que se paga quando falta). Emende com o <strong>art. 58, §1º</strong> e a <strong>Súmula 366 do TST</strong>. E confira a data do seu material: se ele mandar pagar a hora inteira com reflexos por intervalo parcial, é anterior a novembro de 2017.",
+  examDays: 19,
+}
+
 // Edição "atual" — a que o cron semanal e o /send usam por padrão. Ao montar uma
 // edição nova, atualize este ponteiro (ou edite o conteúdo acima).
 //
 // ATENÇÃO: o cron de segunda recria o rascunho da CURRENT_EDICAO sem checar se ela
 // já foi enviada. Esquecer de mover este ponteiro gera, no Resend, um rascunho
 // idêntico ao da semana passada — foi o que aconteceu em 03/ago/2026 com a #8.
-export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_10
+export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_11

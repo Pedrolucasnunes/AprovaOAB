@@ -20,6 +20,8 @@ export default function CadastroPage() {
   const [error, setError] = useState<string | null>(null)
   const [emailCadastro, setEmailCadastro] = useState("")
   const [otp, setOtp] = useState(["", "", "", "", "", ""])
+  const [resendLoading, setResendLoading] = useState(false)
+  const [resendSuccess, setResendSuccess] = useState(false)
   const inputsRef = useRef<(HTMLInputElement | null)[]>([])
 
   const handleGoogleLogin = async () => {
@@ -145,6 +147,8 @@ export default function CadastroPage() {
 
   const handleResend = async () => {
     setError(null)
+    setResendSuccess(false)
+    setResendLoading(true)
     setOtp(["", "", "", "", "", ""])
 
     try {
@@ -157,6 +161,7 @@ export default function CadastroPage() {
       if (throttleRes.status === 429) {
         const { error: throttleError } = await throttleRes.json().catch(() => ({}))
         setError(throttleError ?? "Muitas tentativas. Aguarde alguns minutos.")
+        setResendLoading(false)
         return
       }
     } catch {
@@ -167,9 +172,22 @@ export default function CadastroPage() {
       type: "signup",
       email: emailCadastro,
     })
+    setResendLoading(false)
+
+    // O sucesso precisa aparecer tanto quanto o erro: sem confirmação visível,
+    // clicar em "Reenviar" não mudava nada na tela, a pessoa clicava de novo e
+    // só então via uma mensagem — a do intervalo de 60s do GoTrue, que manda
+    // "tentar novamente" justo quando tentar de novo é o que não funciona.
     if (resendError) {
-      setError("Não foi possível reenviar o código. Tente novamente.")
+      const espera = /after (\d+) seconds?/i.exec(resendError.message)?.[1]
+      setError(
+        espera
+          ? `Aguarde ${espera}s antes de pedir outro código.`
+          : "Não foi possível reenviar o código. Tente novamente.",
+      )
+      return
     }
+    setResendSuccess(true)
   }
 
   if (step === "success") {
@@ -252,6 +270,12 @@ export default function CadastroPage() {
 
                 {error && <p className="text-sm text-destructive text-center">{error}</p>}
 
+                {resendSuccess && (
+                  <p className="text-center text-sm text-primary">
+                    Código reenviado! Verifique sua caixa de entrada e o spam.
+                  </p>
+                )}
+
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Verificando..." : "Verificar código"}
                 </Button>
@@ -262,9 +286,10 @@ export default function CadastroPage() {
                 <button
                   type="button"
                   onClick={handleResend}
-                  className="font-medium text-primary hover:underline"
+                  disabled={resendLoading}
+                  className="cursor-pointer font-medium text-primary hover:underline disabled:cursor-default disabled:text-muted-foreground disabled:no-underline"
                 >
-                  Reenviar
+                  {resendLoading ? "Enviando..." : "Reenviar"}
                 </button>
               </p>
             </CardContent>

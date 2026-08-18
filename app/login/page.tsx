@@ -2,18 +2,22 @@
 
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Suspense, useState, useRef } from "react"
+import { Suspense, useEffect, useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft, Eye, EyeOff, Mail } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import { ReenviarAtivacaoModal } from "@/components/auth/reenviar-ativacao-modal"
 
 function LoginPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const senhaRedefinida = searchParams.get("senha_redefinida") === "1"
+  // Chega aqui quem clicou num link de ativação já vencido (ver app/auth/callback).
+  const ativacaoExpirada = searchParams.get("ativacao") === "expirada"
+  const [email, setEmail] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -24,6 +28,17 @@ function LoginPageContent() {
   const [resendLoading, setResendLoading] = useState(false)
   const [resendSuccess, setResendSuccess] = useState(false)
   const inputsRef = useRef<(HTMLInputElement | null)[]>([])
+
+  // O GoTrue devolve o erro do link vencido ora na query, ora no fragmento
+  // (`#error_code=otp_expired`), e fragmento não chega ao servidor — por isso
+  // `app/auth/callback` sozinho não cobre os dois casos. O fragmento sobrevive
+  // aos redirects até aqui; é traduzido para a query, que é a forma que o resto
+  // da tela já entende, e some da barra de endereço no caminho.
+  useEffect(() => {
+    const hash = window.location.hash
+    if (!/expired/i.test(hash)) return
+    router.replace("/login?ativacao=expirada")
+  }, [router])
 
   const handleGoogleLogin = async () => {
     await supabase.auth.signInWithOAuth({
@@ -111,7 +126,21 @@ function LoginPageContent() {
       email: unverifiedEmail,
     })
     setResendLoading(false)
-    if (!resendError) setResendSuccess(true)
+
+    // O erro precisa aparecer. Antes era descartado aqui, e o caso mais comum
+    // é o intervalo de 60s do GoTrue entre dois e-mails: a pessoa clicava em
+    // "Reenviar código" e a tela não mudava nada — que é indistinguível de o
+    // botão estar quebrado.
+    if (resendError) {
+      const espera = /after (\d+) seconds?/i.exec(resendError.message)?.[1]
+      setOtpError(
+        espera
+          ? `Aguarde ${espera}s antes de pedir outro código.`
+          : "Não foi possível reenviar agora. Tente de novo em alguns instantes.",
+      )
+      return
+    }
+    setResendSuccess(true)
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -122,7 +151,6 @@ function LoginPageContent() {
     setResendSuccess(false)
 
     const formData = new FormData(e.currentTarget)
-    const email = formData.get("email") as string
     const password = formData.get("password") as string
 
     const res = await fetch("/api/auth/login", {
@@ -260,6 +288,8 @@ function LoginPageContent() {
                     autoComplete="email"
                     placeholder="seu@email.com"
                     required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="bg-input"
                   />
                 </div>
@@ -295,6 +325,13 @@ function LoginPageContent() {
                   <p className="text-sm text-primary">Senha redefinida com sucesso! Faça login.</p>
                 )}
 
+                {ativacaoExpirada && (
+                  <p className="text-sm text-muted-foreground">
+                    Esse link de ativação venceu. Peça um código novo em &ldquo;Não recebi o e-mail
+                    de ativação da conta&rdquo;, logo abaixo.
+                  </p>
+                )}
+
                 {error && <p className="text-sm text-destructive">{error}</p>}
 
                 <Button type="submit" className="w-full" disabled={isLoading}>
@@ -320,11 +357,20 @@ function LoginPageContent() {
                   Continuar com Google
                 </Button>
 
-                <div className="mt-4 text-center text-sm text-muted-foreground">
-                  Não tem uma conta?{" "}
-                  <Link href="/cadastro" className="font-medium text-primary hover:underline">
-                    Criar conta
-                  </Link>
+                <div className="mt-4 space-y-1 text-center text-sm text-muted-foreground">
+                  <p>
+                    Não tem uma conta?{" "}
+                    <Link href="/cadastro" className="font-medium text-primary hover:underline">
+                      Criar conta
+                    </Link>
+                  </p>
+                  <p>
+                    Não recebi o e-mail de ativação da conta.{" "}
+                    <ReenviarAtivacaoModal
+                      emailInicial={email}
+                      abertoInicialmente={ativacaoExpirada}
+                    />
+                  </p>
                 </div>
               </form>
             )}

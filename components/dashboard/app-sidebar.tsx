@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { supabase } from "@/lib/supabase"
 import { getClientUser } from "@/lib/auth-client"
+import { fotoDoPerfil } from "@/lib/avatar"
 import {
   LayoutDashboard,
   FileText,
@@ -36,7 +37,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 
 const menuItems = [
@@ -53,6 +54,8 @@ interface UserInfo {
   nome: string
   email: string
   iniciais: string
+  /** Foto do login social; null para quem entrou por e-mail e senha. */
+  foto: string | null
 }
 
 export function AppSidebar() {
@@ -82,7 +85,8 @@ export function AppSidebar() {
         ? `${partes[0][0]}${partes[partes.length - 1][0]}`.toUpperCase()
         : nome.slice(0, 2).toUpperCase()
 
-      setUserInfo({ nome, email, iniciais })
+      // 64px porque o avatar da barra tem 32 CSS px e a maioria das telas é 2x.
+      setUserInfo({ nome, email, iniciais, foto: fotoDoPerfil(user.user_metadata, 64) })
       setLoadingUser(false)
     }
 
@@ -140,6 +144,13 @@ export function AppSidebar() {
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton className="h-12 cursor-pointer transition-colors duration-150 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent">
                   <Avatar className="h-8 w-8">
+                    {userInfo?.foto && (
+                      <AvatarImage
+                        src={userInfo.foto}
+                        alt={`Foto de ${userInfo.nome}`}
+                        referrerPolicy="no-referrer"
+                      />
+                    )}
                     <AvatarFallback className="bg-primary text-primary-foreground text-xs">
                       {loadingUser ? "..." : userInfo?.iniciais}
                     </AvatarFallback>

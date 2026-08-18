@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { User, Mail, Lock, Trophy, BookOpen, Target, Loader2, ExternalLink, ArrowRight, Sparkles, MessageCircle, AlertTriangle } from "lucide-react"
@@ -17,6 +17,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import Link from "next/link"
 import { PRECO_PRO } from "@/lib/planos"
 import { getTrialState, isTrialEnabledClient, type TrialUser } from "@/lib/trial"
+import { fotoDoPerfil } from "@/lib/avatar"
 
 export default function PerfilPage() {
   const [isEditing, setIsEditing] = useState(false)
@@ -26,6 +27,7 @@ export default function PerfilPage() {
   const [nome, setNome] = useState("")
   const [email, setEmail] = useState("")
   const [dataCadastro, setDataCadastro] = useState("")
+  const [foto, setFoto] = useState<string | null>(null)
   const [novaSenha, setNovaSenha] = useState("")
   const [confirmarSenha, setConfirmarSenha] = useState("")
   // taxaAcerto null = sem amostra de treino suficiente (o diagnóstico não conta).
@@ -52,6 +54,8 @@ export default function PerfilPage() {
 
       setEmail(user.email ?? "")
       setNome(user.user_metadata?.nome ?? user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "")
+      // 160px porque o avatar tem 80 CSS px e a maioria das telas é 2x.
+      setFoto(fotoDoPerfil(user.user_metadata, 160))
       setDataCadastro(new Date(user.created_at).toLocaleDateString("pt-BR", {
         day: "2-digit", month: "short", year: "numeric"
       }))
@@ -194,6 +198,15 @@ export default function PerfilPage() {
             <CardContent className="space-y-6">
               <div className="flex items-center gap-4">
                 <Avatar className="h-20 w-20">
+                  {foto && (
+                    <AvatarImage
+                      src={foto}
+                      alt={`Foto de ${nome}`}
+                      // Sem Referer: o endereço da tela do perfil não precisa
+                      // chegar ao servidor de imagens do Google.
+                      referrerPolicy="no-referrer"
+                    />
+                  )}
                   <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
                     {getIniciais(nome)}
                   </AvatarFallback>

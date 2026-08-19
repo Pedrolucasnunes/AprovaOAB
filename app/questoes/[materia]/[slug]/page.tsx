@@ -11,10 +11,10 @@ import {
   getPublicQuestionById,
   getPublicQuestionsForSubject,
   slugDaQuestao,
+  tituloDaQuestao,
   type PublicQuestionDetail,
 } from "@/lib/seo/questions"
 import { parseQuestionId } from "@/lib/slug"
-import { edicaoDaBanca } from "@/lib/exames"
 import { getQuestionErrorRate } from "@/lib/seo/stats"
 import { breadcrumb } from "@/lib/seo/jsonld"
 import { OG_BASE } from "@/lib/seo/og"
@@ -61,27 +61,6 @@ function preview(enunciado: string, max = 155): string {
   return clean.length > max ? clean.slice(0, max).trimEnd() + "…" : clean
 }
 
-/**
- * Título e H1 da questão: tema + edição do exame.
- *
- * Antes era "Questão de {tópico} — {matéria} OAB {banca} {ano}", com a `banca`
- * inteira ("Exame de Ordem Unificado - XXXVI (FGV)") dentro do título: ~120
- * caracteres, dos quais o Google mostra ~60 — o tema aparecia e o resto era
- * cortado. E como o H1 não trazia a edição, as matérias com um único tópico
- * cadastrado ficavam com dez páginas de H1 idêntico (138 das 200 no total).
- *
- * Só o par (tema, edição) é usado, porque é o mesmo par que dá o slug: título,
- * H1 e URL passam a contar a mesma coisa.
- */
-function tituloDaQuestao(q: PublicQuestionDetail): string {
-  const edicao = edicaoDaBanca(q.banca)
-  const tema = q.topicName ?? q.subjectName
-  if (edicao) {
-    return `${tema} — Questão do ${edicao}º Exame OAB${q.ano ? ` ${q.ano}` : ""}`
-  }
-  return `${tema} — Questão da OAB 1ª fase (${q.subjectName})`
-}
-
 export async function generateMetadata({
   params,
 }: {
@@ -99,7 +78,7 @@ export async function generateMetadata({
   // a única defesa restante. Custa uma linha e cobre a falha silenciosa.
   if (!q) return { robots: { index: false, follow: false } }
 
-  const title = tituloDaQuestao(q)
+  const title = tituloDaQuestao(q, q.subjectName)
   // Description híbrida: rótulo primeiro, enredo depois. Só o enunciado (o que
   // havia antes) abria com "José é proprietário de imóvel rural…" — nenhuma
   // palavra que alguém busque, nos caracteres que mais pesam. Só o rótulo seria
@@ -169,7 +148,7 @@ export default async function QuestaoPage({
   const breadcrumbLd = breadcrumb([
     { name: "Questões da OAB", path: "/questoes" },
     { name: q.subjectName, path: `/questoes/${q.subjectSlug}` },
-    { name: tituloDaQuestao(q), path: canonico },
+    { name: tituloDaQuestao(q, q.subjectName), path: canonico },
   ])
 
   return (
@@ -208,7 +187,7 @@ export default async function QuestaoPage({
       {/* Mesmo texto do <title> e do breadcrumb: o par (tema, edição) que também
           monta a URL. Ver `tituloDaQuestao`. */}
       <h1 className="text-xl font-bold leading-snug text-foreground sm:text-2xl">
-        {tituloDaQuestao(q)}
+        {tituloDaQuestao(q, q.subjectName)}
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">
         No <strong className="font-semibold text-foreground">AprovaOAB</strong> você resolve questões

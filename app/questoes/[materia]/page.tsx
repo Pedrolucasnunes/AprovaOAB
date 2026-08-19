@@ -9,6 +9,7 @@ import {
   getPublicSubjects,
   getPublicQuestionsForSubject,
   slugDaQuestao,
+  tituloDaQuestao,
   PUBLIC_QUESTIONS_PER_SUBJECT,
 } from "@/lib/seo/questions"
 import { getMateriaIntro } from "@/lib/seo/materia-intro"
@@ -64,8 +65,11 @@ export default async function MateriaPage({
   const questions = await getPublicQuestionsForSubject(subject.id)
   const intro = getMateriaIntro(subject.slug)
 
-  // O `name` de cada item é o mesmo H1 da página de destino (tema + edição) — se
-  // aqui dissesse outra coisa, o ItemList descreveria páginas que não existem.
+  // O `name` de cada item sai de `tituloDaQuestao`, o MESMO helper que dá o H1 da
+  // página de destino — se aqui dissesse outra coisa, o ItemList descreveria
+  // páginas que não existem. Só o tópico não serve: um tópico rende várias
+  // questões, e o `name` repetia em 139 dos 200 itens (medido em 19 das 20
+  // matérias, com 10 de 10 iguais em Filosofia, ECA, Ambiental e Proc. do Trabalho).
   const jsonLd = [
     collectionPage({
       name: `Questões de ${subject.name} — OAB 1ª fase`,
@@ -79,7 +83,7 @@ export default async function MateriaPage({
     itemList(
       `Questões de ${subject.name}`,
       questions.map((q) => ({
-        name: q.topicName ?? subject.name,
+        name: tituloDaQuestao(q, subject.name),
         path: `/questoes/${subject.slug}/${slugDaQuestao(q)}`,
       })),
     ),

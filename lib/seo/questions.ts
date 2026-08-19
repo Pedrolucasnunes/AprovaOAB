@@ -58,6 +58,32 @@ export function slugDaQuestao(q: {
   })
 }
 
+/**
+ * Título e H1 de uma questão: tema + edição do exame. PONTO ÚNICO, igual ao slug.
+ *
+ * Vive ao lado de `slugDaQuestao` de propósito: título, H1 e URL saem do MESMO
+ * par (tema, edição), e é isso que faz as três coisas contarem a mesma história.
+ * Enquanto isso era função privada da página de detalhe, o ItemList da página de
+ * matéria montava o `name` só com o tópico — e como um tópico rende várias
+ * questões, 139 dos 200 itens tinham nome repetido dentro da própria lista,
+ * exatamente o defeito de H1 duplicado que o título com edição existe pra matar.
+ *
+ * Antes o título era "Questão de {tópico} — {matéria} OAB {banca} {ano}", com a
+ * `banca` inteira ("Exame de Ordem Unificado - XXXVI (FGV)") dentro: ~120
+ * caracteres, dos quais o Google mostra ~60.
+ */
+export function tituloDaQuestao(
+  q: { topicName: string | null; banca: string | null; ano: number | null },
+  subjectName: string,
+): string {
+  const edicao = edicaoDaBanca(q.banca)
+  const tema = q.topicName ?? subjectName
+  if (edicao) {
+    return `${tema} — Questão do ${edicao}º Exame OAB${q.ano ? ` ${q.ano}` : ""}`
+  }
+  return `${tema} — Questão da OAB 1ª fase (${subjectName})`
+}
+
 export type PublicSubject = {
   id: string
   name: string

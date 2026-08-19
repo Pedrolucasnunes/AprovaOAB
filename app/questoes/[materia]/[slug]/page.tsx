@@ -16,8 +16,8 @@ import {
 import { parseQuestionId } from "@/lib/slug"
 import { edicaoDaBanca } from "@/lib/exames"
 import { getQuestionErrorRate } from "@/lib/seo/stats"
+import { breadcrumb } from "@/lib/seo/jsonld"
 import { OG_BASE } from "@/lib/seo/og"
-import { APP_URL } from "@/lib/app-url"
 
 export const revalidate = 86400
 
@@ -165,31 +165,12 @@ export default async function QuestaoPage({
     },
   }
 
-  // JSON-LD: BreadcrumbList (Questões › matéria › questão) — URLs absolutas.
-  const breadcrumbLd = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      {
-        "@type": "ListItem",
-        position: 1,
-        name: "Questões",
-        item: `${APP_URL}/questoes`,
-      },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: q.subjectName,
-        item: `${APP_URL}/questoes/${q.subjectSlug}`,
-      },
-      {
-        "@type": "ListItem",
-        position: 3,
-        name: tituloDaQuestao(q),
-        item: `${APP_URL}${canonico}`,
-      },
-    ],
-  }
+  // JSON-LD: BreadcrumbList (Questões › matéria › questão).
+  const breadcrumbLd = breadcrumb([
+    { name: "Questões da OAB", path: "/questoes" },
+    { name: q.subjectName, path: `/questoes/${q.subjectSlug}` },
+    { name: tituloDaQuestao(q), path: canonico },
+  ])
 
   return (
     <SeoShell>

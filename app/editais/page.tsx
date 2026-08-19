@@ -3,7 +3,9 @@ import type { Metadata } from "next"
 import { CalendarDays } from "lucide-react"
 import { SeoShell } from "@/components/seo/seo-shell"
 import { SeoCtaButton } from "@/components/seo/seo-cta"
+import { JsonLd } from "@/components/seo/json-ld"
 import { getEditais } from "@/lib/editais"
+import { breadcrumb, collectionPage, itemList } from "@/lib/seo/jsonld"
 import { OG_BASE } from "@/lib/seo/og"
 
 export const revalidate = 86400
@@ -25,8 +27,29 @@ export const metadata: Metadata = {
 export default function EditaisHubPage() {
   const editais = getEditais()
 
+  // A página de cada edital já publicava BreadcrumbList + FAQPage + EducationEvent;
+  // o hub não tinha nada.
+  const jsonLd = [
+    collectionPage({
+      name: "Editais da OAB — datas e cronograma dos Exames de Ordem",
+      description:
+        "Datas da 1ª e 2ª fase, inscrição, taxa e cronograma completo de cada Exame de Ordem.",
+      path: "/editais",
+    }),
+    breadcrumb([{ name: "Editais da OAB", path: "/editais" }]),
+    itemList(
+      "Editais publicados",
+      editais.map((e) => ({
+        name: `Edital do ${e.ordinal} Exame de Ordem`,
+        path: `/editais/${e.slug}`,
+      })),
+    ),
+  ]
+
   return (
     <SeoShell>
+      <JsonLd data={jsonLd} />
+
       <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
         Editais da OAB
       </h1>

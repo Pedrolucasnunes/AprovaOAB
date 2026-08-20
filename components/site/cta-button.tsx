@@ -29,19 +29,26 @@ function CtaIndicator() {
 /**
  * CTA primário padrão: leva pra /cadastro com estado de carregamento real
  * (spinner enquanto a navegação está pendente — sem atraso artificial).
+ *
+ * `href` existe pro header trocar o destino quando a pessoa já está logada
+ * (`/dashboard` em vez de `/cadastro`) sem duplicar o indicador de carregamento
+ * numa segunda variante de botão. O default mantém as seis chamadas existentes
+ * idênticas ao que eram.
  */
 export function CtaButton({
   label = "Começar grátis",
+  href = "/cadastro",
   size,
   variant,
   className,
 }: {
   label?: string;
+  href?: string;
   className?: string;
 } & VariantProps<typeof buttonVariants>) {
   return (
     <Button asChild size={size} variant={variant} className={cn("group", className)}>
-      <Link href="/cadastro">
+      <Link href={href}>
         {label}
         <CtaIndicator />
       </Link>

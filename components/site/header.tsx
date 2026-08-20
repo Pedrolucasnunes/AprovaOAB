@@ -8,6 +8,7 @@ import { Menu, X } from "lucide-react";
 import { CtaButton } from "@/components/site/cta-button";
 import { Logo } from "@/components/site/logo";
 import { Button } from "@/components/site/ui/button";
+import { temDicaDeSessao } from "@/lib/sessao";
 import { cn } from "@/lib/utils";
 
 const EASE: [number, number, number, number] = [0.21, 0.61, 0.35, 1];
@@ -24,10 +25,82 @@ const LINKS = [
   { href: "/#faq", label: "FAQ" },
 ];
 
+// `useSyncExternalStore` precisa das três funções com referência estável. Não há
+// evento pra assinar: o cookie não muda enquanto a landing está aberta (quem
+// faz login sai desta página), então a inscrição é um no-op e o snapshot é lido
+// a cada render — parse de string, custo zero.
+const semInscricao = () => () => {};
+const dicaNoServidor = () => false;
+
+/**
+ * O par de botões de conta — um único lugar, usado no header e no menu móvel.
+ *
+ * Estava duplicado nos dois; com dois estados possíveis viraria quatro cópias, e
+ * é assim que "Entrar" e "Meu dashboard" acabam discordando entre a barra e o
+ * menu (o mesmo defeito que `iniciaisDoNome` teve em quatro arquivos).
+ *
+ * As classes são as originais de cada contexto, não uma unificação: no desktop
+ * os dois botões são `hidden sm:inline-flex`; no menu móvel o secundário abre
+ * com `mt-2` e o CTA logo abaixo com `mt-1.5`.
+ */
+function AcoesDeConta({
+  logado,
+  mobile,
+  fecharMenu,
+}: {
+  logado: boolean;
+  mobile?: boolean;
+  fecharMenu?: () => void;
+}) {
+  const classeSecundaria = mobile ? "mt-2" : "hidden sm:inline-flex";
+  const classeCta = mobile ? "mt-1.5" : "hidden sm:inline-flex";
+
+  // Logado: um botão só. "Começar grátis" some porque a conta já existe, e
+  // "Entrar" some porque é literalmente falso — o middleware já manda essa
+  // pessoa pro dashboard se ela clicar. Ver `lib/sessao.ts`.
+  if (logado) {
+    return (
+      <CtaButton
+        size="sm"
+        href="/dashboard"
+        label="Meu dashboard"
+        className={classeSecundaria}
+      />
+    );
+  }
+
+  return (
+    <>
+      <Button asChild variant="outlineDark" size="sm" className={classeSecundaria}>
+        <Link href="/login" onClick={fecharMenu}>
+          Entrar
+        </Link>
+      </Button>
+      <CtaButton size="sm" label="Começar grátis" className={classeCta} />
+    </>
+  );
+}
+
 export function Header() {
   const reduce = useReducedMotion();
   const [scrolled, setScrolled] = React.useState(false);
   const [open, setOpen] = React.useState(false);
+
+  // `useSyncExternalStore` e não `useState` + `useEffect`: é a API que o React
+  // tem pra ler valor que só existe no cliente sem mismatch de hidratação. O
+  // terceiro argumento é o snapshot do SERVIDOR, e ele é `false` de propósito —
+  // o HTML prerenderizado tem que sair no estado deslogado, que é o certo pros
+  // 100% de tráfego anônimo de SEO. A correção vem logo depois da hidratação,
+  // lendo o cookie (síncrono, sem rede, sem `navigator.locks`).
+  //
+  // Se a dica estiver velha (sessão expirada, logout em outra aba), o clique cai
+  // no middleware, que valida o JWT de verdade e manda pro login: o pior caso é
+  // exatamente o comportamento de hoje.
+  const logado = React.useSyncExternalStore(
+    semInscricao,
+    temDicaDeSessao,
+    dicaNoServidor
+  );
 
   React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -73,19 +146,7 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-3">
-          <Button
-            asChild
-            variant="outlineDark"
-            size="sm"
-            className="hidden sm:inline-flex"
-          >
-            <Link href="/login">Entrar</Link>
-          </Button>
-          <CtaButton
-            size="sm"
-            label="Começar grátis"
-            className="hidden sm:inline-flex"
-          />
+          <AcoesDeConta logado={logado} />
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
@@ -136,17 +197,7 @@ export function Header() {
                   </a>
                 );
               })}
-              <Button
-                asChild
-                variant="outlineDark"
-                size="sm"
-                className="mt-2"
-              >
-                <Link href="/login" onClick={() => setOpen(false)}>
-                  Entrar
-                </Link>
-              </Button>
-              <CtaButton size="sm" label="Começar grátis" className="mt-1.5" />
+              <AcoesDeConta logado={logado} mobile fecharMenu={() => setOpen(false)} />
             </div>
           </motion.nav>
         ) : null}

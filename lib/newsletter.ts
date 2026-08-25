@@ -701,7 +701,54 @@ export const EDICAO_11: NewsletterEdicao = {
 // Edição "atual" — a que o cron semanal e o /send usam por padrão. Ao montar uma
 // edição nova, atualize este ponteiro (ou edite o conteúdo acima).
 //
+export const EDICAO_12: NewsletterEdicao = {
+  numero: 12,
+  subject: "☕ Café com OAB #12 — o mesmo decreto: pode atualizar o IPTU, não pode isentar",
+  preheader:
+    "Metade da plataforma errou esta. Faltam 12 dias — e os locais de prova saem na segunda, 31/8.",
+  intro: [
+    "Faltam <strong>12 dias</strong>, e a próxima data é <strong>segunda-feira, 31 de agosto</strong>: saem os <strong>locais de prova</strong> em oab.fgv.br. Confira o endereço no mesmo dia e teste o trajeto — a prova é <strong>domingo, 6 de setembro, das 13h às 18h</strong> (5 horas, horário de Brasília), e domingo não tem transporte, nem estacionamento, nem paciência sobrando. 🗺️",
+    "A matéria de hoje é <strong>Direito Tributário</strong> — <strong>50% de acerto</strong> na plataforma, exatamente metade erra. A questão que escolhi é do <strong>XXXVIII</strong> e é um dois-em-um: <strong>um único decreto</strong> faz <strong>duas coisas diferentes</strong>, e a FGV quer saber se você avalia cada uma no seu próprio fundamento. Quem julga o decreto “inteiro”, de uma vez só, erra — não importa pra que lado. ⚖️",
+  ],
+  termometro:
+    "🟡 <strong>Direito Tributário — 50% de acerto na plataforma.</strong> Metade erra. É a matéria em que a FGV cobra <strong>hierarquia de fontes</strong>, e o próprio edital do 47º entrega o mapa: o Anexo II lista “<strong>1.5 Decretos</strong>” como fonte do Direito Tributário e, três linhas depois, “<strong>2.1 Princípio da legalidade tributária</strong>”. A prova mora exatamente nesse fio — o que o Executivo pode fazer sozinho e o que só a lei faz.",
+  questao: {
+    // n = 6 (3 acertos). É a questão de Tributário com MAIOR amostra na base — nenhuma
+    // do bloco chega a n>=8, então vale a regra: preferir o maior n em vez do 0%/n=1
+    // mais dramático. Com 50% em 6 respostas, "derrubou geral" seria exagero; daí o
+    // título falar em dividir ao meio, que é o que o número sustenta.
+    titulo: "🎯 A questão que dividiu a plataforma ao meio",
+    fonte: "FGV · Exame de Ordem XXXVIII/2023 · dificuldade média · só 3 em cada 6 acertaram na plataforma",
+    enunciado:
+      "Em dezembro de 2022, um decreto do prefeito do Município Alfa atualizou o valor do Imposto Predial e Territorial Urbano (IPTU), a contar de 1º de janeiro de 2023, atendo-se à aplicação de índice oficial de atualização monetária. Além disso, neste mesmo decreto, acompanhado da estimativa de impacto orçamentário e financeiro, estabeleceu-se, também a contar de 1º de janeiro de 2023, a isenção do IPTU para os imóveis localizados no Centro da cidade que fossem destinados exclusivamente para moradia, visando a diversificar a ocupação naquele local e dar efetividade ao princípio da função social da propriedade. Diante deste cenário, assinale a afirmativa correta.",
+    alternativas: [
+      { letra: "A", texto: "Tal decreto poderia ser usado apenas para atualizar o valor do IPTU." },
+      { letra: "B", texto: "A concessão de tal isenção, por ter base na função social da propriedade, poderia ser feita por meio de decreto." },
+      { letra: "C", texto: "Embora possa ser usado tanto para a atualização deste valor do IPTU como para a concessão deste tipo de isenção, tal decreto violou o princípio da anterioridade tributária nonagesimal." },
+      { letra: "D", texto: "Este decreto não é instrumento normativo hábil seja para a atualização deste valor do IPTU, seja para a concessão deste tipo de isenção." },
+    ],
+    gabarito: "A",
+    comentario:
+      "Separe o decreto em <strong>duas partes</strong> e julgue cada uma. <strong>Parte 1 — atualizar o IPTU por índice oficial: PODE.</strong> O <strong>art. 97, §2º, do CTN</strong> é literal: “<em>não constitui majoração de tributo a atualização do valor monetário da respectiva base de cálculo</em>”. Se não é majoração, não é matéria reservada à lei — e a <strong>Súmula 160 do STJ</strong> confirma o limite pelo avesso: é vedado ao Município atualizar o IPTU por decreto <strong>em percentual superior</strong> ao índice oficial de correção monetária. Ou seja: <strong>até</strong> o índice oficial, decreto resolve. O enunciado faz questão de dizer que o prefeito se ateve ao índice oficial — isso não é enfeite, é o dado que valida a parte 1. <strong>Parte 2 — conceder isenção: NÃO PODE.</strong> O <strong>art. 150, §6º, da CF</strong> exige <strong>lei específica</strong> para qualquer isenção, e o <strong>art. 97, VI, do CTN</strong> põe as hipóteses de exclusão do crédito no rol do que só a lei estabelece. Uma metade válida e outra inválida: a resposta é a <strong>A</strong>.",
+  },
+  pegadinha:
+    "A armadilha é <strong>tratar o decreto como um bloco só</strong>. Quem decide “decreto não mexe em tributo” marca <strong>D</strong>; quem decide “decreto pode, é só ato do prefeito” vai pra <strong>B</strong> ou <strong>C</strong>. As duas leituras são o mesmo erro de método em direções opostas, e a questão foi montada justamente com <strong>uma metade certa e uma metade errada</strong>. 🎭 Repare na isca mais fina do enunciado: a menção à <strong>estimativa de impacto orçamentário e financeiro</strong>. Ela existe pra fazer a isenção <em>parecer</em> bem-feita — e de fato é o que o <strong>art. 14 da LRF</strong> exige para renúncia de receita. Só que cumprir a LRF <strong>não substitui a lei</strong> que a Constituição pede: requisito financeiro não cura vício de forma. A <strong>B</strong> erra na mesma linha, achando que um bom motivo (a função social da propriedade) dispensa o instrumento certo — o art. 150, §6º, não abre exceção por mérito. E a <strong>C</strong> é a mais bonita das três: inventa um problema de <strong>anterioridade</strong> que não existe. Anterioridade protege o contribuinte contra <strong>instituição ou aumento</strong> de tributo, e ali não há nem um nem outro — atualização monetária não é majoração (art. 97, §2º) e isenção é <strong>benefício</strong>, não é surpresa ruim. 🧠 <strong>Fixa assim:</strong> decreto <strong>corrige</strong> a moeda, nunca <strong>cria</strong> vantagem — atualizar até o índice oficial é decreto; isentar é lei específica; e anterioridade só entra quando alguém vai <strong>pagar mais</strong>.",
+  noticia: {
+    titulo: "📰 Tá rolando: a reforma tributária não está no edital do 47º",
+    texto:
+      "Vale um respiro pra quem está com medo de IBS e CBS na reta final: o <strong>conteúdo programático de Direito Tributário do 47º Exame</strong> (Anexo II do edital) tem <strong>17 itens</strong>, e <strong>nenhum deles cita a reforma tributária</strong> — não aparece “IBS”, não aparece “CBS”, não aparece “EC 132”. O que está lá é o clássico: <strong>fontes</strong> (decretos inclusive), <strong>princípios</strong> (legalidade, anterioridade anual e nonagesimal, non olet, capacidade contributiva…), <strong>limitações ao poder de tributar</strong>, <strong>imunidades e isenção</strong>, <strong>responsabilidade tributária</strong>, <strong>crédito tributário</strong> e <strong>processo tributário</strong>. Honestidade sobre o alcance disso: o programa também lista “<em>1.1 Constituição da República</em>” e “<em>14 legislação extravagante</em>”, e o de Constitucional traz “<em>Sistema Tributário Nacional</em>” — ninguém pode <strong>garantir</strong> que a reforma não apareça de raspão. Mas <strong>a 12 dias da prova, a escolha racional é onde o edital aponta o dedo</strong>: CTN e princípios. 🎯 A ironia é boa demais pra não contar: a <strong>EC 132/2023</strong> encostou justamente no ponto da questão de hoje — ela incluiu o <strong>art. 156, §1º, III, da CF</strong>, permitindo que o IPTU tenha “<em>sua base de cálculo atualizada pelo Poder Executivo, conforme critérios estabelecidos em lei municipal</em>”. Repare que isso <strong>amplia</strong> o que o Executivo pode fazer — então não muda em nada o gabarito de hoje.",
+  },
+  curiosidade: {
+    titulo: "💡 Você sabia?",
+    texto:
+      "O item <strong>2.3</strong> do programa de Tributário tem o nome mais estranho do edital inteiro: “<strong>princípio do non olet</strong>”. A expressão vem de uma cena da Roma Antiga que a doutrina conta até hoje: o imperador <strong>Vespasiano</strong> criou um tributo ligado aos <strong>banheiros públicos</strong> e seu filho <strong>Tito</strong> reclamou do que considerava uma fonte indigna de receita. Vespasiano teria erguido uma moeda até o nariz do filho e perguntado se ela cheirava mal — daí “<em>pecunia non olet</em>”, <strong>o dinheiro não tem cheiro</strong>. 🪙 No Brasil isso virou o <strong>art. 118 do CTN</strong>: a definição legal do fato gerador é interpretada <strong>abstraindo-se da validade jurídica dos atos praticados</strong>. Consequência prática, e o <strong>STF</strong> já decidiu assim no <strong>HC 77.530/RS</strong>: renda de atividade <strong>criminosa</strong> é tributada normalmente. O argumento é elegante — deixar o criminoso sem imposto seria dar a ele uma <strong>vantagem que o trabalhador honesto não tem</strong>. Não se tributa o crime: tributa-se o <strong>fato econômico</strong> que aconteceu no mundo, e o crime segue sendo punido pelo Direito Penal, em outro processo. 😉",
+  },
+  dica:
+    "Tributário é a matéria com melhor retorno por minuto nesta reta final, porque quase tudo está em <strong>artigo curto e literal</strong>. Reserve <strong>20 minutos hoje</strong> para o <strong>art. 97 do CTN</strong> inteiro — ele é a lista do que <em>só a lei</em> pode fazer — emendando com o <strong>§2º</strong> (atualização monetária não é majoração), o <strong>art. 150, §6º, da CF</strong> (isenção só por lei específica) e a <strong>Súmula 160 do STJ</strong>. São quatro dispositivos, e sozinhos eles resolvem uma família inteira de questões. E ponha um alarme para <strong>segunda, 31/8</strong>: local de prova divulgado é coisa pra conferir no dia, com calma, não na véspera. 📌",
+  examDays: 12,
+}
+
 // ATENÇÃO: o cron de segunda recria o rascunho da CURRENT_EDICAO sem checar se ela
 // já foi enviada. Esquecer de mover este ponteiro gera, no Resend, um rascunho
 // idêntico ao da semana passada — foi o que aconteceu em 03/ago/2026 com a #8.
-export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_11
+export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_12

@@ -2,30 +2,36 @@ import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { SeoShell } from "@/components/seo/seo-shell"
 
-// 404 raiz. Esta é, na prática, a ÚNICA 404 do produto: existem três
-// not-found.tsx de seção (/questoes, /provas, /editais) e nenhuma delas
-// renderiza. Medido em produção em 01/set/2026, ANTES deste arquivo existir —
-// /provas/99-exame-oab, /editais/nao-existe e uma questão com UUID inventado
-// devolviam as três a tela padrão do Next, em inglês e sem saída
-// ("This page could not be found"), e não a 404 da própria seção. Elas estão
-// mortas desde que foram escritas (ba19a0b, 36c9c92, ff3d764).
+// 404 raiz: atende todo caminho que nao casa com rota nenhuma, e os notFound()
+// dos segmentos que nao tem fronteira propria. Antes deste arquivo, esses casos
+// caiam na tela padrao do Next -- em ingles, sem header, sem footer, sem saida.
 //
-// Parte disso é `dynamicParams = false` em /provas/[exame], /editais/[slug] e
-// /questoes/[materia]: o param fora do generateStaticParams é recusado no
-// roteador, antes de o segmento renderizar, então a fronteira de not-found dele
-// nunca entra. Mas isso NÃO explica /questoes/[materia]/[slug], que tem
-// `dynamicParams = true` e chama notFound() de dentro da página — e mesmo assim
-// caía no padrão. Testei dar layout.tsx próprio ao segmento, que é a explicação
-// que se costuma dar pra isso, e não mudou nada. O mecanismo exato ficou em
-// aberto; o fato está medido.
+// QUAL 404 APARECE EM CADA ROTA (medido em 01/set/2026 com navegador de verdade,
+// lendo o h1 apos hidratacao; ver o porque do metodo logo abaixo):
 //
-// Consequência: este arquivo atende todos os caminhos acima. Antes de "arrumar"
-// as três de seção, confirme com curl que elas realmente aparecem — a suposição
-// de que apareciam é o que fez ninguém notar por três deploys.
+//   /questoes/[materia]/[slug]  UUID inexistente  -> app/questoes/not-found.tsx
+//   /questoes/[materia]         materia inexistente -> ESTA
+//   /provas/[exame]             exame inexistente   -> ESTA
+//   /editais/[slug]             slug inexistente    -> ESTA
+//   qualquer outro caminho                          -> ESTA
 //
-// Reaproveita o SeoShell: header e footer reais, então a navegação inteira é o
-// caminho de recuperação. O header já troca sozinho entre "Começar grátis" e
-// "Meu dashboard" conforme a sessão (header.tsx:61) — não há "Entrar" órfão.
+// A diferenca e `dynamicParams`. Onde ele e `false` (/provas/[exame],
+// /editais/[slug], /questoes/[materia]) o param fora do generateStaticParams e
+// recusado NO ROTEADOR, antes de o segmento renderizar, entao a fronteira de
+// not-found dele nunca entra e sobra pra esta pagina. Onde e `true`
+// (/questoes/[materia]/[slug]) a pagina renderiza, o notFound() da linha 104
+// dispara de dentro do segmento, e a 404 de /questoes aparece -- que e o
+// comportamento desejado ali, porque ela oferece volta pro indice da materia.
+//
+// NAO CONFIRA ISSO COM curl. O Next manda no payload RSC as DUAS paginas de
+// not-found candidatas, dentro de <script>, e so o cliente decide qual monta.
+// Grep no corpo da resposta acha as duas e responde o que voce quiser ouvir:
+// foi exatamente assim que uma versao anterior deste comentario afirmou que as
+// tres 404 de secao estavam mortas, o que e falso. Use navegador e leia o h1.
+//
+// Reaproveita o SeoShell: header e footer reais, entao a navegacao inteira e o
+// caminho de recuperacao. O header ja troca sozinho entre "Comecar gratis" e
+// "Meu dashboard" conforme a sessao (header.tsx:61) -- nao ha "Entrar" orfao.
 export default function NotFound() {
   return (
     <SeoShell>

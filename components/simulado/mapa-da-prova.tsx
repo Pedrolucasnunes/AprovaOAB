@@ -102,13 +102,19 @@ export function MapaDaProva({
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-4">
           {blocos.map((bloco) => {
-            const visiveis = bloco.indices.filter((i) =>
-              passaNoFiltro(estadoDaQuestao(questoes[i].id, respostas, marcadas)),
-            )
+            // O estado sai calculado JUNTO do filtro. Antes ele era calculado
+            // aqui, jogado fora, e recalculado lá embaixo pra pintar o botão —
+            // duas fontes pra mesma pergunta, que é como as duas passam a
+            // discordar quando alguém mexe só numa.
+            const visiveis = bloco.indices
+              .map((indice) => ({ indice, estado: estadoDaQuestao(questoes[indice].id, respostas, marcadas) }))
+              .filter(({ estado }) => passaNoFiltro(estado))
             if (visiveis.length === 0) return null
 
             return (
-              <div key={bloco.materia} className="mb-5">
+              // Chave com o índice inicial: `agruparPorMateria` agrupa por
+              // contiguidade, então a mesma matéria pode render dois blocos.
+              <div key={`${bloco.materia}-${bloco.indices[0]}`} className="mb-5">
                 <div className="mb-2 flex items-baseline gap-3">
                   <h3 className="font-mono text-[0.7rem] tracking-widest text-muted-foreground uppercase">
                     {bloco.materia}
@@ -120,9 +126,8 @@ export function MapaDaProva({
                 </div>
 
                 <div className="grid grid-cols-6 gap-2 sm:grid-cols-8">
-                  {visiveis.map((indice) => {
+                  {visiveis.map(({ indice, estado }) => {
                     const questao = questoes[indice]
-                    const estado = estadoDaQuestao(questao.id, respostas, marcadas)
                     const ehAtual = indice === atual
 
                     return (

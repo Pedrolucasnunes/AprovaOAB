@@ -20,16 +20,18 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 
+// Só os campos que esta tela LÊ. `/api/simulados/[id]/questoes` também devolve
+// `attemptId` (nunca lido por nenhum cliente) e `topic_name`, que a rota manda
+// hardcoded como string vazia — declarar os dois aqui fazia o tipo prometer
+// dado que não existe.
 interface Questao {
   id: string
-  attemptId: string
   enunciado: string
   alternativa_a: string
   alternativa_b: string
   alternativa_c: string
   alternativa_d: string
   subject_name: string
-  topic_name: string
   resposta_usuario?: string | null
 }
 

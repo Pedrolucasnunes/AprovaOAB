@@ -38,8 +38,11 @@ export function BarraProgresso({
       aria-label={`Progresso: ${respondidas} de ${questoes.length} questões respondidas, ${marcadas.size} marcadas para revisão. Questão atual: ${atual + 1}.`}
       className="flex items-end gap-2 px-4 py-2 sm:gap-3 lg:px-6"
     >
+      {/* A chave inclui o índice inicial porque `agruparPorMateria` agrupa por
+          CONTIGUIDADE: a mesma matéria pode render dois blocos separados no dia
+          em que o blueprint intercalar disciplinas. Só o nome colidiria. */}
       {blocos.map((bloco) => (
-        <div key={bloco.materia} className="flex min-w-0 flex-1 items-end gap-[2px]">
+        <div key={`${bloco.materia}-${bloco.indices[0]}`} className="flex min-w-0 flex-1 items-end gap-[2px]">
           {bloco.indices.map((indice) => {
             const questao = questoes[indice]
             const estado = estadoDaQuestao(questao.id, respostas, marcadas)

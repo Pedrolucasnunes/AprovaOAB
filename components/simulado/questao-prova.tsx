@@ -75,9 +75,12 @@ export function QuestaoProva({
         </button>
       </div>
 
-      {/* Fraunces variável, sem classe de peso — mesmo tratamento do hero e da
-          404. Serifa aqui não é enfeite: são 5 horas de leitura corrida. */}
-      <p className="mb-7 font-display text-base leading-[1.6] text-foreground sm:text-xl sm:leading-[1.65]">
+      {/* Geist, como o enunciado do treino e do banco de questões — texto de
+          questão no app inteiro é a sans, sem classe de fonte. `font-display`
+          (Fraunces) é da landing e, aqui dentro, só de número grande no
+          calendário: nunca de texto de leitura. O que a tela de prova ganha
+          sobre as outras é TAMANHO e entrelinha, não uma fonte própria. */}
+      <p className="mb-7 text-base leading-[1.6] text-foreground sm:text-lg sm:leading-[1.7]">
         {enunciado}
       </p>
 
@@ -112,7 +115,7 @@ export function QuestaoProva({
                 </span>
                 <span
                   className={cn(
-                    "font-display text-[0.975rem] leading-relaxed text-foreground sm:text-base",
+                    "text-[0.9375rem] leading-relaxed text-foreground sm:text-base",
                     riscada && !selecionada && "line-through decoration-muted-foreground",
                   )}
                 >

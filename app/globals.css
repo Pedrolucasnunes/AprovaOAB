@@ -363,3 +363,21 @@
     linear-gradient(to bottom, rgb(255 255 255 / 0.045) 1px, transparent 1px);
   background-size: 52px 52px;
 }
+
+/* ── Modo prova ─────────────────────────────────────────────────
+   A tela de simulado em andamento cobre a janela inteira
+   (`fixed inset-0`), mas cobrir não basta: sem esconder a navegação
+   do dashboard, o Tab continua alcançando a sidebar por baixo e o
+   leitor de tela anuncia "Desempenho", "Perfil" e "Agenda" no meio
+   de uma prova cronometrada. `display: none` tira do fluxo E da
+   árvore de acessibilidade — `visibility` ou `opacity` não tirariam.
+
+   O atributo é posto e removido pela própria página do simulado
+   (`app/dashboard/simulados/[id]/page.tsx`), só enquanto a prova
+   está em andamento: a tela de resultado volta a ter a sidebar,
+   porque acabou a prova e é dali que se vai pro Desempenho.
+   ─────────────────────────────────────────────────────────────── */
+body[data-modo-prova] [data-slot='sidebar'],
+body[data-modo-prova] [data-chrome='dashboard'] {
+  display: none;
+}

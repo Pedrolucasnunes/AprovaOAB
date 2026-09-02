@@ -1,16 +1,23 @@
 "use client"
 
-import { useState, useEffect, use, useRef } from "react"
+import { useState, useEffect, use, useRef, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { getClientUser } from "@/lib/auth-client"
-import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Label } from "@/components/ui/label"
-import { Clock, ChevronLeft, ChevronRight, Flag, CheckCircle2, Loader2, AlertTriangle } from "lucide-react"
+import { Kbd } from "@/components/ui/kbd"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { BarraProgresso } from "@/components/simulado/barra-progresso"
+import { MapaDaProva } from "@/components/simulado/mapa-da-prova"
+import { QuestaoProva, LETRAS, type Letra } from "@/components/simulado/questao-prova"
+import { agruparPorMateria, formatarRitmo } from "@/lib/simulado-prova"
+import { useIsMobile } from "@/components/ui/use-mobile"
+import { cn } from "@/lib/utils"
+import {
+  Clock, ChevronLeft, ChevronRight, CheckCircle2, Loader2,
+  AlertTriangle, LayoutGrid, Eraser,
+} from "lucide-react"
 import { toast } from "sonner"
 
 interface Questao {
@@ -48,10 +55,13 @@ function formatTime(seconds: number): string {
   return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
 }
 
+// Bandas do cronômetro. `chart-3` é o âmbar do sistema (o mesmo da questão
+// marcada) — antes eram `text-orange-400`/`text-yellow-400` soltos do Tailwind,
+// que não acompanham o tema e destoavam do resto da tela.
 function getTimerStyle(seconds: number): string {
   if (seconds <= 10 * 60) return "text-destructive animate-pulse"
-  if (seconds <= 30 * 60) return "text-orange-400"
-  if (seconds <= 60 * 60) return "text-yellow-400"
+  if (seconds <= 30 * 60) return "text-destructive"
+  if (seconds <= 60 * 60) return "text-chart-3"
   return "text-foreground"
 }
 
@@ -67,6 +77,7 @@ export default function SimuladoPage({ params }: { params: Promise<{ id: string 
   const router = useRouter()
   const searchParams = useSearchParams()
   const modoGabarito = searchParams.get("gabarito") === "true"
+  const isMobile = useIsMobile()
 
   const [questoes, setQuestoes] = useState<Questao[]>([])
   const [loadingQuestoes, setLoadingQuestoes] = useState(true)
@@ -75,9 +86,17 @@ export default function SimuladoPage({ params }: { params: Promise<{ id: string 
   const [flagged, setFlagged] = useState<Set<string>>(new Set())
   const [timeRemaining, setTimeRemaining] = useState(5 * 60 * 60)
   const [showFinishDialog, setShowFinishDialog] = useState(false)
+  const [showExitDialog, setShowExitDialog] = useState(false)
   const [showTimeUpDialog, setShowTimeUpDialog] = useState(false)
+  const [mapaAberto, setMapaAberto] = useState(false)
   const [finalizando, setFinalizando] = useState(false)
   const [resultado, setResultado] = useState<Resultado | null>(null)
+
+  // Alternativas riscadas — a técnica de papel de eliminar o que já se descartou.
+  // Chave composta `questaoId:letra`. É ANOTAÇÃO LOCAL e some ao recarregar:
+  // `simulado_respostas` não tem coluna pra isso e não deveria ter, porque
+  // riscar não é responder e não entra em nota nenhuma.
+  const [riscadas, setRiscadas] = useState<Set<string>>(new Set())
 
   const avisosDisparados = useRef<Set<number>>(new Set())
   const timeRemainingRef = useRef(5 * 60 * 60)
@@ -203,21 +222,44 @@ export default function SimuladoPage({ params }: { params: Promise<{ id: string 
     return () => clearInterval(timer)
   }, [resultado])
 
+  // ── Modo prova: esconde a navegação do dashboard ─────────────
+  // A tela cobre a janela inteira (`fixed inset-0`), mas cobrir não basta:
+  // sem isto o Tab continua alcançando a sidebar por baixo e o leitor de tela
+  // anuncia "Desempenho", "Perfil" e "Agenda" no meio de uma prova cronometrada.
+  // O CSS que lê este atributo está em `app/globals.css`.
+  const emProva = !resultado && !modoGabarito
+  useEffect(() => {
+    if (!emProva) return
+    document.body.dataset.modoProva = "true"
+    return () => { delete document.body.dataset.modoProva }
+  }, [emProva])
+
   const questao = questoes[currentQuestion]
   const totalQuestions = questoes.length
   const answeredCount = Object.keys(answers).length
-  const flaggedList = questoes.filter((q) => flagged.has(q.id))
+  const semResposta = totalQuestions - answeredCount
+  const blocos = agruparPorMateria(questoes, answers)
+  const ritmo = formatarRitmo(timeRemaining, semResposta)
 
-  const handleAnswer = async (valor: string) => {
-    if (!questao) return
+  const handleAnswer = useCallback(async (valor: string) => {
+    const alvo = questoes[currentQuestion]
+    if (!alvo) return
 
-    setAnswers((prev) => ({ ...prev, [questao.id]: valor }))
+    setAnswers((prev) => ({ ...prev, [alvo.id]: valor }))
+    // Responder desfaz o risco da própria alternativa: manter tachado o que
+    // acabou de ser escolhido é o único estado que o desenho não sustenta.
+    setRiscadas((prev) => {
+      if (!prev.has(`${alvo.id}:${valor}`)) return prev
+      const s = new Set(prev)
+      s.delete(`${alvo.id}:${valor}`)
+      return s
+    })
 
     try {
       const res = await fetch("/api/simulados/resposta", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ questionId: questao.id, simuladoId, resposta: valor }),
+        body: JSON.stringify({ questionId: alvo.id, simuladoId, resposta: valor }),
       })
 
       if (!res.ok) {
@@ -243,28 +285,89 @@ export default function SimuladoPage({ params }: { params: Promise<{ id: string 
       toast.error("Erro ao salvar resposta")
       return
     }
+  }, [questoes, currentQuestion, simuladoId, router])
 
-  }
-
-  const toggleFlag = () => {
-    if (!questao) return
+  const toggleFlag = useCallback(() => {
+    const alvo = questoes[currentQuestion]
+    if (!alvo) return
     setFlagged((prev) => {
       const s = new Set(prev)
-      if (s.has(questao.id)) {
-        s.delete(questao.id)
+      if (s.has(alvo.id)) {
+        s.delete(alvo.id)
         toast.info("Questão removida da lista de revisão")
       } else {
-        s.add(questao.id)
+        s.add(alvo.id)
         toast.info("Questão adicionada à lista de revisão")
       }
       return s
     })
-  }
+  }, [questoes, currentQuestion])
+
+  const toggleRisco = useCallback((letra: string) => {
+    const alvo = questoes[currentQuestion]
+    if (!alvo) return
+    setRiscadas((prev) => {
+      const chave = `${alvo.id}:${letra}`
+      const s = new Set(prev)
+      if (s.has(chave)) s.delete(chave)
+      else s.add(chave)
+      return s
+    })
+  }, [questoes, currentQuestion])
+
+  const limparRiscos = useCallback(() => {
+    const alvo = questoes[currentQuestion]
+    if (!alvo) return
+    setRiscadas((prev) => {
+      const s = new Set(prev)
+      for (const letra of LETRAS) s.delete(`${alvo.id}:${letra}`)
+      return s
+    })
+  }, [questoes, currentQuestion])
+
+  const irPara = useCallback((indice: number) => {
+    setCurrentQuestion(Math.min(Math.max(indice, 0), Math.max(questoes.length - 1, 0)))
+  }, [questoes.length])
+
+  // ── Atalhos de teclado ───────────────────────────────────────
+  // Só ligam durante a prova. Ficam desligados com qualquer diálogo aberto —
+  // senão "A" responderia a questão por trás do "Finalizar simulado?".
+  const atalhosAtivos = emProva && !loadingQuestoes && !showFinishDialog && !showExitDialog && !showTimeUpDialog
+  useEffect(() => {
+    if (!atalhosAtivos) return
+
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      const alvo = e.target as HTMLElement | null
+      if (alvo?.closest("input, textarea, select, [contenteditable]")) return
+
+      const tecla = e.key.toUpperCase()
+
+      if (mapaAberto) {
+        // Com o mapa aberto só o próprio M responde; o resto é do Sheet
+        // (Escape fecha, Tab circula entre os botões de questão).
+        if (tecla === "M") { e.preventDefault(); setMapaAberto(false) }
+        return
+      }
+
+      if ((LETRAS as readonly string[]).includes(tecla)) {
+        e.preventDefault()
+        handleAnswer(tecla)
+        return
+      }
+      if (tecla === "R") { e.preventDefault(); toggleFlag(); return }
+      if (tecla === "M") { e.preventDefault(); setMapaAberto(true); return }
+      if (e.key === "ArrowRight") { e.preventDefault(); setCurrentQuestion((p) => Math.min(p + 1, questoes.length - 1)); return }
+      if (e.key === "ArrowLeft") { e.preventDefault(); setCurrentQuestion((p) => Math.max(p - 1, 0)) }
+    }
+
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [atalhosAtivos, mapaAberto, handleAnswer, toggleFlag, questoes.length])
 
   const finalizarSimulado = async () => {
     setFinalizando(true)
 
-    // ✅ Sem userId no body
     const res = await fetch("/api/simulados/finalizar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -286,6 +389,8 @@ export default function SimuladoPage({ params }: { params: Promise<{ id: string 
   }
 
   // ── Tela de resultado ────────────────────────────────────────
+  // Continua dentro do layout do dashboard, com sidebar: acabou a prova, e a
+  // revisão do gabarito é justamente quando se quer ir pro Desempenho.
   if (resultado) {
     return (
       <div className="space-y-6 pb-10">
@@ -347,9 +452,10 @@ export default function SimuladoPage({ params }: { params: Promise<{ id: string 
     )
   }
 
+  // A partir daqui é modo prova: tela cheia, sem a navegação do app.
   if (loadingQuestoes) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     )
@@ -357,149 +463,236 @@ export default function SimuladoPage({ params }: { params: Promise<{ id: string 
 
   if (!questao) return null
 
-  const alternativas = [
+  const alternativas: { letra: Letra; texto: string }[] = [
     { letra: "A", texto: questao.alternativa_a },
     { letra: "B", texto: questao.alternativa_b },
     { letra: "C", texto: questao.alternativa_c },
     { letra: "D", texto: questao.alternativa_d },
   ]
 
+  // O componente recebe só as letras riscadas DESTA questão; a página guarda
+  // todas num Set único com chave composta pra não recriar objeto por questão.
+  const riscadasDaQuestao = new Set(LETRAS.filter((l) => riscadas.has(`${questao.id}:${l}`)))
+
   const timerStyle = getTimerStyle(timeRemaining)
+  const marcada = flagged.has(questao.id)
+  const temRisco = riscadasDaQuestao.size > 0
+  const marcadasSemResposta = [...flagged].filter((id) => !answers[id]).length
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] flex-col">
-      <div className="flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-base font-semibold text-foreground sm:text-lg">Simulado OAB</h1>
-          <p className="text-xs text-muted-foreground sm:text-sm">Questão {currentQuestion + 1} de {totalQuestions}</p>
+    <div className="fixed inset-0 z-50 flex flex-col bg-background">
+      {/* ── Barra superior ───────────────────────────────────── */}
+      <header className="flex shrink-0 items-center gap-3 border-b border-border px-3 py-2.5 sm:px-4 lg:px-6">
+        <button
+          type="button"
+          onClick={() => setShowExitDialog(true)}
+          aria-label="Sair do simulado"
+          className="flex shrink-0 cursor-pointer items-center gap-1 rounded-lg px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          <span className="hidden sm:inline">Sair</span>
+        </button>
+
+        <div className="hidden h-8 w-px shrink-0 bg-border md:block" />
+
+        <div className="hidden min-w-0 md:block">
+          <h1 className="truncate text-sm font-semibold text-foreground">Simulado OAB · 1ª Fase</h1>
+          <p className="truncate text-xs text-muted-foreground">
+            {totalQuestions} questões · 5 horas · cronometrado
+          </p>
         </div>
-        <div className="flex items-center gap-2 sm:gap-4">
-          <div className={`flex items-center gap-2 rounded-lg px-3 py-1.5 sm:px-4 sm:py-2 border transition-colors ${timeRemaining <= 10 * 60 ? "bg-destructive/10 border-destructive/30"
-            : timeRemaining <= 30 * 60 ? "bg-orange-500/10 border-orange-500/30"
-              : "bg-secondary border-transparent"
-            }`}>
-            <Clock className={`h-3 w-3 sm:h-4 sm:w-4 ${timerStyle}`} />
-            <span className={`font-mono text-base font-semibold sm:text-lg ${timerStyle}`}>
-              {formatTime(timeRemaining)}
+
+        {/* No celular o cabeçalho vira a identificação da questão — não sobra
+            largura pro título do simulado e pra matéria ao mesmo tempo. */}
+        <div className="min-w-0 md:hidden">
+          <p className="font-mono text-xs text-primary tabular-nums">
+            QUESTÃO {String(currentQuestion + 1).padStart(2, "0")}/{totalQuestions}
+          </p>
+          <p className="truncate text-xs text-muted-foreground">{questao.subject_name}</p>
+        </div>
+
+        <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
+          <ThemeToggle />
+
+          <button
+            type="button"
+            onClick={() => setMapaAberto(true)}
+            aria-label="Abrir mapa da prova"
+            className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-2.5 py-2 text-sm transition-colors hover:border-primary/40 hover:bg-muted"
+          >
+            <LayoutGrid className="h-4 w-4 text-muted-foreground" />
+            <span className="hidden text-muted-foreground lg:inline">Mapa da prova</span>
+            <span className="font-mono text-xs text-primary tabular-nums">
+              {answeredCount}<span className="hidden sm:inline">/{totalQuestions}</span>
             </span>
+          </button>
+
+          <div className={cn(
+            "flex items-center gap-2 rounded-lg border px-2.5 py-1.5 transition-colors",
+            timeRemaining <= 30 * 60
+              ? "border-destructive/30 bg-destructive/10"
+              : timeRemaining <= 60 * 60
+                ? "border-chart-3/30 bg-chart-3/10"
+                : "border-border",
+          )}>
+            <Clock className={cn("hidden h-4 w-4 sm:block", timerStyle)} />
+            <div className="leading-tight">
+              <p className={cn("font-mono text-base font-semibold tabular-nums sm:text-lg", timerStyle)}>
+                {formatTime(timeRemaining)}
+              </p>
+              {ritmo && (
+                <p className="hidden text-[0.65rem] text-muted-foreground sm:block">
+                  ≈{ritmo} por questão restante
+                </p>
+              )}
+            </div>
           </div>
-          <Button variant="destructive" size="sm" onClick={() => setShowFinishDialog(true)}>
+
+          <Button
+            variant="destructive"
+            size="sm"
+            className="hidden md:inline-flex"
+            onClick={() => setShowFinishDialog(true)}
+          >
             Finalizar
           </Button>
         </div>
-      </div>
+      </header>
 
-      <div className="py-4">
-        <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
-          <span>{answeredCount} de {totalQuestions} respondidas</span>
-          <span>{totalQuestions > 0 ? ((answeredCount / totalQuestions) * 100).toFixed(0) : 0}%</span>
+      {/* ── Progresso ────────────────────────────────────────── */}
+      <div className="shrink-0 border-b border-border">
+        <div className="hidden sm:block">
+          <BarraProgresso
+            questoes={questoes}
+            blocos={blocos}
+            respostas={answers}
+            marcadas={flagged}
+            atual={currentQuestion}
+          />
         </div>
-        <Progress value={totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0} className="h-2" />
+        {/* No celular a barra segmentada daria ~4px por questão: ruído, não
+            informação. Vira progresso agregado; o estado por questão fica
+            no mapa, a um toque de distância. */}
+        <div
+          className="h-1 w-full bg-muted sm:hidden"
+          role="img"
+          aria-label={`${answeredCount} de ${totalQuestions} questões respondidas`}
+        >
+          <div
+            className="h-full bg-primary transition-all"
+            style={{ width: `${totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0}%` }}
+          />
+        </div>
       </div>
 
-      <div className="flex-1 overflow-auto">
-        <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
-          <Card>
-            <CardContent className="p-6">
-              <div className="mb-4 flex items-center justify-between">
-                <Badge variant="secondary">{questao.subject_name}</Badge>
-                <Button variant={flagged.has(questao.id) ? "default" : "ghost"} size="sm" onClick={toggleFlag}>
-                  <Flag className="h-4 w-4 mr-1" />
-                  {flagged.has(questao.id) ? "Marcada" : "Marcar para revisão"}
-                </Button>
-              </div>
-              <p className="mb-6 text-foreground leading-relaxed">{questao.enunciado}</p>
-              <RadioGroup value={answers[questao.id] || ""} onValueChange={handleAnswer} className="space-y-3">
-                {alternativas.map((alt) => (
-                  <div key={alt.letra} className={`flex items-start gap-3 rounded-lg border p-4 transition-colors ${answers[questao.id] === alt.letra ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                    }`}>
-                    <RadioGroupItem value={alt.letra} id={`alt-${alt.letra}`} className="mt-0.5" />
-                    <Label htmlFor={`alt-${alt.letra}`} className="flex-1 cursor-pointer text-foreground">
-                      <span className="font-medium">{alt.letra})</span> {alt.texto}
-                    </Label>
-                  </div>
-                ))}
-              </RadioGroup>
-              <div className="mt-6 flex items-center justify-between">
-                <Button variant="outline" onClick={() => setCurrentQuestion((p) => p - 1)} disabled={currentQuestion === 0}>
-                  <ChevronLeft className="mr-2 h-4 w-4" /> Anterior
-                </Button>
-                <Button onClick={() => setCurrentQuestion((p) => p + 1)} disabled={currentQuestion === totalQuestions - 1}>
-                  Próxima <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+      {/* ── Questão ──────────────────────────────────────────── */}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <QuestaoProva
+          indice={currentQuestion}
+          total={totalQuestions}
+          materia={questao.subject_name}
+          enunciado={questao.enunciado}
+          alternativas={alternativas}
+          resposta={answers[questao.id]}
+          riscadas={riscadasDaQuestao}
+          marcada={marcada}
+          onResponder={handleAnswer}
+          onToggleRisco={toggleRisco}
+          onToggleFlag={toggleFlag}
+        />
+      </div>
 
-          <div className="hidden lg:flex flex-col gap-4">
-            <Card>
-              <CardContent className="p-4">
-                <h3 className="mb-4 font-medium text-foreground">Navegação</h3>
-                <div className="grid grid-cols-5 gap-2">
-                  {questoes.map((q, index) => (
-                    <button key={q.id} onClick={() => setCurrentQuestion(index)}
-                      className={`flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg text-sm font-semibold transition-all duration-150 active:scale-95 ${
-                        currentQuestion === index
-                          ? "bg-primary text-primary-foreground shadow-sm"
-                          : answers[q.id] && flagged.has(q.id)
-                          ? "bg-primary/25 text-primary ring-1 ring-yellow-500/50 hover:bg-primary/35"
-                          : answers[q.id]
-                          ? "bg-primary/20 text-primary hover:bg-primary/30"
-                          : flagged.has(q.id)
-                          ? "bg-yellow-500/20 text-yellow-400 ring-1 ring-yellow-500/30 hover:bg-yellow-500/30"
-                          : "bg-muted text-foreground hover:bg-primary/15 hover:text-primary"
-                      }`}>
-                      {index + 1}
-                    </button>
-                  ))}
-                </div>
-                <div className="mt-4 space-y-2 text-xs">
-                  <div className="flex items-center gap-2"><div className="h-3 w-3 rounded bg-primary" /><span className="text-muted-foreground">Atual</span></div>
-                  <div className="flex items-center gap-2"><div className="h-3 w-3 rounded bg-primary/20" /><span className="text-muted-foreground">Respondida</span></div>
-                  <div className="flex items-center gap-2"><div className="h-3 w-3 rounded bg-yellow-500/20 ring-1 ring-yellow-500/30" /><span className="text-muted-foreground">Marcada para revisão</span></div>
-                  <div className="flex items-center gap-2"><div className="h-3 w-3 rounded bg-muted" /><span className="text-muted-foreground">Não respondida</span></div>
-                </div>
-              </CardContent>
-            </Card>
+      {/* ── Rodapé ───────────────────────────────────────────── */}
+      <footer className="flex shrink-0 items-center gap-3 border-t border-border px-3 py-2.5 sm:px-4 lg:px-6">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentQuestion((p) => Math.max(p - 1, 0))}
+          disabled={currentQuestion === 0}
+          aria-label="Questão anterior"
+        >
+          <ChevronLeft className="h-4 w-4 sm:mr-1" />
+          <span className="hidden sm:inline">Anterior</span>
+        </Button>
 
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-medium text-foreground flex items-center gap-2">
-                    <Flag className="h-4 w-4 text-yellow-500" />
-                    Lista de Revisão
-                  </h3>
-                  <Badge variant="secondary">{flaggedList.length}</Badge>
-                </div>
-                {flaggedList.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">
-                    Nenhuma questão marcada ainda. Use o botão{" "}
-                    <span className="font-medium text-foreground">&ldquo;Marcar para revisão&rdquo;</span>{" "}
-                    nas questões que quiser revisar antes de finalizar.
-                  </p>
-                ) : (
-                  <div className="space-y-2 max-h-[240px] overflow-y-auto pr-1">
-                    {flaggedList.map((q) => {
-                      const index = questoes.findIndex((x) => x.id === q.id)
-                      return (
-                        <button key={q.id} onClick={() => setCurrentQuestion(index)}
-                          className="w-full cursor-pointer text-left rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3 hover:bg-yellow-500/10 transition-colors">
-                          <div className="flex items-center justify-between gap-2 mb-1">
-                            <span className="text-xs font-medium text-yellow-500">Q{index + 1}</span>
-                            <Badge variant="secondary" className="text-xs">{q.subject_name}</Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground line-clamp-2">{q.enunciado}</p>
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+        {/* Atalhos declarados na tela: sem isso ninguém descobre que existem.
+            Somem no celular, onde não há teclado. */}
+        <div className="mx-auto hidden items-center gap-4 text-xs text-muted-foreground lg:flex">
+          <span className="flex items-center gap-1.5"><Kbd>A–D</Kbd> responder</span>
+          <span className="flex items-center gap-1.5"><Kbd>R</Kbd> revisão</span>
+          <span className="flex items-center gap-1.5"><Kbd>M</Kbd> mapa</span>
+          <span className="flex items-center gap-1.5"><Kbd>←</Kbd><Kbd>→</Kbd> navegar</span>
+        </div>
+
+        <div className="ml-auto flex items-center gap-2 lg:ml-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={limparRiscos}
+            disabled={!temRisco}
+            aria-label="Limpar as alternativas riscadas desta questão"
+            title="Apaga as alternativas riscadas desta questão"
+          >
+            <Eraser className="h-4 w-4 sm:mr-1" />
+            <span className="hidden sm:inline">Limpar riscos</span>
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={() => setCurrentQuestion((p) => Math.min(p + 1, totalQuestions - 1))}
+            disabled={currentQuestion === totalQuestions - 1}
+            aria-label="Próxima questão"
+          >
+            <span className="hidden sm:inline">Próxima</span>
+            <ChevronRight className="h-4 w-4 sm:ml-1" />
+          </Button>
+        </div>
+      </footer>
+
+      <MapaDaProva
+        aberto={mapaAberto}
+        onOpenChange={setMapaAberto}
+        questoes={questoes}
+        blocos={blocos}
+        respostas={answers}
+        marcadas={flagged}
+        atual={currentQuestion}
+        onIr={irPara}
+        onFinalizar={() => setShowFinishDialog(true)}
+        mobile={isMobile}
+      />
+
+      {/* ── Sair ─────────────────────────────────────────────── */}
+      <Dialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Sair do simulado?</DialogTitle>
+            <DialogDescription asChild>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>
+                  Suas <strong className="text-foreground">{answeredCount}</strong> respostas já
+                  estão salvas e você pode voltar de onde parou.
+                </p>
+                {/* O aviso mais importante desta tela: o tempo é do servidor e
+                    não pausa. Sem isto, "Sair" parece um botão inofensivo. */}
+                <p className="text-chart-3">
+                  ⏱️ O cronômetro <strong>não para</strong> — as 5 horas continuam correndo.
+                </p>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-2 flex gap-3">
+            <Button variant="outline" onClick={() => setShowExitDialog(false)} className="flex-1">
+              Continuar prova
+            </Button>
+            <Button variant="destructive" onClick={() => router.push("/dashboard/simulados")} className="flex-1">
+              Sair mesmo assim
+            </Button>
           </div>
-        </div>
-      </div>
+        </DialogContent>
+      </Dialog>
 
+      {/* ── Finalizar ────────────────────────────────────────── */}
       <Dialog open={showFinishDialog} onOpenChange={setShowFinishDialog}>
         <DialogContent>
           <DialogHeader>
@@ -507,14 +700,14 @@ export default function SimuladoPage({ params }: { params: Promise<{ id: string 
             <DialogDescription asChild>
               <div className="space-y-2 text-sm text-muted-foreground">
                 <p>Você respondeu <strong className="text-foreground">{answeredCount}</strong> de <strong className="text-foreground">{totalQuestions}</strong> questões.</p>
-                {answeredCount < totalQuestions && <p className="text-orange-400">⚠️ {totalQuestions - answeredCount} questões sem resposta.</p>}
-                {flaggedList.filter(q => !answers[q.id]).length > 0 && (
-                  <p className="text-yellow-500">🚩 {flaggedList.filter(q => !answers[q.id]).length} questão(ões) marcada(s) para revisão ainda sem resposta.</p>
+                {semResposta > 0 && <p className="text-destructive">⚠️ {semResposta} questões sem resposta.</p>}
+                {marcadasSemResposta > 0 && (
+                  <p className="text-chart-3">🚩 {marcadasSemResposta} questão(ões) marcada(s) para revisão ainda sem resposta.</p>
                 )}
               </div>
             </DialogDescription>
           </DialogHeader>
-          <div className="flex gap-3 mt-2">
+          <div className="mt-2 flex gap-3">
             <Button variant="outline" onClick={() => setShowFinishDialog(false)} className="flex-1">Continuar</Button>
             <Button onClick={finalizarSimulado} disabled={finalizando} className="flex-1">
               {finalizando ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Finalizando...</> : <><CheckCircle2 className="mr-2 h-4 w-4" /> Finalizar</>}
@@ -526,7 +719,7 @@ export default function SimuladoPage({ params }: { params: Promise<{ id: string 
       <Dialog open={showTimeUpDialog} onOpenChange={() => {}}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-orange-400">
+            <DialogTitle className="flex items-center gap-2 text-chart-3">
               <AlertTriangle className="h-5 w-5" /> Tempo esgotado!
             </DialogTitle>
             <DialogDescription asChild>
@@ -536,7 +729,7 @@ export default function SimuladoPage({ params }: { params: Promise<{ id: string 
               </div>
             </DialogDescription>
           </DialogHeader>
-          <div className="flex gap-3 mt-2">
+          <div className="mt-2 flex gap-3">
             <Button onClick={finalizarSimulado} disabled={finalizando} className="flex-1">
               {finalizando ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Finalizando...</> : <><CheckCircle2 className="mr-2 h-4 w-4" /> Ver resultado</>}
             </Button>

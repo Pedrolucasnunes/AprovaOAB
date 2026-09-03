@@ -399,7 +399,12 @@ export default function SimuladoPage({ params }: { params: Promise<{ id: string 
     const materias = desempenhoPorMateria(resultado.gabarito)
 
     return (
-      <div className="space-y-5 pb-10">
+      // Largura capada e centrada — a única tela do dashboard que faz isso, e
+      // por um motivo: aqui se LÊ. Num monitor de 1920 o `main` dá 1664px, e a
+      // linha do enunciado passava de 1300px, muito além da medida confortável
+      // de leitura. As outras telas do dashboard são grade de cartões, onde
+      // esticar não incomoda.
+      <div className="mx-auto max-w-6xl space-y-5 pb-10">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <Link

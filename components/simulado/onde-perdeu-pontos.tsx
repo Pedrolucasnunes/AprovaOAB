@@ -57,7 +57,10 @@ export function OndePerdeuPontos({ materias }: OndePerdeuPontosProps) {
             key={materia.subjectId ?? materia.nome}
             className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:flex-nowrap"
           >
-            <div className="min-w-0 flex-1">
+            {/* Nome com largura fixa e barra elástica, não o contrário: com o
+                nome em `flex-1` ele engolia toda a folga do cartão e empurrava
+                a barra pra ~490px de distância, com um vão morto no meio. */}
+            <div className="w-full min-w-0 sm:w-64 sm:shrink-0">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium text-foreground">{materia.nome}</span>
                 {!expandido && indice < MATERIAS_PRIORITARIAS && (
@@ -77,8 +80,8 @@ export function OndePerdeuPontos({ materias }: OndePerdeuPontosProps) {
               </p>
             </div>
 
-            <div className="flex w-full items-center gap-3 sm:w-auto">
-              <div className="h-1.5 w-24 shrink-0 overflow-hidden rounded-full bg-muted sm:w-28">
+            <div className="flex w-full min-w-0 flex-1 items-center gap-3">
+              <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-muted">
                 <div
                   className={cn("h-full rounded-full", taxaBarColor(materia.taxa))}
                   style={{ width: `${materia.taxa}%` }}

@@ -66,7 +66,15 @@ export function ResultadoHero({
       <div className="flex flex-col items-center gap-7 lg:flex-row lg:items-center lg:gap-10">
         {/* ── Medidor ─────────────────────────────────────────── */}
         <div className="shrink-0 text-center">
-          <div className="relative">
+          {/* A caixa tem EXATAMENTE o tamanho do <svg> (h-44 w-44) de propósito.
+              Antes era um `relative` solto, que como bloco esticava até a
+              largura do pai — definida pela legenda de baixo, mais larga que o
+              círculo. O <svg> é `display:block` pelo preflight do Tailwind,
+              então `text-center` não o centralizava: ele encostava à esquerda
+              dos 234px enquanto a sobreposição se centrava nos 234px, e o "20%"
+              saía 29px fora do centro do círculo. Com a caixa do tamanho do
+              círculo, os dois não têm como divergir. */}
+          <div className="relative mx-auto h-44 w-44">
             <svg viewBox="0 0 180 180" className="h-44 w-44 -rotate-90">
               <circle
                 cx="90"
@@ -82,7 +90,11 @@ export function ResultadoHero({
                 r={RAIO}
                 fill="none"
                 strokeWidth="12"
-                strokeLinecap="round"
+                // Ponta reta, não arredondada: o cap redondo acrescenta meio
+                // traço de cada lado, e num aproveitamento de 1% o arco de 4px
+                // virava uma bolinha de 16px — lida como ~4%. O arco tem que
+                // medir o que ele diz que mede.
+                strokeLinecap="butt"
                 strokeDasharray={`${(percentual / 100) * CIRCUNFERENCIA} ${CIRCUNFERENCIA}`}
                 className={cn(passou ? "stroke-primary" : "stroke-destructive")}
               />

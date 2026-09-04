@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use, useRef, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
 import { getClientUser } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -11,7 +12,14 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { BarraProgresso } from "@/components/simulado/barra-progresso"
 import { MapaDaProva } from "@/components/simulado/mapa-da-prova"
 import { QuestaoProva, LETRAS, type Letra } from "@/components/simulado/questao-prova"
+import { ResultadoHero } from "@/components/simulado/resultado-hero"
+import { MapaResultado } from "@/components/simulado/mapa-resultado"
+import { OndePerdeuPontos } from "@/components/simulado/onde-perdeu-pontos"
+import { GabaritoComentado } from "@/components/simulado/gabarito-comentado"
 import { agruparPorMateria, formatarRitmo } from "@/lib/simulado-prova"
+import { contarEstados, curvaDaProva, desempenhoPorMateria } from "@/lib/simulado-resultado"
+import type { ResultadoSimulado } from "@/lib/services/simulado-resultado"
+import { formatarDataHoraBrasil } from "@/lib/datas"
 import { useIsMobile } from "@/components/ui/use-mobile"
 import { cn } from "@/lib/utils"
 import {
@@ -35,20 +43,10 @@ interface Questao {
   resposta_usuario?: string | null
 }
 
-interface Resultado {
-  acertos: number
-  erros: number
-  percentual: number
-  total: number
-  gabarito: {
-    question_id: string
-    enunciado: string
-    resposta_usuario: string
-    resposta_correta: string
-    acertou: boolean
-    subject_name: string
-  }[]
-}
+// O payload vem inteiro de `carregarResultadoSimulado` — o mesmo tipo servido
+// tanto por `/finalizar` (ao terminar) quanto por `/gabarito` (ao reabrir), que
+// é justamente o que garante que as duas telas mostrem a mesma coisa.
+type Resultado = ResultadoSimulado
 
 function formatTime(seconds: number): string {
   const hours = Math.floor(seconds / 3600)
@@ -394,62 +392,73 @@ export default function SimuladoPage({ params }: { params: Promise<{ id: string 
   // Continua dentro do layout do dashboard, com sidebar: acabou a prova, e a
   // revisão do gabarito é justamente quando se quer ir pro Desempenho.
   if (resultado) {
+    // Contagem e placar por matéria saem UMA vez e descem por props. As quatro
+    // superfícies abaixo respondem à mesma pergunta; cada uma agregando por
+    // conta própria é como elas passam a discordar.
+    const contagem = contarEstados(resultado.gabarito)
+    const materias = desempenhoPorMateria(resultado.gabarito)
+    // A curva alimenta DUAS superfícies (a leitura no cartão-resposta e a
+    // escolha do próximo passo no topo). Calculada aqui uma vez, elas não têm
+    // como discordar sobre o que aconteceu na prova.
+    const curva = resultado.temOrdem ? curvaDaProva(resultado.gabarito) : null
+
     return (
-      <div className="space-y-6 pb-10">
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold text-foreground">
-            {modoGabarito ? "Gabarito do Simulado" : "Simulado Concluído!"}
-          </h1>
-          <p className="text-muted-foreground">
-            {modoGabarito ? "Veja as respostas corretas e seu desempenho" : "Confira seu resultado abaixo"}
-          </p>
+      // Largura capada e centrada — a única tela do dashboard que faz isso, e
+      // por um motivo: aqui se LÊ. Num monitor de 1920 o `main` dá 1664px, e a
+      // linha do enunciado passava de 1300px, muito além da medida confortável
+      // de leitura. As outras telas do dashboard são grade de cartões, onde
+      // esticar não incomoda.
+      <div className="mx-auto max-w-5xl space-y-8 pb-10">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <Link
+              href="/dashboard/simulados"
+              className="mb-1 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <ChevronLeft className="h-4 w-4" /> Simulados
+            </Link>
+            <h1 className="text-xl font-bold text-foreground sm:text-2xl">
+              {resultado.titulo ?? "Simulado"}
+            </h1>
+            {/* Sem `finished_at` no schema, a única data honesta é a de início.
+                "concluído às 21h04" precisaria de uma coluna que `finalizar`
+                não grava — e inventar a hora de fim seria pior que omiti-la. */}
+            <p className="text-sm text-muted-foreground">
+              {resultado.numeroQuestoes} questões
+              {resultado.startedAt &&
+                `, iniciado em ${formatarDataHoraBrasil(resultado.startedAt)}`}
+            </p>
+          </div>
+
+          <Button asChild variant="ghost">
+            <Link href="/dashboard/simulados">Novo simulado</Link>
+          </Button>
         </div>
-        <div className="grid grid-cols-2 gap-4 max-w-lg mx-auto sm:grid-cols-4">
-          {[
-            { label: "Acertos", value: resultado.acertos, className: "text-foreground" },
-            { label: "Erros", value: resultado.erros, className: "text-destructive" },
-            { label: "Aproveitamento", value: `${resultado.percentual}%`, className: "text-primary" },
-            { label: "Respondidas", value: resultado.total, className: "text-foreground" },
-          ].map((item) => (
-            <div key={item.label} className="rounded-lg border border-border p-4 text-center">
-              <p className={`text-2xl font-bold ${item.className}`}>{item.value}</p>
-              <p className="text-xs text-muted-foreground">{item.label}</p>
-            </div>
-          ))}
-        </div>
-        <div className={`max-w-lg mx-auto rounded-lg border p-4 text-center text-sm font-medium ${resultado.percentual >= 50 ? "border-primary/30 bg-primary/5 text-primary" : "border-destructive/30 bg-destructive/5 text-destructive"}`}>
-          {resultado.percentual >= 50 ? "✓ Aprovado — você atingiu a nota mínima da OAB (50%)" : "✗ Reprovado — a nota mínima da OAB é 50%"}
-        </div>
-        <div className="space-y-3">
-          <h2 className="text-lg font-semibold text-foreground">Gabarito ({resultado.total} questões respondidas)</h2>
-          {(resultado.gabarito ?? []).map((item, index) => (
-            <div key={`${item.question_id}-${index}`} className={`rounded-lg border p-4 space-y-2 ${item.acertou ? "border-primary/30 bg-primary/5" : "border-destructive/30 bg-destructive/5"}`}>
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-muted-foreground">Q{index + 1}</span>
-                  <Badge variant="secondary" className="text-xs">{item.subject_name}</Badge>
-                </div>
-                <Badge variant={item.acertou ? "default" : "destructive"} className={item.acertou ? "bg-primary shrink-0" : "shrink-0"}>
-                  {item.acertou ? "✓ Acerto" : "✗ Erro"}
-                </Badge>
-              </div>
-              <p className="text-sm text-foreground leading-relaxed line-clamp-2">{item.enunciado}</p>
-              <div className="flex gap-4 text-xs">
-                <span className="text-muted-foreground">
-                  Sua resposta: <span className={item.acertou ? "text-primary font-medium" : "text-destructive font-medium"}>{item.resposta_usuario}</span>
-                </span>
-                {!item.acertou && (
-                  <span className="text-muted-foreground">
-                    Resposta correta: <span className="text-primary font-medium">{item.resposta_correta}</span>
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="flex justify-center">
-          <Button onClick={() => router.push("/dashboard/simulados")}>Voltar para Simulados</Button>
-        </div>
+
+        {/* Hierarquia em dois níveis, e é isso que o cartão único não dava: o
+            que ACONTECEU na prova vive na página (topo e cartão-resposta); o
+            que se CONSULTA depois mora em cartão (lista de matérias, gabarito).
+            Quatro seções com a mesma borda e o mesmo raio não diziam por onde
+            começar. */}
+        <ResultadoHero
+          contagem={contagem}
+          materias={materias}
+          curva={curva}
+          numeroQuestoes={resultado.numeroQuestoes}
+          notaDeCorte={resultado.notaDeCorte}
+          percentual={resultado.percentual ?? 0}
+          anterior={resultado.anterior}
+        />
+
+        {resultado.temOrdem && (
+          <MapaResultado gabarito={resultado.gabarito} curva={curva} />
+        )}
+
+        <hr className="border-border" />
+
+        <OndePerdeuPontos materias={materias} />
+
+        <GabaritoComentado gabarito={resultado.gabarito} temOrdem={resultado.temOrdem} />
       </div>
     )
   }

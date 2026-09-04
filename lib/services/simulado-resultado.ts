@@ -25,7 +25,6 @@ export interface ResultadoSimulado {
    */
   percentual: number | null
   startedAt: string | null
-  criadoEm: string
   /** Acertos necessários pra nota de corte, sobre o total real da prova. */
   notaDeCorte: number
   /**
@@ -47,7 +46,6 @@ export interface ResultadoSimulado {
     acertos: number
     numeroQuestoes: number
     respondidas: number
-    criadoEm: string
   } | null
   gabarito: ItemGabarito[]
 }
@@ -199,7 +197,6 @@ export async function carregarResultadoSimulado(
     numeroQuestoes,
     percentual: simulado.percentual,
     startedAt: simulado.started_at,
-    criadoEm: simulado.created_at,
     notaDeCorte: acertosParaNotaDeCorte(numeroQuestoes),
     temOrdem,
     anterior: anterior
@@ -208,7 +205,6 @@ export async function carregarResultadoSimulado(
           acertos: anterior.acertos ?? 0,
           numeroQuestoes: anterior.numero_questoes ?? 0,
           respondidas: respondidasAnterior,
-          criadoEm: anterior.created_at,
         }
       : null,
     gabarito,

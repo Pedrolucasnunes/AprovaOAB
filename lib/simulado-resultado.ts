@@ -54,8 +54,6 @@ export interface ContagemResultado {
   /** Só as respondidas e erradas. */
   erros: number
   brancos: number
-  /** Erros + brancos: o que a OAB desconta, e o que a nota reflete. */
-  perdidos: number
   respondidas: number
   total: number
 }
@@ -76,7 +74,6 @@ export function contarEstados(itens: ItemGabarito[]): ContagemResultado {
     acertos,
     erros,
     brancos,
-    perdidos: erros + brancos,
     respondidas: acertos + erros,
     total: itens.length,
   }
@@ -96,8 +93,6 @@ export interface MateriaResultado {
   /** Acertos + erros. Zero = a pessoa não respondeu NADA desta matéria. */
   respondidas: number
   total: number
-  /** Erros + brancos: o que esta matéria custou na nota. */
-  perdidos: number
   /** Acertos sobre RESPONDIDAS. Sem sentido quando `respondidas` é 0. */
   taxa: number
 }
@@ -131,7 +126,6 @@ export function desempenhoPorMateria(itens: ItemGabarito[]): MateriaResultado[] 
         brancos: 0,
         respondidas: 0,
         total: 0,
-        perdidos: 0,
         taxa: 0,
       }
       porMateria.set(chave, materia)
@@ -147,7 +141,6 @@ export function desempenhoPorMateria(itens: ItemGabarito[]): MateriaResultado[] 
   const lista = [...porMateria.values()]
   for (const materia of lista) {
     materia.respondidas = materia.acertos + materia.erros
-    materia.perdidos = materia.erros + materia.brancos
     materia.taxa =
       materia.respondidas > 0
         ? Math.round((materia.acertos / materia.respondidas) * 100)
@@ -160,12 +153,12 @@ export function desempenhoPorMateria(itens: ItemGabarito[]): MateriaResultado[] 
 }
 
 /**
- * Quantas matérias do topo levam PRIORIDADE.
+ * Quantas matérias do topo a frase de concentração considera.
  *
  * Três é o que cabe numa frase ("22 dos seus 64 erros estão em três áreas") e
- * o que uma semana de estudo cobre. Acima disso o destaque para de destacar.
+ * o que uma semana de estudo cobre.
  */
-export const MATERIAS_PRIORITARIAS = 3
+const MATERIAS_PRIORITARIAS = 3
 
 /** Abaixo desta fatia, o topo não concentra nada e a frase não é dita. */
 const FATIA_MINIMA_CONCENTRACAO = 0.4
@@ -332,13 +325,19 @@ export function curvaDaProva(itens: ItemGabarito[]): CurvaProva | null {
   }
 }
 
-export type ProximoPasso =
+export type PassoDoSimulado =
   | { tipo: "ritmo" }
   | { tipo: "materia"; materia: MateriaResultado }
   | { tipo: "novoSimulado" }
 
 /**
  * UMA coisa a fazer depois da prova, derivada do que a prova mostrou.
+ *
+ * O sufixo existe porque `components/dashboard/contagem-prova.tsx` já tem um
+ * `proximoPasso`, que responde a mesma pergunta a partir do estado GERAL do
+ * aluno (diagnóstico pendente, pior matéria acumulada). São escopos
+ * diferentes; nomes iguais fariam quem lê ter que abrir os dois pra saber qual
+ * é qual.
  *
  * A ordem não é arbitrária: quem não terminou não tem problema de matéria que
  * valha atacar primeiro. Estudar Ética não faz ninguém responder 80 questões em
@@ -348,11 +347,11 @@ export type ProximoPasso =
  * do app com as 5 horas e as 80 questões. Prometer "treino cronometrado" seria
  * prometer uma tela que não existe.
  */
-export function proximoPasso(
+export function proximoPassoDoSimulado(
   contagem: ContagemResultado,
   materias: MateriaResultado[],
   curva: CurvaProva | null,
-): ProximoPasso {
+): PassoDoSimulado {
   const naoTerminou =
     curva?.leitura === "ritmo" ||
     (contagem.total > 0 && contagem.brancos / contagem.total >= FATIA_BRANCO_RITMO)

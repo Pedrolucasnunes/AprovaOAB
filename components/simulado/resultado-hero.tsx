@@ -2,11 +2,10 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { META_APROVACAO } from "@/lib/metrics"
 import {
   compararComAnterior,
   concentracaoDeErros,
-  proximoPasso,
+  proximoPassoDoSimulado,
   type ContagemResultado,
   type CurvaProva,
   type MateriaResultado,
@@ -56,7 +55,7 @@ export function ResultadoHero({
   const faltam = notaDeCorte - contagem.acertos
   const sobra = contagem.acertos - notaDeCorte
   const concentracao = concentracaoDeErros(materias)
-  const passo = proximoPasso(contagem, materias, curva)
+  const passo = proximoPassoDoSimulado(contagem, materias, curva)
 
   const comparacao = anterior
     ? compararComAnterior(
@@ -197,10 +196,6 @@ export function ResultadoHero({
         </Button>
         <p className="text-sm text-muted-foreground">{acao.detalhe}</p>
       </div>
-
-      <p className="sr-only">
-        A nota de corte da OAB é {META_APROVACAO}% das questões.
-      </p>
     </section>
   )
 }

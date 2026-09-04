@@ -16,14 +16,17 @@ import {
   LogOut,
   CalendarDays,
   MessageCircle,
+  ChevronsUpDown,
 } from "lucide-react"
 import { whatsappSupportUrl } from "@/lib/support"
+import { itemAtivo } from "@/lib/navegacao"
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -40,14 +43,46 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 
-const menuItems = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Simulados", url: "/dashboard/simulados", icon: FileText },
-  { title: "Banco de Questões", url: "/dashboard/questoes", icon: Database },
-  { title: "Treino Estratégico", url: "/dashboard/treino", icon: Dumbbell },
-  { title: "Desempenho",        url: "/dashboard/desempenho",  icon: BarChart3 },
-  { title: "Agenda Inteligente", url: "/dashboard/calendario", icon: CalendarDays },
-  { title: "Perfil",            url: "/dashboard/perfil",      icon: User },
+interface ItemDeMenu {
+  title: string
+  url: string
+  icon: typeof LayoutDashboard
+}
+
+/**
+ * A home fica FORA de grupo de propósito: ela é o destino de volta de todas as
+ * outras telas, não uma das coisas que se faz. Pendurá-la em "Estudo" a
+ * rebaixaria a mais um item de uma lista.
+ */
+const inicio: ItemDeMenu = { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard }
+
+/**
+ * Agrupado por MODO DE USO, não por tipo de tela: primeiro onde se responde
+ * questão, depois onde se olha o que saiu disso e se planeja a semana.
+ *
+ * O 2º grupo é "Progresso" e não "Análise" porque a Agenda olha pra FRENTE (o
+ * que fazer) enquanto o Desempenho olha pra trás (o que aconteceu) — "Análise"
+ * descreveria só metade dele.
+ *
+ * `Perfil` não está aqui de propósito: é o primeiro item do menu do rodapé,
+ * mesmo link e mesmo ícone. Estava nos dois lugares ao mesmo tempo.
+ */
+const gruposDeMenu: { rotulo: string; itens: ItemDeMenu[] }[] = [
+  {
+    rotulo: "Estudo",
+    itens: [
+      { title: "Simulados", url: "/dashboard/simulados", icon: FileText },
+      { title: "Banco de Questões", url: "/dashboard/questoes", icon: Database },
+      { title: "Treino Estratégico", url: "/dashboard/treino", icon: Dumbbell },
+    ],
+  },
+  {
+    rotulo: "Progresso",
+    itens: [
+      { title: "Desempenho", url: "/dashboard/desempenho", icon: BarChart3 },
+      { title: "Agenda Inteligente", url: "/dashboard/calendario", icon: CalendarDays },
+    ],
+  },
 ]
 
 interface UserInfo {
@@ -56,6 +91,19 @@ interface UserInfo {
   iniciais: string
   /** Foto do login social; null para quem entrou por e-mail e senha. */
   foto: string | null
+}
+
+function ItemDeNavegacao({ item, ativo }: { item: ItemDeMenu; ativo: boolean }) {
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton asChild isActive={ativo} tooltip={item.title}>
+        <Link href={item.url}>
+          <item.icon className="h-4 w-4" />
+          <span>{item.title}</span>
+        </Link>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  )
 }
 
 export function AppSidebar() {
@@ -113,23 +161,28 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={pathname === item.url}
-                    tooltip={item.title}
-                  >
-                    <Link href={item.url}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              <ItemDeNavegacao item={inicio} ativo={itemAtivo(pathname, inicio.url)} />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {gruposDeMenu.map((grupo) => (
+          <SidebarGroup key={grupo.rotulo}>
+            {/* O rótulo se apaga sozinho no modo ícone — `SidebarGroupLabel` já
+                traz `group-data-[collapsible=icon]:-mt-8 opacity-0`. O rail
+                recolhido continua sendo só a coluna de ícones. */}
+            <SidebarGroupLabel className="uppercase tracking-wide">
+              {grupo.rotulo}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {grupo.itens.map((item) => (
+                  <ItemDeNavegacao key={item.url} item={item} ativo={itemAtivo(pathname, item.url)} />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
 
       <SidebarFooter className="p-2">
@@ -169,6 +222,10 @@ export function AppSidebar() {
                       </>
                     )}
                   </div>
+
+                  {/* Sem `Perfil` na navegação, este cartão vira o único caminho
+                      pra tela de perfil. A seta é o que diz que ele abre menu. */}
+                  <ChevronsUpDown className="ml-auto size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
 

@@ -40,12 +40,11 @@ const ROTULO_ESTADO: Record<EstadoItem, string> = {
  *
  * A tela antiga abria as 80 de uma vez, com o enunciado cortado em duas linhas
  * e sem explicação nenhuma — 80 cartões que não davam pra ler e não ensinavam
- * nada. Aqui a lista começa filtrada nos ERROS, que é o que se revisa depois de
- * uma prova; ver tudo é um clique.
+ * nada. Aqui elas vêm fechadas, com filtro e busca por área.
  */
 export function GabaritoComentado({ gabarito, temOrdem }: GabaritoComentadoProps) {
   const contagem = contarEstados(gabarito)
-  const [filtro, setFiltro] = useState<Filtro>(contagem.erros > 0 ? "erro" : "todas")
+  const [filtro, setFiltro] = useState<Filtro>("todas")
   const [area, setArea] = useState<string>(TODAS_AS_AREAS)
   const [abertos, setAbertos] = useState<string[]>([])
 
@@ -63,11 +62,15 @@ export function GabaritoComentado({ gabarito, temOrdem }: GabaritoComentadoProps
     [gabarito, filtro, area],
   )
 
+  // "Todas" primeiro e selecionado: é o estado sem filtro, e filtro que já
+  // vem aplicado esconde conteúdo de quem nem sabe que ele existe. Quem quer
+  // só os erros clica uma vez; quem abriu para reler a prova inteira não
+  // precisa desfazer nada.
   const filtros: { chave: Filtro; rotulo: string; contagem: number }[] = [
+    { chave: "todas", rotulo: "Todas", contagem: contagem.total },
     { chave: "erro", rotulo: "Erros", contagem: contagem.erros },
     { chave: "branco", rotulo: "Em branco", contagem: contagem.brancos },
     { chave: "acerto", rotulo: "Acertos", contagem: contagem.acertos },
-    { chave: "todas", rotulo: "Todas", contagem: contagem.total },
   ]
 
   const todosAbertos = abertos.length === visiveis.length && visiveis.length > 0

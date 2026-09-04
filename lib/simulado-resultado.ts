@@ -209,16 +209,41 @@ export interface Comparacao {
 }
 
 /**
- * Compara com o simulado anterior EM ACERTOS sempre que dá.
+ * Abaixo desta fração respondida a prova não mede o que a pessoa sabe, e sim
+ * até onde ela chegou. Duas provas assim não são comparáveis entre si.
+ */
+const MIN_COMPLETUDE_COMPARAVEL = 0.9
+
+export interface ProvaComparavel {
+  acertos: number
+  percentual: number
+  numeroQuestoes: number
+  respondidas: number
+}
+
+/**
+ * Compara com o simulado anterior EM ACERTOS — ou devolve `null`.
  *
- * "+8 pontos" é ambíguo pra quem presta OAB: ponto é questão. Só cai em pontos
- * percentuais quando as duas provas têm números de questões diferentes, caso em
- * que comparar acertos crus seria comparar réguas distintas.
+ * O `null` é o ponto principal. Comparar uma prova em que a pessoa respondeu 13
+ * questões com outra em que respondeu 80 produzia "−15 acertos em relação ao
+ * seu simulado anterior": verdade aritmética e mentira inteira, porque ela não
+ * piorou, ela não terminou. É o mesmo erro de somar branco com erro, entrando
+ * pela porta da comparação. Prova incompleta não compara com nada — nem como
+ * queda nem como subida.
+ *
+ * A unidade é acerto porque "+8 pontos" é ambíguo pra quem presta OAB: ponto é
+ * questão. Só cai em pontos percentuais quando as duas provas têm tamanhos
+ * diferentes, caso em que acerto cru seria comparar réguas distintas.
  */
 export function compararComAnterior(
-  atual: { acertos: number; percentual: number; numeroQuestoes: number },
-  anterior: { acertos: number; percentual: number; numeroQuestoes: number },
-): Comparacao {
+  atual: ProvaComparavel,
+  anterior: ProvaComparavel,
+): Comparacao | null {
+  const completa = (p: ProvaComparavel) =>
+    p.numeroQuestoes > 0 && p.respondidas / p.numeroQuestoes >= MIN_COMPLETUDE_COMPARAVEL
+
+  if (!completa(atual) || !completa(anterior)) return null
+
   if (atual.numeroQuestoes === anterior.numeroQuestoes) {
     return { unidade: "acertos", delta: atual.acertos - anterior.acertos }
   }
@@ -305,4 +330,37 @@ export function curvaDaProva(itens: ItemGabarito[]): CurvaProva | null {
     tercos,
     leitura: inicio.taxa - fim.taxa >= QUEDA_SIGNIFICATIVA ? "queda" : "estavel",
   }
+}
+
+export type ProximoPasso =
+  | { tipo: "ritmo" }
+  | { tipo: "materia"; materia: MateriaResultado }
+  | { tipo: "novoSimulado" }
+
+/**
+ * UMA coisa a fazer depois da prova, derivada do que a prova mostrou.
+ *
+ * A ordem não é arbitrária: quem não terminou não tem problema de matéria que
+ * valha atacar primeiro. Estudar Ética não faz ninguém responder 80 questões em
+ * 5 horas, e a tela mandaria a pessoa pro lugar errado com muita confiança.
+ *
+ * O passo de ritmo aponta pro próprio simulado de propósito — é o único lugar
+ * do app com as 5 horas e as 80 questões. Prometer "treino cronometrado" seria
+ * prometer uma tela que não existe.
+ */
+export function proximoPasso(
+  contagem: ContagemResultado,
+  materias: MateriaResultado[],
+  curva: CurvaProva | null,
+): ProximoPasso {
+  const naoTerminou =
+    curva?.leitura === "ritmo" ||
+    (contagem.total > 0 && contagem.brancos / contagem.total >= FATIA_BRANCO_RITMO)
+
+  if (naoTerminou) return { tipo: "ritmo" }
+
+  const pior = materias.find((m) => m.erros > 0)
+  if (pior) return { tipo: "materia", materia: pior }
+
+  return { tipo: "novoSimulado" }
 }

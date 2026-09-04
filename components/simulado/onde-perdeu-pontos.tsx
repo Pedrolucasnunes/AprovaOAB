@@ -3,8 +3,8 @@
 import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { taxaBarColor, taxaTextColor } from "@/lib/metrics"
-import { MATERIAS_PRIORITARIAS, type MateriaResultado } from "@/lib/simulado-resultado"
+import { taxaTextColor } from "@/lib/metrics"
+import type { MateriaResultado } from "@/lib/simulado-resultado"
 import { cn } from "@/lib/utils"
 
 interface OndePerdeuPontosProps {
@@ -52,41 +52,25 @@ export function OndePerdeuPontos({ materias }: OndePerdeuPontosProps) {
       </p>
 
       <ul className="space-y-4">
-        {visiveis.map((materia, indice) => (
+        {visiveis.map((materia) => (
           <li
             key={materia.subjectId ?? materia.nome}
             className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:flex-nowrap"
           >
-            {/* Nome com largura fixa e barra elástica, não o contrário: com o
-                nome em `flex-1` ele engolia toda a folga do cartão e empurrava
-                a barra pra ~490px de distância, com um vão morto no meio. */}
-            <div className="w-full min-w-0 sm:w-64 sm:shrink-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-medium text-foreground">{materia.nome}</span>
-                {!expandido && indice < MATERIAS_PRIORITARIAS && (
-                  <span className="rounded bg-destructive/10 px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wider text-destructive uppercase">
-                    Prioridade
-                  </span>
-                )}
-              </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-foreground">{materia.nome}</p>
               {/* Denominador é RESPONDIDAS, não o total da matéria na prova:
                   a taxa ao lado é acerto sobre o que ela respondeu, e os dois
                   números têm que sair da mesma conta. Os brancos vêm depois,
                   como contexto, sem entrar na porcentagem. */}
               <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
-                {materia.acertos} de {materia.respondidas} acertos · {materia.erros}{" "}
-                {materia.erros === 1 ? "erro" : "erros"}
-                {materia.brancos > 0 && ` · ${materia.brancos} em branco`}
+                {materia.acertos} de {materia.respondidas} acertos,{" "}
+                {materia.erros} {materia.erros === 1 ? "erro" : "erros"}
+                {materia.brancos > 0 && `, ${materia.brancos} em branco`}
               </p>
             </div>
 
-            <div className="flex w-full min-w-0 flex-1 items-center gap-3">
-              <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-muted">
-                <div
-                  className={cn("h-full rounded-full", taxaBarColor(materia.taxa))}
-                  style={{ width: `${materia.taxa}%` }}
-                />
-              </div>
+            <div className="flex shrink-0 items-center gap-4">
               <span
                 className={cn(
                   "w-10 shrink-0 text-right text-sm font-semibold tabular-nums",
@@ -98,7 +82,9 @@ export function OndePerdeuPontos({ materias }: OndePerdeuPontosProps) {
 
               {materia.subjectId ? (
                 <Button asChild variant="outline" size="sm" className="shrink-0">
-                  <Link href={`/dashboard/treino?materia=${materia.subjectId}`}>
+                  <Link
+                    href={`/dashboard/treino?materia=${materia.subjectId}&origem=simulado_resultado`}
+                  >
                     Treinar
                   </Link>
                 </Button>

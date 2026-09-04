@@ -117,7 +117,7 @@ export function GabaritoComentado({ gabarito, temOrdem }: GabaritoComentadoProps
               )}
             >
               {f.rotulo}{" "}
-              <span className="font-mono text-xs tabular-nums opacity-70">{f.contagem}</span>
+              <span className="text-xs tabular-nums opacity-70">{f.contagem}</span>
             </button>
           ))}
         </div>
@@ -173,8 +173,8 @@ export function GabaritoComentado({ gabarito, temOrdem }: GabaritoComentadoProps
                   <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
                     <div className="flex shrink-0 items-center gap-2">
                       {temOrdem && (
-                        <span className="font-mono text-xs text-muted-foreground tabular-nums">
-                          Q{item.ordem + 1}
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                          {item.ordem + 1}
                         </span>
                       )}
                       <Badge variant="secondary" className="text-[0.65rem] font-normal">
@@ -265,9 +265,6 @@ export function GabaritoComentado({ gabarito, temOrdem }: GabaritoComentadoProps
                   </ul>
 
                   <div className="rounded-lg border border-border bg-muted/40 p-4">
-                    <p className="mb-1.5 font-mono text-[0.65rem] tracking-widest text-muted-foreground uppercase">
-                      Explicação
-                    </p>
                     {item.explicacao?.trim() ? (
                       <p className="text-sm leading-relaxed whitespace-pre-line text-foreground">
                         {item.explicacao}

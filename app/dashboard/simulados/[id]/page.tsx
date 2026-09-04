@@ -17,7 +17,7 @@ import { MapaResultado } from "@/components/simulado/mapa-resultado"
 import { OndePerdeuPontos } from "@/components/simulado/onde-perdeu-pontos"
 import { GabaritoComentado } from "@/components/simulado/gabarito-comentado"
 import { agruparPorMateria, formatarRitmo } from "@/lib/simulado-prova"
-import { contarEstados, desempenhoPorMateria } from "@/lib/simulado-resultado"
+import { contarEstados, curvaDaProva, desempenhoPorMateria } from "@/lib/simulado-resultado"
 import type { ResultadoSimulado } from "@/lib/services/simulado-resultado"
 import { formatarDataHoraBrasil } from "@/lib/datas"
 import { useIsMobile } from "@/components/ui/use-mobile"
@@ -397,6 +397,10 @@ export default function SimuladoPage({ params }: { params: Promise<{ id: string 
     // conta própria é como elas passam a discordar.
     const contagem = contarEstados(resultado.gabarito)
     const materias = desempenhoPorMateria(resultado.gabarito)
+    // A curva alimenta DUAS superfícies (a leitura no cartão-resposta e a
+    // escolha do próximo passo no topo). Calculada aqui uma vez, elas não têm
+    // como discordar sobre o que aconteceu na prova.
+    const curva = resultado.temOrdem ? curvaDaProva(resultado.gabarito) : null
 
     return (
       // Largura capada e centrada — a única tela do dashboard que faz isso, e
@@ -404,7 +408,7 @@ export default function SimuladoPage({ params }: { params: Promise<{ id: string 
       // linha do enunciado passava de 1300px, muito além da medida confortável
       // de leitura. As outras telas do dashboard são grade de cartões, onde
       // esticar não incomoda.
-      <div className="mx-auto max-w-6xl space-y-5 pb-10">
+      <div className="mx-auto max-w-5xl space-y-8 pb-10">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <Link
@@ -422,25 +426,35 @@ export default function SimuladoPage({ params }: { params: Promise<{ id: string 
             <p className="text-sm text-muted-foreground">
               {resultado.numeroQuestoes} questões
               {resultado.startedAt &&
-                ` · iniciado em ${formatarDataHoraBrasil(resultado.startedAt)}`}
+                `, iniciado em ${formatarDataHoraBrasil(resultado.startedAt)}`}
             </p>
           </div>
 
-          <Button asChild variant="outline">
+          <Button asChild variant="ghost">
             <Link href="/dashboard/simulados">Novo simulado</Link>
           </Button>
         </div>
 
+        {/* Hierarquia em dois níveis, e é isso que o cartão único não dava: o
+            que ACONTECEU na prova vive na página (topo e cartão-resposta); o
+            que se CONSULTA depois mora em cartão (lista de matérias, gabarito).
+            Quatro seções com a mesma borda e o mesmo raio não diziam por onde
+            começar. */}
         <ResultadoHero
           contagem={contagem}
           materias={materias}
+          curva={curva}
           numeroQuestoes={resultado.numeroQuestoes}
           notaDeCorte={resultado.notaDeCorte}
           percentual={resultado.percentual ?? 0}
           anterior={resultado.anterior}
         />
 
-        {resultado.temOrdem && <MapaResultado gabarito={resultado.gabarito} />}
+        {resultado.temOrdem && (
+          <MapaResultado gabarito={resultado.gabarito} curva={curva} />
+        )}
+
+        <hr className="border-border" />
 
         <OndePerdeuPontos materias={materias} />
 

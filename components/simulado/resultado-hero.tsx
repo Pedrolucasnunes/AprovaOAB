@@ -1,38 +1,52 @@
 "use client"
 
-import { TrendingDown, TrendingUp } from "lucide-react"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { META_APROVACAO } from "@/lib/metrics"
 import {
   compararComAnterior,
   concentracaoDeErros,
+  proximoPasso,
   type ContagemResultado,
+  type CurvaProva,
   type MateriaResultado,
 } from "@/lib/simulado-resultado"
 import { cn } from "@/lib/utils"
-import { META_APROVACAO } from "@/lib/metrics"
 
 interface ResultadoHeroProps {
   contagem: ContagemResultado
-  /** Já agregado pela página — a mesma lista que alimenta "onde perdeu pontos". */
+  /** Já agregado pela página — a mesma lista que alimenta "onde errou mais". */
   materias: MateriaResultado[]
+  curva: CurvaProva | null
   numeroQuestoes: number
   notaDeCorte: number
   percentual: number
-  anterior: { percentual: number; acertos: number; numeroQuestoes: number } | null
+  anterior: {
+    percentual: number
+    acertos: number
+    numeroQuestoes: number
+    respondidas: number
+  } | null
 }
 
-const RAIO = 70
-const CIRCUNFERENCIA = 2 * Math.PI * RAIO
-
 /**
- * O topo da tela de resultado: quanto foi, se passou, e o que explica o número.
+ * O topo do resultado: quanto foi, quanto falta pro corte, e o que fazer.
  *
- * O medidor é um círculo INTEIRO começando às 12h, e não um arco de 180° ou
- * 270°, porque assim a nota de corte de 50% cai exatamente às 6h — o traço de
- * referência fica num ponto que se lê sem legenda.
+ * NÃO é um cartão. As quatro seções desta tela tinham a mesma borda, o mesmo
+ * raio e o mesmo fundo, então nada dizia onde começar. O topo agora é a página;
+ * o que vem depois é consulta, e consulta mora em cartão.
+ *
+ * O medidor circular saiu. A OAB é LIMIAR, não proporção — passa com 40 e
+ * pronto —, e um anel responde "que fração do total", que é a pergunta errada:
+ * com 1% ele ficava 99% vazio, gastando o maior elemento da tela pra não dizer
+ * nada. A barra abaixo é a prova inteira em 80 unidades, dividida no que de
+ * fato aconteceu com elas, com o corte marcado onde ele cai. Distância se lê em
+ * linha.
  */
 export function ResultadoHero({
   contagem,
   materias,
+  curva,
   numeroQuestoes,
   notaDeCorte,
   percentual,
@@ -40,202 +54,149 @@ export function ResultadoHero({
 }: ResultadoHeroProps) {
   const passou = contagem.acertos >= notaDeCorte
   const faltam = notaDeCorte - contagem.acertos
+  const sobra = contagem.acertos - notaDeCorte
   const concentracao = concentracaoDeErros(materias)
+  const passo = proximoPasso(contagem, materias, curva)
 
   const comparacao = anterior
     ? compararComAnterior(
-        { acertos: contagem.acertos, percentual, numeroQuestoes },
+        {
+          acertos: contagem.acertos,
+          percentual,
+          numeroQuestoes,
+          respondidas: contagem.respondidas,
+        },
         anterior,
       )
     : null
 
-  const stats = [
-    { label: "Acertos", valor: contagem.acertos, cor: "text-primary" },
-    { label: "Erros", valor: contagem.erros, cor: "text-destructive" },
-    { label: "Em branco", valor: contagem.brancos, cor: "text-muted-foreground" },
-    {
-      label: "Nota de corte",
-      valor: notaDeCorte,
-      cor: "text-foreground",
-      rodape: "acertos",
-    },
-  ]
+  const fatia = (n: number) => `${(n / numeroQuestoes) * 100}%`
+
+  const acao =
+    passo.tipo === "materia"
+      ? {
+          texto: `Treinar ${passo.materia.nome}`,
+          detalhe: `${passo.materia.erros} ${passo.materia.erros === 1 ? "erro" : "erros"} nesta prova`,
+          href: `/dashboard/treino?materia=${passo.materia.subjectId}&origem=simulado_resultado`,
+        }
+      : passo.tipo === "ritmo"
+        ? {
+            texto: "Fazer outro simulado completo",
+            // Aponta pro simulado, não pra um "treino cronometrado": as 5 horas
+            // e as 80 questões só existem aqui, e prometer uma tela que não
+            // existe seria pior que não sugerir nada.
+            detalhe: "as 5 horas cronometradas só existem aqui",
+            href: "/dashboard/simulados",
+          }
+        : {
+            texto: "Fazer outro simulado completo",
+            detalhe: "mantenha o ritmo",
+            href: "/dashboard/simulados",
+          }
 
   return (
-    <section className="rounded-xl border border-border bg-card p-5 sm:p-7">
-      <div className="flex flex-col items-center gap-7 lg:flex-row lg:items-center lg:gap-10">
-        {/* ── Medidor ─────────────────────────────────────────── */}
-        <div className="shrink-0 text-center">
-          {/* A caixa tem EXATAMENTE o tamanho do <svg> (h-44 w-44) de propósito.
-              Antes era um `relative` solto, que como bloco esticava até a
-              largura do pai — definida pela legenda de baixo, mais larga que o
-              círculo. O <svg> é `display:block` pelo preflight do Tailwind,
-              então `text-center` não o centralizava: ele encostava à esquerda
-              dos 234px enquanto a sobreposição se centrava nos 234px, e o "20%"
-              saía 29px fora do centro do círculo. Com a caixa do tamanho do
-              círculo, os dois não têm como divergir. */}
-          <div className="relative mx-auto h-44 w-44">
-            <svg viewBox="0 0 180 180" className="h-44 w-44 -rotate-90">
-              <circle
-                cx="90"
-                cy="90"
-                r={RAIO}
-                fill="none"
-                strokeWidth="12"
-                className="stroke-muted"
-              />
-              <circle
-                cx="90"
-                cy="90"
-                r={RAIO}
-                fill="none"
-                strokeWidth="12"
-                // Ponta reta, não arredondada: o cap redondo acrescenta meio
-                // traço de cada lado, e num aproveitamento de 1% o arco de 4px
-                // virava uma bolinha de 16px — lida como ~4%. O arco tem que
-                // medir o que ele diz que mede.
-                strokeLinecap="butt"
-                strokeDasharray={`${(percentual / 100) * CIRCUNFERENCIA} ${CIRCUNFERENCIA}`}
-                className={cn(passou ? "stroke-primary" : "stroke-destructive")}
-              />
-              {/* Traço da nota de corte: 50% de uma volta = 6h no mostrador.
-                  O `rotate(90)` cancela o `-rotate-90` do <svg>: sem ele o
-                  traço cai às 9h, que não é meia volta de lugar nenhum. */}
-              <line
-                x1="90"
-                y1={90 + RAIO - 9}
-                x2="90"
-                y2={90 + RAIO + 9}
-                strokeWidth="2"
-                className="stroke-foreground/60"
-                transform="rotate(90 90 90)"
-              />
-            </svg>
+    <section className="space-y-6">
+      <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          {passou
+            ? sobra === 0
+              ? "Você ficou exatamente na nota de corte."
+              : `Você passaria, com ${sobra} ${sobra === 1 ? "acerto" : "acertos"} de folga.`
+            : `Faltam ${faltam} ${faltam === 1 ? "acerto" : "acertos"} para a nota de corte.`}
+        </p>
 
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <p
-                className={cn(
-                  "text-4xl font-bold tabular-nums",
-                  passou ? "text-primary" : "text-destructive",
-                )}
-              >
-                {Math.round(percentual)}%
-              </p>
-              <p className="text-[0.65rem] tracking-widest text-muted-foreground uppercase">
-                Aproveitamento
-              </p>
-              <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
-                {contagem.acertos} de {numeroQuestoes} acertos
-              </p>
-            </div>
-          </div>
-
-          <p className="mt-3 text-xs text-muted-foreground">
-            <span className="mr-1.5 inline-block h-px w-3 bg-foreground/60 align-middle" />
-            nota de corte da OAB: {META_APROVACAO}% ({notaDeCorte} acertos)
-          </p>
-        </div>
-
-        {/* ── Leitura ─────────────────────────────────────────── */}
-        <div className="min-w-0 flex-1 text-center lg:text-left">
+        <p className="flex items-baseline gap-3">
           <span
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[0.7rem] font-medium tracking-wide uppercase",
-              passou
-                ? "bg-primary/10 text-primary"
-                : "bg-destructive/10 text-destructive",
+              "font-display text-6xl leading-none font-semibold tabular-nums sm:text-7xl",
+              passou ? "text-primary" : "text-foreground",
             )}
           >
-            <span
-              className={cn(
-                "h-1.5 w-1.5 rounded-full",
-                passou ? "bg-primary" : "bg-destructive",
-              )}
-            />
-            {passou ? "Acima da nota de corte" : "Abaixo da nota de corte"}
+            {contagem.acertos}
           </span>
+          <span className="text-lg text-muted-foreground">de {numeroQuestoes} acertos</span>
+        </p>
+      </div>
 
-          {/* Fala do SIMULADO, não da prova. "Faltam 24 acertos pra você passar
-              da 1ª fase" transforma uma medição num prognóstico sobre um exame
-              que ainda não aconteceu. */}
-          <h2 className="mt-3 text-2xl font-bold text-balance text-foreground sm:text-3xl">
-            {passou
-              ? `Você ficou ${contagem.acertos - notaDeCorte === 0 ? "exatamente na" : `${contagem.acertos - notaDeCorte} acerto${contagem.acertos - notaDeCorte > 1 ? "s" : ""} acima da`} nota de corte.`
-              : `Faltam ${faltam} acerto${faltam > 1 ? "s" : ""} pra nota de corte.`}
-          </h2>
+      {/* ── A prova inteira em uma barra ───────────────────────────
+          Substitui o anel E os quatro cartões de número: mostra a composição
+          das 80 e onde o corte cai, no mesmo objeto. */}
+      <div>
+        <div
+          role="img"
+          aria-label={`${contagem.acertos} acertos, ${contagem.erros} erros e ${contagem.brancos} em branco, de ${numeroQuestoes} questões. A nota de corte é ${notaDeCorte}.`}
+          className="relative flex h-3 overflow-hidden rounded-full bg-muted"
+        >
+          <div style={{ width: fatia(contagem.acertos) }} className="bg-primary" />
+          <div style={{ width: fatia(contagem.erros) }} className="bg-destructive/70" />
 
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            Você acertou {contagem.acertos} de {numeroQuestoes} e a OAB exige{" "}
-            {notaDeCorte}.
-            {contagem.brancos > 0 && (
+          {/* O corte é uma referência, não um estado: âmbar, não verde nem
+              vermelho. Fica por cima das fatias porque é uma linha na régua. */}
+          <span
+            aria-hidden
+            style={{ left: fatia(notaDeCorte) }}
+            className="absolute inset-y-0 w-0.5 -translate-x-1/2 bg-chart-3"
+          />
+        </div>
+
+        <div className="mt-2 flex items-start justify-between gap-4 text-sm">
+          <p className="text-muted-foreground">
+            <span className="text-primary">
+              {contagem.acertos} {contagem.acertos === 1 ? "certa" : "certas"}
+            </span>
+            {contagem.erros > 0 && (
               <>
-                {" "}
-                Ficaram <strong className="text-foreground">{contagem.brancos} em branco</strong> —
-                elas contam como erro na nota, mas não dizem nada sobre o que
-                você sabe.
+                ,{" "}
+                <span className="text-destructive">
+                  {contagem.erros} {contagem.erros === 1 ? "errada" : "erradas"}
+                </span>
               </>
             )}
-            {concentracao && (
-              <>
-                {" "}
-                {concentracao.erros} dos seus {concentracao.totalErros} erros estão
-                em só {concentracao.areas} áreas, então há um caminho curto pra
-                ganhar pontos.
-              </>
-            )}
+            {contagem.brancos > 0 && <>, {contagem.brancos} em branco</>}
           </p>
-
-          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {stats.map((stat) => (
-              <div
-                key={stat.label}
-                className="rounded-lg border border-border bg-background px-3 py-2.5 text-left"
-              >
-                <p className="text-[0.65rem] tracking-widest text-muted-foreground uppercase">
-                  {stat.label}
-                </p>
-                <p className={cn("text-2xl font-bold tabular-nums", stat.cor)}>
-                  {stat.valor}
-                </p>
-                {stat.rodape && (
-                  <p className="text-[0.65rem] text-muted-foreground">{stat.rodape}</p>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {comparacao && comparacao.delta !== 0 && (
-            <p
-              className={cn(
-                "mt-4 flex items-center justify-center gap-2 border-l-2 pl-3 text-sm lg:justify-start",
-                comparacao.delta > 0
-                  ? "border-primary text-muted-foreground"
-                  : "border-destructive text-muted-foreground",
-              )}
-            >
-              {comparacao.delta > 0 ? (
-                <TrendingUp className="h-4 w-4 shrink-0 text-primary" />
-              ) : (
-                <TrendingDown className="h-4 w-4 shrink-0 text-destructive" />
-              )}
-              <span>
-                <strong
-                  className={comparacao.delta > 0 ? "text-primary" : "text-destructive"}
-                >
-                  {comparacao.delta > 0 ? "+" : ""}
-                  {comparacao.delta}{" "}
-                  {comparacao.unidade === "acertos"
-                    ? Math.abs(comparacao.delta) === 1
-                      ? "acerto"
-                      : "acertos"
-                    : "pontos percentuais"}
-                </strong>{" "}
-                em relação ao seu simulado anterior.
-              </span>
-            </p>
-          )}
+          <p className="shrink-0 text-chart-3">corte: {notaDeCorte}</p>
         </div>
       </div>
+
+      <div className="max-w-prose space-y-2 text-sm leading-relaxed text-muted-foreground">
+        {contagem.brancos > 0 && (
+          <p>
+            As {contagem.brancos} em branco contam como erro na nota, mas não dizem
+            nada sobre o que você sabe — por isso elas aparecem separadas aqui.
+          </p>
+        )}
+        {concentracao && (
+          <p>
+            {concentracao.erros} dos seus {concentracao.totalErros} erros estão em só{" "}
+            {concentracao.areas} áreas, então há um caminho curto para ganhar pontos.
+          </p>
+        )}
+        {comparacao && comparacao.delta !== 0 && (
+          <p>
+            São {comparacao.delta > 0 ? "mais" : "menos"}{" "}
+            <span className={comparacao.delta > 0 ? "text-primary" : "text-destructive"}>
+              {Math.abs(comparacao.delta)}{" "}
+              {comparacao.unidade === "acertos"
+                ? Math.abs(comparacao.delta) === 1
+                  ? "acerto"
+                  : "acertos"
+                : "pontos percentuais"}
+            </span>{" "}
+            que no seu simulado anterior.
+          </p>
+        )}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <Button asChild size="lg">
+          <Link href={acao.href}>{acao.texto}</Link>
+        </Button>
+        <p className="text-sm text-muted-foreground">{acao.detalhe}</p>
+      </div>
+
+      <p className="sr-only">
+        A nota de corte da OAB é {META_APROVACAO}% das questões.
+      </p>
     </section>
   )
 }

@@ -77,7 +77,11 @@ export function ResultadoHero({
       ? {
           texto: `Treinar ${passo.materia.nome}`,
           detalhe: `${passo.materia.erros} ${passo.materia.erros === 1 ? "erro" : "erros"} nesta prova`,
-          href: `/dashboard/treino?materia=${passo.materia.subjectId}&origem=simulado_resultado`,
+          // `quantidade=20` porque o padrão do treino é 10, e 10 questões depois
+          // de uma prova de 5 horas não é sessão de estudo. O número NÃO vai na
+          // copy: quando o banco não tem questão inédita suficiente o treino
+          // serve menos, e prometer "20 questões" viraria 14 sem aviso.
+          href: `/dashboard/treino?materia=${passo.materia.subjectId}&quantidade=20&origem=simulado_resultado`,
         }
       : passo.tipo === "ritmo"
         ? {

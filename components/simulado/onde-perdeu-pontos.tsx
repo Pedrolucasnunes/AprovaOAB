@@ -81,9 +81,11 @@ export function OndePerdeuPontos({ materias }: OndePerdeuPontosProps) {
               </span>
 
               {materia.subjectId ? (
+                // Mesmo tamanho de sessão do CTA do topo — dois caminhos pro
+                // mesmo lugar não podem entregar coisas diferentes.
                 <Button asChild variant="outline" size="sm" className="shrink-0">
                   <Link
-                    href={`/dashboard/treino?materia=${materia.subjectId}&origem=simulado_resultado`}
+                    href={`/dashboard/treino?materia=${materia.subjectId}&quantidade=20&origem=simulado_resultado`}
                   >
                     Treinar
                   </Link>

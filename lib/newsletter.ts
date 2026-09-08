@@ -41,6 +41,15 @@ export type NewsletterEdicao = {
   dica: string
   /** Dias restantes até a prova. null = não exibe a contagem. */
   examDays?: number | null
+  /**
+   * Qual prova a contagem conta. Padrão: "pra prova".
+   *
+   * Virou necessário na #14, a primeira edição depois de uma 1ª fase: com o 47º
+   * aplicado no domingo e o 48º marcado pra 10/01/2027, "faltam N dias pra
+   * prova" tem dois leitores e duas provas. O rótulo genérico só é seguro
+   * enquanto existe UMA prova no horizonte de todo mundo.
+   */
+  examLabel?: string
 }
 
 // ── Paleta ───────────────────────────────────────────────────────────────────
@@ -138,7 +147,7 @@ export function buildNewsletterHtml(
 
   const contagem =
     ed.examDays != null
-      ? `<p style="margin:0 0 6px 0;color:${GOLD};font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">⏳ Faltam ${ed.examDays} dias pra prova</p>`
+      ? `<p style="margin:0 0 6px 0;color:${GOLD};font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">⏳ Faltam ${ed.examDays} dias ${ed.examLabel ?? "pra prova"}</p>`
       : ""
 
   return `<!DOCTYPE html>
@@ -796,7 +805,82 @@ export const EDICAO_13: NewsletterEdicao = {
   examDays: 5,
 }
 
+// Primeira edição DEPOIS de uma 1ª fase, e a única que cai dentro da janela de
+// recurso (0h de 8/9 a 23h59 de 10/9) — sai na terça de manhã, dia 1 dos 3. Por
+// isso o perecível abre a edição e o ciclo do 48º vem depois: o 48º ainda é
+// verdade na semana que vem; o recurso, não.
+//
+// Datas conferidas em oab.org.br (comunicado do gabarito preliminar, nº 64579, e
+// o cronograma atualizado do 47º/48º, nº 64207) — as mesmas fontes de
+// lib/editais.ts, onde o 48º entrou junto com esta edição.
+export const EDICAO_14: NewsletterEdicao = {
+  numero: 14,
+  subject: "☕ Café com OAB #14 — o recurso fecha quinta; o 48º já tem data",
+  preheader:
+    "0h de terça a 23h59 de quinta, 1 recurso por questão. Depois disso, 124 dias até 10 de janeiro.",
+  intro: [
+    "Acabou. 🫡 A prova de domingo foi das 13h às 18h e o <strong>gabarito preliminar saiu no mesmo dia, às 19h20</strong> — em quatro tipos de caderno, no oab.fgv.br. Se você ainda não conferiu, confira antes de ler o resto desta edição: o que vem agora depende de você saber onde está.",
+    "Porque hoje abre a <strong>única janela em que ainda dá pra mexer nesse resultado</strong>. O prazo de recurso contra o gabarito começou <strong>à 0h de hoje (8/9)</strong> e termina <strong>quinta (10/9), às 23h59</strong> de Brasília. Três dias, e nenhum minuto a mais. Os detalhes de como se faz estão logo abaixo. ⏰",
+    "E se a sua prova não foi essa — ou se ela foi e você já está de olho na próxima — o calendário do <strong>48º Exame</strong> já está de pé: <strong>1ª fase em 10 de janeiro de 2027</strong>. São <strong>124 dias</strong>, que é tempo suficiente pra fazer isso com método em vez de com pânico. A pergunta é por onde começar, e fui atrás dela nas <strong>27 provas completas</strong> do nosso banco. O resultado está no termômetro. ⚖️",
+  ],
+  termometro:
+    "🟡 <strong>A matéria que ninguém teme.</strong> Contei disciplina por disciplina nas <strong>27 provas completas</strong> do banco: <strong>Direito Civil vale 6,8 questões por prova</strong>, esteve presente em <strong>27 de 27 exames</strong> e <strong>nunca caiu menos de 6</strong> (máximo 8). É a <strong>3ª maior da prova</strong>, atrás só de Ética (8,3) e Constitucional (7,5). Agora o outro lado: na plataforma, Civil é uma das matérias em que as pessoas <strong>mais acertam</strong> — <strong>58% em 130 respostas</strong>. Parece boa notícia, e é aí que mora o problema. 58% de 6,8 questões significa <strong>deixar quase 3 pontos por prova</strong> numa matéria que ninguém marca como prioridade, porque ela “não é das difíceis”. Com corte em <strong>40 de 80</strong>, 3 pontos não são detalhe: é o vazamento mais silencioso da prova — grande o bastante pra doer, confortável o bastante pra não ser estudado.",
+  questao: {
+    // n = 8 (2 acertos, 25%) -- bate exatamente o piso de n>=8, entao o titulo
+    // padrao se sustenta: a `fonte` carrega a taxa real da plataforma.
+    fonte:
+      "FGV · Exame de Ordem XLI/2024 · dificuldade média · 6 em cada 8 erraram na plataforma",
+    enunciado:
+      "Adriana é fisioterapeuta e prestou serviços a Vitória (sessões de fisioterapia). Como contraprestação ao serviço prestado, Vitória se comprometeu a pagar a quantia de R$ 1.000,00 a Adriana. A obrigação foi registrada em instrumento contratual escrito. Posteriormente, Adriana cedeu seu crédito contra Vitória para Paulo. Sobre a cessão do crédito de Adriana para Paulo, assinale a afirmativa correta.",
+    alternativas: [
+      {
+        letra: "A",
+        texto:
+          "É inválida, pois a natureza do crédito resultante de contrato de prestação de serviços não é compatível com a cessão.",
+      },
+      {
+        letra: "B",
+        texto:
+          "É ineficaz perante Vitória, salvo se ela tiver sido devidamente notificada do referido negócio ou se ela tiver se declarado ciente da cessão feita.",
+      },
+      {
+        letra: "C",
+        texto:
+          "Antes de ter tido conhecimento dela, Vitória não poderá opor a Paulo o eventual pagamento da dívida que já tenha efetuado a Adriana.",
+      },
+      {
+        letra: "D",
+        texto:
+          "Não havendo estipulação em contrário, caso Vitória se torne insolvente, Adriana responderá a Paulo pela dívida cedida.",
+      },
+    ],
+    gabarito: "B",
+    comentario:
+      "O <strong>art. 290 do Código Civil</strong> resolve a questão, e a letra B é ele quase palavra por palavra: “<em>A cessão do crédito não tem eficácia em relação ao devedor, senão quando a este notificada; mas por notificado se tem o devedor que, em escrito público ou particular, <strong>se declarou ciente da cessão feita</strong></em>”. 🔍 Repare no fecho da alternativa — “<em>ou se ela tiver se declarado ciente da cessão feita</em>” — é a <strong>segunda metade do artigo, copiada</strong>. É o mesmo movimento da FGV que vimos na edição passada com o art. 17 do Estatuto: quem leu o dispositivo reconhece a frase e resolve em dez segundos. E note o que o artigo <strong>não</strong> diz: a cessão não é inválida sem notificação, nem depende da autorização de Vitória. Ela é <strong>válida entre Adriana e Paulo desde já</strong> — só não produz efeito <em>contra a devedora</em> antes de ela saber. Validade e eficácia são coisas diferentes, e a questão inteira mora nessa distinção. Resposta: <strong>B</strong>.",
+  },
+  pegadinha:
+    "Aqui está o achado que vale a edição: <strong>três das quatro alternativas são artigos reais do mesmo capítulo do Código Civil — dois deles enunciados ao contrário.</strong> 🎭 A FGV não inventou distrator: ela pegou a regra certa e virou o sinal. <strong>A letra C é o art. 292 de cabeça pra baixo.</strong> O artigo diz que “<em>fica desobrigado o devedor que, antes de ter conhecimento da cessão, paga ao credor primitivo</em>”; a alternativa afirma justamente que Vitória <em>não</em> poderia opor esse pagamento a Paulo. É o oposto — e é o oposto injusto, porque puniria alguém por não saber de um negócio que ninguém lhe contou. <strong>A letra D é o art. 296 de cabeça pra baixo.</strong> O artigo diz que “<em>salvo estipulação em contrário, o cedente <strong>não</strong> responde pela solvência do devedor</em>”; a alternativa faz Adriana responder exatamente no silêncio das partes. Quem cede um crédito garante que ele <strong>existe</strong> (art. 295), não que ele vai ser <strong>pago</strong>. 🧠 Só a letra A é invenção pura — e cai pelo <strong>art. 286</strong>: crédito em dinheiro por serviço prestado é cedível como qualquer outro. <strong>Fixa assim:</strong> nesse capítulo, quando a alternativa fizer o devedor pagar duas vezes ou o cedente virar fiador, ela está invertida.",
+  noticia: {
+    titulo: "📰 Tá rolando: o recurso abre hoje — e o 48º já tem calendário",
+    texto:
+      "⏰ <strong>O prazo de recurso contra o gabarito preliminar vai de 0h de hoje (8/9) até 23h59 de quinta (10/9)</strong>, horário oficial de Brasília. É <strong>exclusivamente eletrônico</strong>, no <strong>Sistema Eletrônico de Interposição de Recursos</strong>, dentro do portal da FGV — não vale e-mail, não vale protocolo em seccional. Duas regras que decidem quem consegue: <strong>1 recurso por questão</strong> (não dá pra completar depois de enviar, então escreva antes e revise) e <strong>limite de 5.000 caracteres</strong> por recurso. 📝 Recurso não é desabafo: o que move a banca é <strong>dispositivo, súmula ou jurisprudência</strong> apontando que o gabarito contraria a lei ou que outra alternativa também está correta. E vale saber: quando a banca acolhe, a mudança de gabarito ou a anulação <strong>vale pra todo mundo</strong>, não só pra quem recorreu — mas só existe se alguém escrever. 📅 <strong>Depois disso, as datas do 47º:</strong> gabarito definitivo e <strong>resultado preliminar da 1ª fase em 23/09</strong>, <strong>resultado final em 05/10</strong>, e <strong>2ª fase em 18/10</strong>. Faça essa conta com atenção: entre saber que passou e a prova prático-profissional existem <strong>25 dias</strong>. Quem tem chance real de aprovação começa a 2ª fase agora, não no dia 23. 🗓️ <strong>E o 48º Exame já está no calendário oficial da OAB:</strong> edital de abertura previsto pra <strong>21/09</strong>, <strong>inscrições de 28/09 a 05/10</strong> — <strong>oito dias, e é o único prazo desta lista que não tem recurso</strong> —, <strong>1ª fase em 10/01/2027</strong> e 2ª fase em 28/02/2027. Quem foi aprovado na 1ª fase do 47º e não concluir a 2ª tem <strong>reaproveitamento</strong>: edital complementar em 13/11 e inscrições de 23 a 30/11. Todas essas datas estão reunidas em <a href=\"" +
+      APP_URL +
+      "/editais\" style=\"color:#c8a04a;font-weight:600;\">aprovaoab.app.br/editais</a>.",
+  },
+  curiosidade: {
+    titulo: "💡 Você sabia?",
+    texto:
+      "A notificação do art. 290 parece burocracia, mas ela existe pra proteger quem <strong>não escolheu nada</strong>. 🤝 Numa cessão de crédito, credor e cessionário combinam tudo entre si — a devedora, Vitória, é a única que sofre o efeito sem ter opinado. Por isso o Código a protege por dois lados. O primeiro é a <strong>eficácia</strong>: enquanto ela não souber, a cessão simplesmente não a alcança, e pagar a Adriana continua sendo pagar direito. O segundo é mais bonito e cai pouco: o <strong>art. 294</strong> garante que ela pode opor ao cessionário “<em>as exceções que lhe competirem, bem como as que, no momento em que veio a ter conhecimento da cessão, tinha contra o cedente</em>”. Ou seja — se Vitória tinha uma defesa contra Adriana (o serviço nunca foi prestado, a dívida já estava compensada), ela <strong>leva essa defesa junto</strong> contra Paulo. 🛡️ A ideia é simples e vale como bússola pra todo o capítulo: <strong>a cessão troca o credor, mas não pode piorar a posição de quem deve</strong>. Você pode vender o seu crédito pra quem quiser; o que você não pode é, com isso, transformar a dívida da outra pessoa numa dívida pior do que ela contraiu. 😉",
+  },
+  dica:
+    "Se você fez domingo: até <strong>quinta</strong>, o recurso; depois dele, <strong>não existe mais nada sob seu controle até 23/09</strong>. Descanse de verdade — e, se a conta do gabarito ficou perto ou acima de 40, comece a 2ª fase esta semana, porque 25 dias entre o resultado e a prova não dão pra começar do zero. 🧭 <strong>E se a sua é 10 de janeiro:</strong> 124 dias é bastante — o suficiente pra não repetir o erro clássico, que é estudar por gosto (a matéria de que você gosta) em vez de por peso. Nas 27 provas do banco a ordem de peso é esta: <strong>Ética 8,3 · Constitucional 7,5 · Civil 6,8 · Processo Civil 6,6 · Penal 6,1 · Processo Penal 5,7</strong>. Essas seis sozinhas são mais da metade da prova. 📌 Um jeito de organizar os 124 dias: <strong>esta semana não é de estudar, é de medir</strong> — descubra onde você está de verdade antes de montar plano nenhum, senão você monta o plano da pessoa que você imagina ser. Depois, <strong>até 21/09</strong> (edital), feche o essencial de Ética, que é a maior e a mais literal. <strong>Entre 28/09 e 05/10</strong>, faça a inscrição no primeiro dia e tire isso da cabeça: é o único prazo desta edição que, perdido, não volta. E do dia 6 de outubro até o Natal, o ciclo comum — matéria pesada de manhã, questões à tarde, simulado a cada 15 dias no horário da prova. 🎯 Se quiser começar pela medição, o <a href=\"" +
+    APP_URL +
+    "/dashboard\" style=\"color:#c8a04a;font-weight:600;\">diagnóstico</a> leva 10 minutos e devolve o mapa por matéria — é de graça e é exatamente o passo desta semana. Bom recurso pra quem vai recorrer, e bom começo pra quem está começando. 🍀",
+  examDays: 124,
+  examLabel: "até a 1ª fase do 48º",
+}
+
 // ATENÇÃO: o cron de segunda recria o rascunho da CURRENT_EDICAO sem checar se ela
 // já foi enviada. Esquecer de mover este ponteiro gera, no Resend, um rascunho
 // idêntico ao da semana passada — foi o que aconteceu em 03/ago/2026 com a #8.
-export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_13
+export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_14

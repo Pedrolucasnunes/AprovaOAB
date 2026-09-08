@@ -36,10 +36,14 @@ export async function generateMetadata({
   if (!edital) return {}
 
   const title = `Edital do ${edital.ordinal} Exame OAB — datas, inscrição e cronograma`
+  // Sem taxa anunciada a frase muda em vez de imprimir "taxa de null" — a
+  // description é o que o Google mostra no resultado, e ali não cabe placeholder.
   const description =
     `Cronograma do ${edital.ordinal} Exame de Ordem (OAB): 1ª fase em ` +
     `${formatBr(edital.dataPrimeiraFase)}, 2ª fase em ${formatBr(edital.dataSegundaFase)}, ` +
-    `inscrição, taxa de ${edital.taxaInscricao} e todas as datas oficiais da FGV.`
+    (edital.taxaInscricao
+      ? `inscrição, taxa de ${edital.taxaInscricao} e todas as datas oficiais da FGV.`
+      : `inscrição e todas as datas já anunciadas pela OAB e pela FGV.`)
   const canonical = `/editais/${edital.slug}`
 
   return {
@@ -135,7 +139,11 @@ export default async function EditalPage({
         </p>
       )}
 
-      {/* Edital oficial — destaque no topo (fonte autoritativa, E-E-A-T) */}
+      {/* Fonte oficial — destaque no topo (fonte autoritativa, E-E-A-T).
+          Antes do edital de abertura o documento não existe: chamar o link de
+          "edital oficial" mandaria o leitor procurar um PDF que ninguém publicou.
+          O que existe é o comunicado da OAB com o cronograma, e é isso que o
+          rótulo diz. */}
       <a
         href={edital.fonteOficialUrl}
         target="_blank"
@@ -145,10 +153,14 @@ export default async function EditalPage({
         <FileText className="h-5 w-5 shrink-0 text-primary" />
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-medium text-foreground">
-            Edital oficial do {edital.ordinal} Exame (FGV)
+            {edital.publicado
+              ? `Edital oficial do ${edital.ordinal} Exame (FGV)`
+              : `Cronograma oficial do ${edital.ordinal} Exame (OAB)`}
           </span>
           <span className="block text-xs text-muted-foreground">
-            Documento completo no site da FGV — inscrição, regras e conteúdo programático.
+            {edital.publicado
+              ? "Documento completo no site da FGV — inscrição, regras e conteúdo programático."
+              : "Comunicado do Conselho Federal da OAB com as datas — o edital de abertura ainda não saiu."}
           </span>
         </span>
         <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -180,14 +192,24 @@ export default async function EditalPage({
         ))}
       </ul>
 
-      {/* Taxa */}
+      {/* Taxa. A seção nunca some: "ainda não foi divulgada" responde a pergunta
+          de quem chegou aqui buscando o valor. Seção ausente lê como omissão. */}
       <h2 className="mt-10 text-lg font-semibold text-foreground">Taxa de inscrição</h2>
-      <p className="mt-2 text-base leading-relaxed text-muted-foreground">
-        O valor da taxa de inscrição do {edital.ordinal} Exame é de{" "}
-        <strong className="font-semibold text-foreground">{edital.taxaInscricao}</strong>, com prazo
-        de pagamento conforme o cronograma acima. Candidatos que atendem aos requisitos podem
-        solicitar isenção dentro do período de inscrição.
-      </p>
+      {edital.taxaInscricao ? (
+        <p className="mt-2 text-base leading-relaxed text-muted-foreground">
+          O valor da taxa de inscrição do {edital.ordinal} Exame é de{" "}
+          <strong className="font-semibold text-foreground">{edital.taxaInscricao}</strong>, com
+          prazo de pagamento conforme o cronograma acima. Candidatos que atendem aos requisitos
+          podem solicitar isenção dentro do período de inscrição.
+        </p>
+      ) : (
+        <p className="mt-2 text-base leading-relaxed text-muted-foreground">
+          A taxa do {edital.ordinal} Exame{" "}
+          <strong className="font-semibold text-foreground">ainda não foi divulgada</strong> — o
+          valor é definido no edital de abertura. Candidatos que atendem aos requisitos podem
+          solicitar isenção dentro do prazo que o edital estabelecer.
+        </p>
+      )}
 
       {/* Checklist */}
       <h2 className="mt-10 text-lg font-semibold text-foreground">Passo a passo da inscrição</h2>

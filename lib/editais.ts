@@ -29,7 +29,17 @@ export type Edital = {
   ordinal: string // "47º"
   ano: number // 2026
   publicado: boolean // o edital oficial já saiu? (false → página de "previsão")
-  taxaInscricao: string // "R$ 350,00"
+  /**
+   * "R$ 350,00", ou `null` enquanto a FGV não anunciou o valor.
+   *
+   * Nulável porque o calendário da OAB sai MESES antes do edital de abertura, e
+   * é ele que traz as datas: quando o 48º entrou aqui (set/2026), a taxa ainda
+   * não existia em lugar nenhum. Repetir os R$ 350 do exame anterior seria
+   * inventar valor — exatamente o que a regra no topo deste arquivo proíbe —, e
+   * o leitor não teria como saber que aquele número era chute. A página troca a
+   * frase inteira quando vem `null`; não exibe "R$ 0,00" nem esconde a seção.
+   */
+  taxaInscricao: string | null
   fonteOficialUrl: string // link pro edital/calendário oficial (nunca hospedar o PDF)
   atualizadoEm: string // ISO — data da última revisão manual deste registro
   dataPrimeiraFase: string // ISO "2026-09-06" (schema.org Event + metadata + contagem)
@@ -118,7 +128,108 @@ const EDICAO_47: Edital = {
   ],
 }
 
-export const EDITAIS: Edital[] = [EDICAO_47]
+// O 48º entra ANTES do edital de abertura (previsto pra 21/09/2026), com
+// `publicado: false`. Não é adiantamento: as datas abaixo saíram do comunicado
+// oficial do Conselho Federal da OAB com a FGV (oab.org.br/noticia/64207), que é
+// onde o cronograma nasce — o edital depois o detalha (isenção, gabarito,
+// resultados) sem mudar as datas de prova.
+//
+// Entrar agora tem um motivo concreto: `proximaPrimeiraFase()` devolve `null`
+// quando não há 1ª fase futura em EDITAIS, e em 07/09/2026 — o dia seguinte à
+// prova do 47º — ela passou a devolver exatamente isso. A contagem regressiva
+// sumiu do dashboard e o /editais ficou listando só exame encerrado, sem que
+// nada quebrasse ou falhasse no build. Era o apodrecimento silencioso que o
+// comentário de `proximaPrimeiraFase` previu; o conserto é ter sempre o próximo
+// exame aqui.
+//
+// O que NÃO está aqui porque ainda não existe: taxa, isenção, divulgação de
+// locais, gabarito e resultados. Voltar quando o edital sair, virar `publicado`
+// pra `true`, preencher a taxa e trocar `fonteOficialUrl` pela página do exame
+// no portal da FGV.
+const EDICAO_48: Edital = {
+  slug: "48-exame-oab",
+  numero: 48,
+  ordinal: "48º",
+  // Ano das PROVAS, não o do edital: as duas fases caem em 2027. É esse número
+  // que vira o selo do card no hub, ao lado de "48º Exame de Ordem".
+  ano: 2027,
+  publicado: false,
+  taxaInscricao: null,
+  // Comunicado oficial da OAB com o cronograma atualizado do 47º e do 48º. A
+  // página do 48º no portal da FGV só existe a partir do edital de abertura —
+  // até lá, apontar pra oab.fgv.br seria mandar o leitor pra um lugar onde a
+  // informação não está.
+  fonteOficialUrl:
+    "https://www.oab.org.br/noticia/64207/oab-comunica-atualizacao-dos-cronogramas-do-47-e-48-exames-de-ordem",
+  atualizadoEm: "2026-09-07",
+  dataPrimeiraFase: "2027-01-10",
+  dataSegundaFase: "2027-02-28",
+  resumo:
+    "O 48º Exame de Ordem Unificado tem a 1ª fase (prova objetiva) marcada para 10 de janeiro de " +
+    "2027 e a 2ª fase (prova prático-profissional) para 28 de fevereiro de 2027, conforme o " +
+    "cronograma divulgado pelo Conselho Federal da OAB em conjunto com a FGV. O edital de abertura " +
+    "está previsto para 21 de setembro de 2026, com inscrições de 28 de setembro a 5 de outubro. " +
+    "Abaixo estão todas as datas já anunciadas — a taxa de inscrição e as datas de gabarito e " +
+    "resultado só serão conhecidas quando o edital for publicado.",
+  cronograma: [
+    // Sem `obs`: o campo existe no tipo mas NÃO é renderizado por
+    // app/editais/[slug]/page.tsx, então qualquer texto ali some da tela sem
+    // erro nenhum. O que o leitor precisa saber vai no `label`.
+    { label: "Publicação do edital de abertura", data: "21/09/2026" },
+    { label: "Período de inscrições (8 dias)", data: "28/09 a 05/10/2026" },
+    {
+      label: "Edital complementar — reaproveitamento da 1ª fase do 47º",
+      data: "13/11/2026",
+    },
+    { label: "Inscrições para o reaproveitamento", data: "23 a 30/11/2026" },
+    { label: "1ª fase — Prova Objetiva", data: "10/01/2027", destaque: true },
+    { label: "2ª fase — Prova Prático-Profissional", data: "28/02/2027", destaque: true },
+  ],
+  checklist: [
+    "Acompanhe a publicação do edital de abertura, prevista para 21 de setembro de 2026.",
+    "Acesse o site oficial da FGV (oab.fgv.br) entre 28 de setembro e 5 de outubro de 2026 — a inscrição dura oito dias.",
+    "Crie ou atualize seu cadastro com os dados pessoais e o documento de identidade.",
+    "Preencha a ficha de inscrição e escolha a cidade onde deseja fazer a prova.",
+    "Se for o caso, solicite a isenção da taxa dentro do prazo que o edital definir (costuma coincidir com a janela de inscrição).",
+    "Gere e pague o boleto até o prazo limite do edital — sem o pagamento, a inscrição não é confirmada.",
+  ],
+  faq: [
+    {
+      pergunta: "Quando é a prova da 1ª fase do 48º Exame da OAB?",
+      resposta:
+        "A 1ª fase (prova objetiva) do 48º Exame de Ordem está marcada para 10 de janeiro de 2027, " +
+        "conforme o cronograma divulgado pela OAB e pela FGV. A 2ª fase acontece em 28 de fevereiro " +
+        "de 2027.",
+    },
+    {
+      pergunta: "Quando abrem as inscrições do 48º Exame de Ordem?",
+      resposta:
+        "As inscrições estão previstas para 28 de setembro a 5 de outubro de 2026, depois da " +
+        "publicação do edital de abertura, prevista para 21 de setembro de 2026.",
+    },
+    {
+      pergunta: "Quanto custa a inscrição no 48º Exame de Ordem?",
+      resposta:
+        "O valor ainda não foi divulgado — ele é definido no edital de abertura, previsto para 21 de " +
+        "setembro de 2026. Como referência, a taxa do 47º Exame foi de R$ 350,00.",
+    },
+    {
+      pergunta: "Fui aprovado na 1ª fase do 47º Exame. Preciso fazer a 1ª fase de novo?",
+      resposta:
+        "Não. Quem foi aprovado na 1ª fase do 47º Exame e não concluiu a 2ª pode aproveitar essa " +
+        "aprovação no 48º Exame. O edital complementar do reaproveitamento está previsto para 13 de " +
+        "novembro de 2026, com inscrições de 23 a 30 de novembro de 2026.",
+    },
+    {
+      pergunta: "Qual é a nota de corte da 1ª fase da OAB?",
+      resposta:
+        "A 1ª fase tem 80 questões de múltipla escolha. É preciso acertar pelo menos 40 (50%) para " +
+        "ser aprovado e avançar à 2ª fase.",
+    },
+  ],
+}
+
+export const EDITAIS: Edital[] = [EDICAO_47, EDICAO_48]
 
 /** Todos os editais, do mais recente pro mais antigo. */
 export function getEditais(): Edital[] {

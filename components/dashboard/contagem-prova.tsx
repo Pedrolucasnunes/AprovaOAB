@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { ArrowRight, CalendarClock } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import type { ProximaProva } from "@/lib/editais"
+import { fraseDaContagem, nomeDaProva, type ProximaProva } from "@/lib/editais"
 
 /**
  * Contagem regressiva da 1ª fase + o próximo passo concreto.
@@ -69,28 +69,6 @@ export function proximoPasso(estado: EstadoDoAluno): ProximoPasso {
   }
 }
 
-/**
- * Como a prova é nomeada nas duas posições sintáticas em que ela aparece.
- *
- * São dois campos e não um porque o português não deixa derivar um do outro:
- * "pra 1ª fase" perde o artigo que "A 1ª fase é hoje" exige, e concatenar
- * "pra" + "a 1ª fase" dá "pra a" (o "pra" já contém o artigo). Derivar isso
- * com regra daria certo em português e errado em qualquer palavra nova.
- */
-export interface NomeDaProva {
-  /** Depois de "pra": "pra 1ª fase do 47º Exame" / "pra sua prova". */
-  comPreposicao: string
-  /** Como sujeito: "A 1ª fase do 47º Exame é hoje" / "Sua prova é hoje". */
-  comoSujeito: string
-}
-
-/** A frase inteira, não só o número — a regência muda com a contagem. */
-export function fraseDaContagem(dias: number, nome: NomeDaProva): string {
-  if (dias <= 0) return `${nome.comoSujeito} é hoje`
-  if (dias === 1) return `Falta 1 dia pra ${nome.comPreposicao}`
-  return `Faltam ${dias} dias pra ${nome.comPreposicao}`
-}
-
 export function ContagemProva({
   prova,
   estado,
@@ -99,17 +77,6 @@ export function ContagemProva({
   estado: EstadoDoAluno
 }) {
   const passo = proximoPasso(estado)
-
-  // O rótulo declara de onde veio a data. Sem edição casada só dá pra dizer
-  // "sua prova" — afirmar que é o 47º Exame seria inventar em cima do que a
-  // pessoa digitou.
-  const nomeDaProva: NomeDaProva =
-    prova.origem === "usuario" && !prova.ordinal
-      ? { comPreposicao: "sua prova", comoSujeito: "Sua prova" }
-      : {
-          comPreposicao: `1ª fase do ${prova.ordinal} Exame`,
-          comoSujeito: `A 1ª fase do ${prova.ordinal} Exame`,
-        }
 
   return (
     <div className="rounded-xl border border-primary/30 bg-primary/5 p-5">
@@ -120,7 +87,7 @@ export function ContagemProva({
           </div>
           <div className="min-w-0">
             <p className="font-semibold">
-              {fraseDaContagem(prova.diasRestantes, nomeDaProva)}
+              {fraseDaContagem(prova.diasRestantes, nomeDaProva(prova))}
               {prova.slug && (
                 <>
                   {" · "}

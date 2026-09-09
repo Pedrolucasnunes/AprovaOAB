@@ -318,3 +318,58 @@ function diasEntreYmd(de: string, ate: string): number {
     (Date.parse(`${ate}T12:00:00Z`) - Date.parse(`${de}T12:00:00Z`)) / MS_DIA,
   )
 }
+
+/**
+ * Como a prova é nomeada nas duas posições sintáticas em que ela aparece.
+ *
+ * São dois campos e não um porque o português não deixa derivar um do outro:
+ * "pra 1ª fase" perde o artigo que "A 1ª fase é hoje" exige, e concatenar
+ * "pra" + "a 1ª fase" dá "pra a" (o "pra" já contém o artigo). Derivar isso
+ * com regra daria certo em português e errado em qualquer palavra nova.
+ *
+ * Mora AQUI, e não no card do dashboard onde nasceu, porque aquele arquivo é
+ * `"use client"`: tudo que ele exporta vira referência de cliente, e o painel
+ * das telas de auth precisa montar a frase no servidor.
+ */
+export interface NomeDaProva {
+  /** Depois de "pra": "pra 1ª fase do 48º Exame" / "pra sua prova". */
+  comPreposicao: string
+  /** Como sujeito: "A 1ª fase do 48º Exame é hoje" / "Sua prova é hoje". */
+  comoSujeito: string
+}
+
+/**
+ * O rótulo declara de onde veio a data. Sem edição casada só dá pra dizer
+ * "sua prova" — afirmar que é o 48º Exame seria inventar em cima do que a
+ * pessoa digitou.
+ */
+export function nomeDaProva(prova: ProximaProva): NomeDaProva {
+  if (prova.origem === "usuario" && !prova.ordinal) {
+    return { comPreposicao: "sua prova", comoSujeito: "Sua prova" }
+  }
+  return {
+    comPreposicao: `1ª fase do ${prova.ordinal} Exame`,
+    comoSujeito: `A 1ª fase do ${prova.ordinal} Exame`,
+  }
+}
+
+/** A frase inteira, não só o número — a regência muda com a contagem. */
+export function fraseDaContagem(dias: number, nome: NomeDaProva): string {
+  if (dias <= 0) return `${nome.comoSujeito} é hoje`
+  if (dias === 1) return `Falta 1 dia pra ${nome.comPreposicao}`
+  return `Faltam ${dias} dias pra ${nome.comPreposicao}`
+}
+
+/**
+ * "2027-01-10" → "10/01/2027". Corte de string, sem passar por `Date`.
+ *
+ * Sem fuso de propósito: são datas CIVIS do calendário da OAB, não instantes.
+ * `new Date("2027-01-10")` é meia-noite UTC, que em Brasília é 21h do dia 9 —
+ * a tela anunciaria a prova um dia antes. É também o formato que
+ * `/editais/[slug]` já exibe, então quem segue o link do cronograma
+ * reencontra a data escrita igual.
+ */
+export function formatarDataCivil(iso: string): string {
+  const [ano, mes, dia] = iso.split("-")
+  return `${dia}/${mes}/${ano}`
+}

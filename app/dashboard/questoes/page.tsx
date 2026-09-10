@@ -16,7 +16,6 @@ import {
 import {
   ParedeLimiteCard, ParedeLimiteInline,
 } from "@/components/dashboard/limite-diario"
-import { supabase } from "@/lib/supabase"
 import { getClientUser } from "@/lib/auth-client"
 import { type DiasNoTeto } from "@/lib/limite-diario"
 
@@ -158,11 +157,18 @@ function Alternativas({ questao, resposta, onSelecionar, compact }: {
 
       {verificada && (
         <div className={`mt-1 rounded-lg border p-4 ${acertou ? "border-primary/30 bg-primary/5" : "border-destructive/30 bg-destructive/5"}`}>
-          <p className={`text-sm font-semibold ${acertou ? "text-primary" : "text-destructive"}`}>
+          {/* Tom escuro no tema claro, token normal no escuro: `text-primary`
+              (#10B981) sobre a tinta clara dá 2,32:1 — pior que o texto que
+              motivou esta correção. Medido nos dois temas. */}
+          <p className={`text-sm font-semibold ${acertou ? "text-emerald-700 dark:text-primary" : "text-red-700 dark:text-destructive"}`}>
             Gabarito {correta} — {acertou ? "Correto" : "Incorreto"}
           </p>
+          {/* `text-foreground` pelo mesmo motivo do treino: em `muted` sobre a
+              tinta de 5% isto dava 4,28:1 no tema claro, abaixo do mínimo AA de
+              4,5. A explicação é conteúdo, não legenda — a hierarquia dela vem
+              do tamanho, não de uma cor lavada. */}
           {explicacao && (
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{explicacao}</p>
+            <p className="mt-2 text-sm leading-relaxed text-foreground">{explicacao}</p>
           )}
         </div>
       )}
@@ -428,9 +434,10 @@ export default function QuestoesPage() {
       return
     }
 
-    const { data: qData } = await supabase
-      .from("questions").select("explicacao").eq("id", questaoId).single()
-
+    // A explicação vem junto de `/api/simulados/resposta`, que já lia essa mesma
+    // linha pra comparar o gabarito. Aqui existia um SELECT extra logo depois de
+    // responder — uma segunda ida ao banco, do navegador, em toda questão
+    // verificada. Agora é o mesmo dado, sem requisição nenhuma a mais.
     setQuestoesHoje((prev) => prev + 1)
 
     setRespostas((prev) => ({
@@ -441,7 +448,7 @@ export default function QuestoesPage() {
         verificada: true,
         acertou: data.acertou,
         correta: data.resposta_correta,
-        explicacao: qData?.explicacao ?? null,
+        explicacao: data.explicacao ?? null,
       },
     }))
   }

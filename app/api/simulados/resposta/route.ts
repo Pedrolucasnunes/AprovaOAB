@@ -56,16 +56,21 @@ export async function POST(req: NextRequest) {
   // ao estudar. As leituras de validação são independentes entre si e vão juntas;
   // a ESCRITA continua depois de todas elas, e a ordem em que os erros são
   // checados é a mesma de antes (gabarito → ownership → estado do simulado).
+  // Pelo mesmo motivo, `explicacao` entra NESTE select em vez de virar consulta
+  // própria: é a mesma linha que já é lida pra comparar o gabarito.
   const gabarito = supabase
     .from("questions")
-    .select("resposta_correta")
+    .select("resposta_correta, explicacao")
     .eq("id", questionId)
     .single()
 
   let acertou = false
   // Só o ramo de treino devolve o gabarito — no simulado ele fica vazio de
-  // propósito (ver o comentário do retorno lá embaixo).
+  // propósito (ver o comentário do retorno lá embaixo). A explicação segue a
+  // MESMA regra, e por um motivo mais forte: em prova cronometrada ela é o
+  // gabarito comentado.
   let respostaCorreta = ""
+  let explicacao: string | null = null
 
   if (simuladoId) {
     const [
@@ -164,6 +169,7 @@ export async function POST(req: NextRequest) {
     }
 
     respostaCorreta = question.resposta_correta
+    explicacao = question.explicacao ?? null
     acertou = respostaFormatada === respostaCorreta.toUpperCase().trim()
 
     if (limit.exceeded) {
@@ -222,12 +228,18 @@ export async function POST(req: NextRequest) {
 
   }
 
-  // No simulado, NÃO devolve acertou/resposta_correta — senão o usuário veria o gabarito
-  // em tempo de prova (DevTools) e poderia corrigir a resposta. O treino mostra na hora.
+  // No simulado, NÃO devolve acertou/resposta_correta/explicacao — senão o usuário
+  // veria o gabarito em tempo de prova (DevTools) e poderia corrigir a resposta.
+  // O treino mostra na hora.
+  //
+  // `explicacao` vem `null` quando a questão não tem uma — 38% do banco não tem
+  // (medido em set/2026). Quem consome esconde o bloco; ninguém filtra o sorteio
+  // por causa disso, senão o treino, que já sorteia sob três restrições,
+  // encolheria mais 38%.
   return NextResponse.json(
     simuladoId
       ? { ok: true }
-      : { acertou, resposta_correta: respostaCorreta },
+      : { acertou, resposta_correta: respostaCorreta, explicacao },
     { status: 200 }
   )
 }

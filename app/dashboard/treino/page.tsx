@@ -139,7 +139,9 @@ function TreinoPageInner() {
   const [confirmarEncerrar, setConfirmarEncerrar] = useState(false)
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
-  const [respostas, setRespostas] = useState<Record<string, { acertou: boolean; correta: string }>>({})
+  const [respostas, setRespostas] = useState<
+    Record<string, { acertou: boolean; correta: string; explicacao: string | null }>
+  >({})
   const [verificando, setVerificando] = useState(false)
   const [limiteAtingido, setLimiteAtingido] = useState(false)
   const [resumoFinal, setResumoFinal] = useState<ResumoTreino | null>(null)
@@ -305,7 +307,11 @@ function TreinoPageInner() {
     if (res.ok) {
       setRespostas((prev) => ({
         ...prev,
-        [questao.id]: { acertou: data.acertou, correta: data.resposta_correta },
+        [questao.id]: {
+          acertou: data.acertou,
+          correta: data.resposta_correta,
+          explicacao: data.explicacao ?? null,
+        },
       }))
       // Mantém o contador diário vivo — o backend já registrou esta questão.
       setQuestoesHoje((prev) => prev + 1)
@@ -454,14 +460,43 @@ function TreinoPageInner() {
               ))}
             </RadioGroup>
 
+            {/* A caixa era `bg-secondary/30` — um azul-acinzentado fixo que não
+                dizia nada sobre acerto ou erro e, no tema claro, deixava o texto
+                em 2,62:1 (o mínimo AA é 4,5). Agora a tinta é semântica e clara,
+                igual à do Banco de Questões. */}
             {jaRespondida && (
-              <div className="rounded-lg border border-border bg-secondary/30 p-4">
+              <div
+                className={`rounded-lg border p-4 ${
+                  feedbackAtual.acertou
+                    ? "border-primary/30 bg-primary/5"
+                    : "border-destructive/30 bg-destructive/5"
+                }`}
+              >
                 <div className="flex items-center gap-2">
                   {feedbackAtual.acertou
-                    ? <><CheckCircle2 className="h-5 w-5 text-primary" /><span className="font-medium text-primary">Resposta correta!</span></>
-                    : <><XCircle className="h-5 w-5 text-destructive" /><span className="font-medium text-destructive">Resposta incorreta — gabarito: {feedbackAtual.correta}</span></>
+                    ? <><CheckCircle2 className="h-5 w-5 text-emerald-700 dark:text-primary" /><span className="font-medium text-emerald-700 dark:text-primary">Resposta correta!</span></>
+                    : <><XCircle className="h-5 w-5 text-red-700 dark:text-destructive" /><span className="font-medium text-red-700 dark:text-destructive">Resposta incorreta — gabarito: {feedbackAtual.correta}</span></>
                   }
                 </div>
+                {/* `text-foreground`, e não `text-muted-foreground`: a explicação
+                    é o CONTEÚDO que a pessoa veio ler, não uma legenda. A
+                    hierarquia dela vem do tamanho e do espaço (text-sm, recuo,
+                    divisória), não de lavar a cor — que é o que a deixava
+                    ilegível.
+
+                    Some quando a questão não tem explicação: 38% do banco não
+                    tem, e o buraco é uniforme entre as matérias. O sorteio do
+                    treino NÃO é filtrado por isso (ele já sorteia sob três
+                    restrições e encolheria mais 38%). */}
+                {feedbackAtual.explicacao && (
+                  <p
+                    className={`mt-3 border-t pt-3 text-sm leading-relaxed text-foreground ${
+                      feedbackAtual.acertou ? "border-primary/20" : "border-destructive/20"
+                    }`}
+                  >
+                    {feedbackAtual.explicacao}
+                  </p>
+                )}
               </div>
             )}
 

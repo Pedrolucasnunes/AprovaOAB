@@ -15,11 +15,25 @@ import { CadastroForm } from "@/components/auth/cadastro-form"
  */
 export const dynamic = "force-dynamic"
 
-/** Ver o comentário em `app/login/page.tsx` — mesma divisão servidor/cliente. */
-export default function CadastroPage() {
+/**
+ * Ver o comentário em `app/login/page.tsx` — mesma divisão servidor/cliente.
+ *
+ * `?email=` chega do formulário da newsletter na landing, que é um
+ * `<form method="get">` nativo apontando pra cá. Sem isso a pessoa digitaria o
+ * mesmo endereço duas vezes. É só valor inicial de um campo que ela pode
+ * editar: nada é gravado, e endereço malformado cai na validação normal do
+ * `type="email"`.
+ */
+export default async function CadastroPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ email?: string }>
+}) {
+  const { email } = await searchParams
+
   return (
     <AuthShell>
-      <CadastroForm />
+      <CadastroForm emailInicial={typeof email === "string" ? email : ""} />
     </AuthShell>
   )
 }

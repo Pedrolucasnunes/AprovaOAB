@@ -23,7 +23,7 @@ type Step = "form" | "verify" | "success"
  * `conta_ativada`) e o `signOut` depois da ativação, que é o que faz a pessoa
  * entrar pelo login em vez de cair logada sem passar pela tela.
  */
-export function CadastroForm() {
+export function CadastroForm({ emailInicial = "" }: { emailInicial?: string } = {}) {
   const [step, setStep] = useState<Step>("form")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -338,6 +338,10 @@ export function CadastroForm() {
             autoComplete="email"
             placeholder="seu@email.com"
             required
+            // Valor INICIAL, não controlado: o campo segue sendo lido do
+            // FormData no envio, como sempre foi. Chega preenchido quando a
+            // pessoa digitou o e-mail no formulário da newsletter da landing.
+            defaultValue={emailInicial}
             className="bg-input"
           />
         </div>

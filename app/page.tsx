@@ -29,6 +29,14 @@ export const metadata: Metadata = {
   },
 }
 
+// A pílula "Próxima edição: terça · faltam N dias" da seção da newsletter é
+// calculada no SERVIDOR, e é por isso que esta rota deixou de ser 100% estática:
+// sem `revalidate` o número seria assado no build e congelaria no dia do deploy.
+// Uma hora é folga de sobra pra uma contagem em dias, e o prerender continua
+// (`x-nextjs-prerender: 1`) — é o mesmo padrão de `/questoes` (86400).
+// `force-dynamic` está fora de questão aqui: a landing é a porta do SEO.
+export const revalidate = 3600
+
 // Landing com mix claro/escuro fixo (igual ao preview): cada seção define o
 // próprio fundo (claras em bg-background/bg-card, escuras em bg-night). O wrapper
 // `force-light` pina os tokens claros pra landing não herdar o `.dark` do tema do

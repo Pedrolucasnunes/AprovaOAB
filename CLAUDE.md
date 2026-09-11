@@ -373,3 +373,75 @@ EMAIL_UNSUBSCRIBE_SECRET
 Valores ficam em `.env.local` (ignorado pelo git via `.gitignore`). Em produção, estão no painel do Vercel.
 
 `EMAIL_UNSUBSCRIBE_SECRET` (mínimo 32 chars) assina os links de descadastro. **Trocar o valor invalida todos os links já enviados** — os e-mails que estão na caixa de entrada das pessoas passam a mostrar "esse link não vale mais". Só rotacionar com motivo.
+
+## SEO
+
+Auditoria completa em `docs/seo-audit-2026-09/` — `FULL-AUDIT-REPORT.md` (37 achados com evidência), `ACTION-PLAN.md` (priorizado por impacto ÷ esforço), `findings/*.md` por categoria e `audit-data.json` (estruturado). Health score na data: **68/100**. Leia o ACTION-PLAN antes de mexer em qualquer coisa de busca — metade do que parece quebrado é decisão tomada.
+
+O que está abaixo é só o que um agente precisa saber pra **não estragar** o que já funciona. O resto está na auditoria.
+
+### O que já está certo — não "conserte"
+
+- **HTML pré-renderizado em tudo.** `x-nextjs-prerender: 1` em todas as rotas públicas. É o ativo de SEO mais valioso do projeto: crawler e motor de IA leem sem executar JS. Qualquer mudança que empurre uma rota pública pra `force-dynamic` ou pra render só no cliente é regressão grave — a landing e `/questoes` são a porta do orgânico.
+- **Hero já renderiza visível.** `components/site/hero.tsx` usa `initial={false}` na coluna editorial de propósito, pro título e CTA não ficarem escondidos até a hidratação. Os `opacity:0` que aparecem no HTML são os `<Reveal>` (`whileInView`, abaixo da dobra), e **não são a causa do LCP alto** — mas veja o bug do `Reveal` logo abaixo, que é outra coisa.
+- **CLS = 0 em todas as páginas.** Toda `<img>` tem `width`/`height`. Manter.
+- **Sem `Review`/`AggregateRating`** nos depoimentos — decisão documentada em "Depoimentos da landing", e ela está certa. Não reabrir.
+- **Headers de segurança** (HSTS preload, CSP, `X-Frame-Options`, `Permissions-Policy`) estão acima da média do mercado.
+
+### `Reveal` — bug em produção sob `prefers-reduced-motion`
+
+**Com movimento reduzido ligado, os 24 blocos `<Reveal>` ficam permanentemente em `opacity:0`: a landing mostra o herói e mais nada.** Medido em produção (Chrome headless, viewport 1400×6000) — no modo normal 18 dos 24 são revelados; com `--force-prefers-reduced-motion`, **0 de 24**.
+
+`components/site/reveal.tsx`: o servidor não lê media query, então `useReducedMotion()` devolve falso no SSR e o HTML sai com `style="opacity:0;transform:translateY(26px)"`. No cliente com `reduce`, `initial={false}` manda não animar e `whileInView={undefined}` não fornece alvo — não sobra nada que desfaça o estilo inline.
+
+O Lighthouse dá 96 de acessibilidade porque **não executa a página sob essa media query**. Nota alta aqui não é evidência.
+
+Correção mínima mantendo o `motion` — alvo sempre definido, duração zero sob `reduce`:
+
+```tsx
+whileInView={{ opacity: 1, y: 0 }}          // nunca undefined
+transition={reduce ? { duration: 0 } : { duration: 0.65, delay, ease: EASE }}
+```
+
+A reescrita em CSS do passo 2 abaixo resolve isso de tabela, porque o `@media (prefers-reduced-motion: reduce)` força o estado final e o conteúdo deixa de depender de JS pra existir.
+
+### LCP — o problema aberto
+
+LCP mobile de **9,5s a 12,3s**, sendo 93–94% *render delay*. Não é rede (TTFB 694ms) e não é imagem — o elemento LCP é um parágrafo de texto.
+
+É **saturação de main thread**: 15 dos 19 componentes de `components/site/` são `"use client"` e a home monta 13 seções, arrastando `motion/react` pra hidratação inicial; somados a 301 KB de GTM + Clarity, dão 1.508ms de script evaluation e 1.244ms de style & layout.
+
+Ordem de ataque, re-medindo a cada passo (`npx lighthouse <url> --form-factor=mobile --screenEmulation.mobile`):
+
+1. **Terceiros fora do caminho crítico.** Clarity sozinho custa 890ms de main thread — mais que todo o JS da aplicação. GTM e gtag rodam em paralelo hoje (GA4 devia viver dentro do GTM).
+2. **`motion/react` fora da hidratação inicial.** Maior ganho isolado: `components/site/reveal.tsx`, 21 usos em 8 seções, scroll-reveal puro que CSS resolve com `@keyframes` + `animation-timeline: view()` + `animation-fill-mode: both` (ou um `IntersectionObserver` mínimo). Sempre com o estado final sob `prefers-reduced-motion`.
+3. **Revisar quais seções precisam mesmo ser client** — várias provavelmente só são por causa do `Reveal`.
+
+### Metadata — regras por rota
+
+- **Toda rota pública precisa de `alternates.canonical`.** Hoje faltam em `/login`, `/cadastro`, `/termos-de-uso` e `/politica-de-privacidade`.
+- **Rota de autenticação é `noindex`.** `/login` e `/cadastro` estão indexáveis com o título e a descrição de fallback, idênticos entre si. Querem `robots: { index: false, follow: true }` e título próprio.
+- **Título de página de questão não leva sufixo de marca.** 13 de 14 amostrados passam de 60 caracteres e truncam na SERP — `| AprovaOAB` come ~12 deles.
+- **Barra final:** canonical e `og:url` da home declaram sem barra, o sitemap declara com. Padronizar **com** barra nos três.
+- **`opengraph-image.tsx` em toda rota indexável.** `/editais` e `/editais/[exame]` são as únicas sem — o card de compartilhamento sai vazio justamente nas páginas de data de prova, que são as mais mandadas em grupo de WhatsApp.
+
+### Acervo de questões — a maior alavanca
+
+O site tem ~2.240 questões (28 provas × 80) e publica **200** com URL própria: 10 por matéria, sem paginação, e cada página de prova linka 10 das 80 que exibe. Cerca de 2.040 questões existem e nunca ganham URL indexável — justamente na busca em que o candidato cola o enunciado no Google. Concorrentes indexam milhares.
+
+Ao abrir isso:
+
+- **Paginação em `<a href>` real**, nunca só via JS, ou as páginas seguem invisíveis.
+- **Só publique questão com resolução comentada.** Questão sem comentário é thin content e arrasta o domínio inteiro. Se o gargalo for produção, priorize pelo peso na prova: Ética 8, Processo Civil 7, Civil 6, Constitucional 6, Penal 6, Processo Penal 6.
+- **Troque o UUID da URL por ID curto _antes_ de publicar o resto** — depois seriam 2.240 redirects 301.
+- Nas páginas de prova, exibir enunciado resumido com link pra questão completa, pra não duplicar o texto (a prova 45 já tem 15.266 palavras e 665 KB de HTML).
+
+### `/editais/[exame]` é o template de referência
+
+794 palavras, cronograma, taxa, passo a passo, FAQ, `FAQPage` + `EducationEvent`, datas com atribuição à fonte oficial. É a melhor página do site em qualidade de SEO e a mais citável por motor de IA. Use como modelo — em especial os hubs `/questoes` (164 palavras) e `/editais` (194), que são rasos demais pro que precisam rankear.
+
+### Pendências que não são de código
+
+- **Sem `GOOGLE_API_KEY` nem OAuth do Search Console configurados**, então a auditoria rodou sem dado de campo (CrUX), sem indexação real e sem tráfego orgânico — os números de performance são de laboratório. Configurar isso é pré-requisito pra medir qualquer melhoria.
+- **Zero sinais de E-E-A-T** num tema YMYL: sem `/sobre`, sem responsável técnico com OAB/UF, sem CNPJ. Conteúdo jurídico tem régua de confiança mais dura.
+- **Clarity e Bing sincronizam identificadores** (`c.bing.com/c.gif?...CtsSyncId=...`) sem banner de consentimento. Exposição sob a LGPD, não só um item de performance.

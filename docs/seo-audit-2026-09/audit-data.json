@@ -1,0 +1,419 @@
+{
+  "summary": {
+    "health_score": 68,
+    "business_type": "SaaS educacional (EdTech) - preparacao para o Exame de Ordem (OAB) 1a fase",
+    "domain": "aprovaoab.app.br",
+    "audited_at": "2026-09-11",
+    "stack": "Next.js App Router / Vercel / Supabase / Stripe (SSG prerender)",
+    "pages_in_sitemap": 253,
+    "pages_inspected": 12,
+    "top_findings": [
+      "LCP de 9,5s a 12,3s no mobile em todas as paginas - 93-94% e render delay por saturacao de main thread: hidratacao de 15 client components arrastando motion/react mais 301 KB de terceiros",
+      "Apenas 200 das ~2.240 questoes tem pagina propria indexavel (~91% do acervo invisivel na busca)",
+      "/login e /cadastro sao indexaveis com titulo e descricao duplicados",
+      "4 paginas sem tag canonical: /login, /cadastro, /termos-de-uso, /politica-de-privacidade",
+      "Zero sinais de E-E-A-T num tema YMYL juridico: sem pagina sobre, autores ou credenciais"
+    ],
+    "quick_wins": [
+      "Tirar Clarity e GTM do caminho critico - 1,2s de main thread de volta sem tocar no produto",
+      "Adicionar noindex, follow em /login e /cadastro",
+      "Adicionar FAQPage schema na home (o FAQ ja existe visualmente)",
+      "Gerar opengraph-image para a rota /editais (unica rota sem OG image)",
+      "Reduzir favicons de 726 KB cada (1,45 MB total so de icones)"
+    ]
+  },
+  "categories": [
+    {
+      "name": "Technical SEO",
+      "score": 82,
+      "weight": 22,
+      "what_works": [
+        "HTML totalmente pre-renderizado (X-Nextjs-Prerender: 1, X-Vercel-Cache: PRERENDER)",
+        "TTFB de servidor em 60ms; tempo total 0,33s a 1,22s",
+        "Redirecionamentos http/https/apex para https://www. corretos em 1-2 saltos",
+        "404 retorna status real",
+        "robots.txt valido bloqueando /dashboard/, /admin/, /api/ e declarando o sitemap",
+        "Headers de seguranca exemplares: HSTS preload 2 anos, CSP restritiva, X-Frame-Options DENY, nosniff, Referrer-Policy, Permissions-Policy",
+        "Canonicals auto-referenciais em todas as paginas de conteudo"
+      ],
+      "findings": [
+        {
+          "title": "/login e /cadastro indexaveis com metadata duplicada",
+          "severity": "Critical",
+          "description": "Ambas servem meta robots 'index, follow' e compartilham titulo e descricao identicos (fallback generico 'AprovaOAB - Preparacao Inteligente para OAB'). Sao linkadas do menu e de todos os CTAs.",
+          "recommendation": "Definir robots: { index: false, follow: true } no metadata das duas rotas e dar titulo proprio a cada uma."
+        },
+        {
+          "title": "4 paginas sem tag canonical",
+          "severity": "High",
+          "description": "/login, /cadastro, /termos-de-uso e /politica-de-privacidade nao tem <link rel=canonical>. Qualquer parametro UTM nessas URLs cria duplicata.",
+          "recommendation": "Adicionar alternates.canonical no metadata das 4 rotas."
+        },
+        {
+          "title": "Sitemap com lastmod em apenas 2 de 253 URLs",
+          "severity": "Medium",
+          "description": "O Google usa lastmod para priorizar re-rastreio; sem ele, changefreq weekly e ignorado.",
+          "recommendation": "Popular lastmod a partir do updated_at de cada registro no Supabase."
+        },
+        {
+          "title": "Normalizacao inconsistente da home",
+          "severity": "Medium",
+          "description": "Canonical e og:url usam https://www.aprovaoab.app.br (sem barra); o sitemap declara com barra.",
+          "recommendation": "Padronizar com barra final nos tres lugares."
+        },
+        {
+          "title": "Sem manifest.json / PWA",
+          "severity": "Low",
+          "description": "Nao existe manifest.json nem site.webmanifest. Para um app de estudo usado no celular, e perda de sinal de instalabilidade.",
+          "recommendation": "Adicionar app/manifest.ts no App Router."
+        }
+      ]
+    },
+    {
+      "name": "Content Quality / E-E-A-T",
+      "score": 62,
+      "weight": 23,
+      "what_works": [
+        "Copy da home especifica e orientada a beneficio, 1.715 palavras",
+        "Paginas de materia com introducao contextual real (direito-civil: 555 palavras)",
+        "/editais/48-exame-oab e um template excelente: 794 palavras, cronograma, taxa, passo a passo, FAQ, schema FAQPage + EducationEvent",
+        "Paginas de questao com ~407 palavras (~250 de conteudo real) - nao e thin content",
+        "Depoimentos reais com aviso explicito de autenticidade"
+      ],
+      "findings": [
+        {
+          "title": "~91% do acervo de questoes nao e indexavel",
+          "severity": "Critical",
+          "description": "O site tem ~2.240 questoes (28 provas x 80) mas apenas 200 com pagina propria no sitemap - 10 por materia, sem paginacao. As paginas de prova contem o texto das 80 questoes mas linkam so 10 paginas individuais. Concorrentes indexam milhares (Simulai OAB: 5.875; Prova da OAB em Questoes: 2.320).",
+          "recommendation": "Remover o limite de 10 no generateStaticParams, adicionar paginacao rastreavel nas paginas de materia, linkar as 80 questoes em cada pagina de prova. Publicar apenas questoes com resolucao comentada real para evitar thin content."
+        },
+        {
+          "title": "Duplicacao interna entre paginas de prova e de questao",
+          "severity": "Medium",
+          "description": "O enunciado de cada questao aparece tanto em /provas/[exame] (15.266 palavras, 665 KB de HTML na prova 45) quanto na pagina individual.",
+          "recommendation": "Nas paginas de prova, exibir enunciado resumido com link para a pagina completa da questao."
+        },
+        {
+          "title": "Nenhum sinal de E-E-A-T em tema YMYL",
+          "severity": "High",
+          "description": "Conteudo juridico e YMYL. Nao ha pagina sobre, autor identificado, advogado responsavel, credencial OAB/UF, CNPJ ou razao social. Concorrentes tem professores nomeados com curriculo.",
+          "recommendation": "Criar /sobre, nomear responsavel tecnico com OAB/UF, adicionar CNPJ no rodape e Person + contactPoint no schema."
+        },
+        {
+          "title": "Nenhum conteudo editorial",
+          "severity": "High",
+          "description": "/blog, /sobre e /precos retornam 404. A newsletter Cafe com OAB e promovida na home mas nao tem arquivo publico nem RSS. Nenhuma pagina cobre buscas informacionais como 'como passar na OAB' ou 'o que cai na 1a fase'.",
+          "recommendation": "Publicar o arquivo da newsletter em /cafe-com-oab/[slug] com Article schema e criar 5 paginas informacionais de topo de funil."
+        },
+        {
+          "title": "Hubs rasos",
+          "severity": "Medium",
+          "description": "/questoes tem 164 palavras e /editais 194 (incluindo header e footer). Sao paginas de categoria que devem rankear em termos amplos.",
+          "recommendation": "Usar /questoes/direito-civil como modelo: 300-500 palavras de introducao contextual."
+        }
+      ]
+    },
+    {
+      "name": "On-Page SEO",
+      "score": 78,
+      "weight": 20,
+      "what_works": [
+        "Titulos e descricoes unicos em todas as paginas de conteudo (amostra de 14 paginas de questao: 14 titulos unicos)",
+        "Descricoes entre 139 e 155 caracteres - faixa ideal",
+        "Um h1 por pagina com hierarquia h2/h3 limpa",
+        "Hub /questoes linka as 20 materias sem orfas",
+        "Breadcrumbs visiveis e marcados",
+        "lang=pt-BR e og:locale corretos",
+        "OG e Twitter Cards completos com summary_large_image 1200x630 e og:image:alt"
+      ],
+      "findings": [
+        {
+          "title": "13 de 14 titulos de pagina de questao passam de 60 caracteres",
+          "severity": "High",
+          "description": "Dois passam de 70. O sufixo '| AprovaOAB' consome ~12 caracteres. Exemplo com 76 chars: 'Responsabilidade civil do Estado - Questao do 36o Exame OAB 2022 | AprovaOAB'.",
+          "recommendation": "Remover o sufixo de marca nas paginas de questao e encurtar o padrao para 'Tema - NNo Exame OAB (ANO)'."
+        },
+        {
+          "title": "/editais sem og:image",
+          "severity": "Medium",
+          "description": "/editais e /editais/48-exame-oab sao as unicas rotas do site sem og:image. Compartilhamentos em WhatsApp e LinkedIn saem sem card.",
+          "recommendation": "Replicar o opengraph-image.tsx que ja existe em /questoes e /provas."
+        },
+        {
+          "title": "Descricao de fallback nas paginas legais",
+          "severity": "Medium",
+          "description": "/termos-de-uso e /politica-de-privacidade usam a descricao generica do site.",
+          "recommendation": "Escrever description propria para cada uma."
+        },
+        {
+          "title": "UUID completo nas URLs de questao",
+          "severity": "Medium",
+          "description": "Exemplo: /questoes/direito-civil/contratos-41-exame-oab-00110fb7-1098-4479-8aac-8670baf37188 - 36 caracteres sem valor semantico.",
+          "recommendation": "Migrar para ID curto sequencial antes de publicar o restante do acervo, para nao precisar de 2.240 redirects depois."
+        },
+        {
+          "title": "Home nao linka paginas de questao",
+          "severity": "Low",
+          "description": "O link equity da home so desce ate os hubs de materia.",
+          "recommendation": "Adicionar bloco de questoes em destaque na home."
+        }
+      ]
+    },
+    {
+      "name": "Schema / Structured Data",
+      "score": 85,
+      "weight": 10,
+      "what_works": [
+        "Organization com logo, sameAs (X, Instagram, LinkedIn) e areaServed",
+        "WebSite com inLanguage pt-BR",
+        "SoftwareApplication EducationalApplication com ofertas Gratis (R$0) e Pro (R$19)",
+        "CollectionPage + ItemList nos hubs e listagens",
+        "BreadcrumbList bem formado com 3 niveis",
+        "Quiz nas paginas de questao com eduQuestionType Multiple choice, acceptedAnswer e 3 suggestedAnswer",
+        "FAQPage e EducationEvent em /editais/48-exame-oab",
+        "Todos os blocos JSON-LD parseiam sem erro"
+      ],
+      "findings": [
+        {
+          "title": "Home sem FAQPage schema",
+          "severity": "Medium",
+          "description": "A home tem 5 perguntas de FAQ visiveis (Quanto custa, As questoes sao no padrao real, Preciso de cartao, Ja reprovei, Como funciona o cancelamento) sem marcacao FAQPage. O componente ja existe em /editais/48-exame-oab.",
+          "recommendation": "Reaproveitar o gerador de FAQPage schema na home."
+        },
+        {
+          "title": "Quiz sem propriedades recomendadas",
+          "severity": "Medium",
+          "description": "Falta name, learningResourceType 'Practice problem' e educationalAlignment - recomendadas pelo Google para o rich result de Practice Problems.",
+          "recommendation": "Adicionar as tres propriedades ao gerador de Quiz schema."
+        },
+        {
+          "title": "Sem Course schema",
+          "severity": "Medium",
+          "description": "Para EdTech, Course + CourseInstance habilita o carrossel de cursos na busca.",
+          "recommendation": "Adicionar Course schema descrevendo a trilha de preparacao."
+        },
+        {
+          "title": "Organization incompleto",
+          "severity": "Low",
+          "description": "Sem contactPoint, foundingDate, email ou legalName - propriedades que alimentam o Knowledge Panel.",
+          "recommendation": "Completar o Organization schema."
+        },
+        {
+          "title": "Ofertas sem url e availability",
+          "severity": "Low",
+          "description": "As Offers do SoftwareApplication nao declaram url, availability nem priceValidUntil.",
+          "recommendation": "Completar as ofertas."
+        },
+        {
+          "title": "Review/AggregateRating: decisao ja tomada, nao e pendencia",
+          "severity": "Info",
+          "description": "O CLAUDE.md do repo (secao 'Depoimentos da landing') ja documenta a decisao de NAO marcar Review/AggregateRating: nao existe nota no produto, entao aggregateRating seria numero inventado, e review que o proprio site coleta sobre si e self-serving, que o Google nao aceita para rich result. Risco de acao manual, ganho zero.",
+          "recommendation": "A analise esta correta. Manter como esta - nao reabrir."
+        }
+      ]
+    },
+    {
+      "name": "Performance (Core Web Vitals)",
+      "score": 35,
+      "weight": 10,
+      "what_works": [
+        "CLS = 0 em todas as paginas testadas - todas as imagens tem width/height",
+        "Compressao Brotli ativa em todo JS e CSS",
+        "TTFB de servidor em 60ms (Lighthouse: Root document took 60ms)",
+        "JS proprio enxuto: 293 KB comprimidos em 15 chunks",
+        "font-display correto - audit de webfont passa"
+      ],
+      "findings": [
+        {
+          "title": "LCP de 9,5s a 12,3s no mobile, sendo 93-94% render delay",
+          "severity": "Critical",
+          "description": "Home: LCP 12,3s (TTFB 694ms / render delay 11.622ms). /questoes/direito-civil: 9,5s (render delay 8.840ms). /provas/45-exame-oab: 12,0s (render delay 11.293ms). O elemento LCP e um paragrafo de texto, nao imagem. DESCARTADO: o gate de animacao no above-the-fold ja esta resolvido - hero.tsx usa initial={false} e o paragrafo do LCP chega em opacity:1;transform:none; os 24 elementos em opacity:0 sao os <Reveal> com whileInView abaixo da dobra. CAUSA REAL: saturacao de main thread - 15 dos 19 componentes em components/site sao 'use client' e a home monta 13 secoes, arrastando motion/react para a hidratacao inicial, somados a 301 KB de GTM + Clarity. Main thread: 1.508ms de script evaluation e 1.244ms de style & layout.",
+          "recommendation": "Nesta ordem, re-medindo a cada passo: (1) tirar Clarity e GTM do caminho critico; (2) tirar motion/react da hidratacao inicial comecando por components/site/reveal.tsx - 21 usos em 8 secoes, scroll-reveal puro que CSS resolve com @keyframes + animation-timeline: view() e animation-fill-mode: both, ou um IntersectionObserver minimo; (3) revisar quais das 15 secoes precisam mesmo ser client components. Respeitar prefers-reduced-motion entregando o estado final."
+        },
+        {
+          "title": "301 KB de tags de terceiros na thread principal",
+          "severity": "High",
+          "description": "GTM (GTM-TJMVZGH2) + gtag direto (G-9X6ZNVDJ10) + Clarity + Bing UET rodando em paralelo. GTM: 301 KB transferidos, 291ms de main thread, 156ms de blocking, 141 KB de JS nao utilizado (43-53%). Clarity: 890ms de main thread - mais que todo o JS da aplicacao. TBT de 190-310ms.",
+          "recommendation": "Consolidar GA4 dentro do GTM removendo o gtag duplicado; carregar Clarity com strategy lazyOnload; reavaliar ROI do Bing UET."
+        },
+        {
+          "title": "Sem preconnect para 7 origens de terceiros",
+          "severity": "Medium",
+          "description": "Desperdicio medido: r.clarity.ms 560ms, www.clarity.ms 413ms, googletagmanager.com 405ms, google-analytics.com 382ms, c.clarity.ms 371ms, c.bing.com 371ms, scripts.clarity.ms 371ms.",
+          "recommendation": "Adicionar link rel=preconnect para as origens criticas."
+        },
+        {
+          "title": "6 arquivos de fonte com preload, 148 KB",
+          "severity": "Medium",
+          "description": "Quatro familias: Geist, Geist Mono, Fraunces, DM Mono. Todas com preload, competindo por banda no caminho critico.",
+          "recommendation": "Preload apenas das faces usadas above-the-fold; reduzir o numero de familias."
+        },
+        {
+          "title": "CSS bloqueante de 28,7 KB",
+          "severity": "Medium",
+          "description": "/_next/static/chunks/3a1b62653397792f.css bloqueia a renderizacao por 300ms.",
+          "recommendation": "Inline do CSS critico e carregamento assincrono do restante."
+        }
+      ]
+    },
+    {
+      "name": "AI Search Readiness (GEO)",
+      "score": 55,
+      "weight": 10,
+      "what_works": [
+        "HTML pre-renderizado - GPTBot, ClaudeBot, PerplexityBot e Google-Extended leem sem executar JS",
+        "robots.txt com User-Agent: * e Allow: / - nenhum crawler de IA bloqueado",
+        "Schema Quiz com pergunta e resposta explicitas e altamente citavel",
+        "FAQ com pergunta como heading e resposta curta logo abaixo",
+        "/editais/48-exame-oab traz datas concretas e verificaveis com atribuicao a fonte oficial"
+      ],
+      "findings": [
+        {
+          "title": "Sem /llms.txt",
+          "severity": "Medium",
+          "description": "Retorna 404. E o indice curado que aponta aos LLMs o que vale ler no site.",
+          "recommendation": "Publicar /llms.txt indexando questoes, provas, editais e materias."
+        },
+        {
+          "title": "Ausencia de dados proprios citaveis",
+          "severity": "Medium",
+          "description": "O acervo de 2.240 questoes e os dados de desempenho dos usuarios permitem estatisticas originais que nenhum concorrente tem.",
+          "recommendation": "Publicar estudos como 'materias com maior indice de erro na 1a fase' e 'temas mais recorrentes por exame'."
+        },
+        {
+          "title": "Sem mencoes de marca fora do dominio",
+          "severity": "Medium",
+          "description": "Busca por AprovaOAB nao retorna o site; o espaco e ocupado por Passe na OAB, Qconcursos, Simulai OAB e Gran Cursos. Ressalva: a ferramenta de busca usada opera na regiao EUA, entao o sinal e indicativo e nao conclusivo.",
+          "recommendation": "Confirmar no Search Console e iniciar trabalho de relacoes publicas digitais no nicho juridico."
+        },
+        {
+          "title": "Sem /.well-known/security.txt",
+          "severity": "Low",
+          "description": "Retorna 404.",
+          "recommendation": "Publicar security.txt com canal de contato para reporte de vulnerabilidades."
+        }
+      ]
+    },
+    {
+      "name": "Images",
+      "score": 60,
+      "weight": 5,
+      "what_works": [
+        "Zero imagens sem alt em todas as 12 paginas inspecionadas",
+        "Todas com width/height declarados - CLS = 0",
+        "Banner do Cafe com OAB em WebP (21 KB)",
+        "OG images geradas dinamicamente pelo Next.js (124 KB, 1200x630)"
+      ],
+      "findings": [
+        {
+          "title": "Favicons de 726 KB cada",
+          "severity": "High",
+          "description": "/icon.png e /apple-icon.png pesam 726 KB cada, declarados como sizes=1024x1024. Sao 1,45 MB baixados apenas para desenhar um favicon de 32px.",
+          "recommendation": "Gerar variantes 32x32 e 180x180 no App Router (app/icon.png e app/apple-icon.png)."
+        },
+        {
+          "title": "Logo do schema com 253 KB",
+          "severity": "Medium",
+          "description": "/aprovaoab-logo-primary.png, usado na propriedade logo do Organization, tem 253 KB.",
+          "recommendation": "Otimizar para menos de 40 KB."
+        },
+        {
+          "title": "Nome de arquivo com espaco",
+          "severity": "Medium",
+          "description": "A logo do header usa /Sem fundo.png, servido como /Sem%20fundo.png. O Lighthouse ainda aponta 'Properly size images' nele.",
+          "recommendation": "Renomear para /logo-aprovaoab.png e servir no tamanho exibido."
+        },
+        {
+          "title": "Alt redundante na logo",
+          "severity": "Low",
+          "description": "A logo tem alt='AprovaOAB' ao lado do texto 'AprovaOAB' - Lighthouse sinaliza image-redundant-alt.",
+          "recommendation": "Usar alt vazio quando a imagem e decorativa e o texto ja esta presente."
+        }
+      ]
+    },
+    {
+      "name": "Accessibility & Best Practices",
+      "score": 55,
+      "weight": 0,
+      "what_works": [
+        "Lighthouse SEO 100; Acessibilidade 96, mas a nota nao cobre o bug A0",
+        "Carrossel de depoimentos com role=group, aria-roledescription=carrossel e aria-label"
+      ],
+      "findings": [
+        {
+          "title": "BUG EM PRODUCAO: landing invisivel sob prefers-reduced-motion",
+          "severity": "Critical",
+          "description": "Com movimento reduzido ligado, os 24 blocos <Reveal> ficam permanentemente em opacity:0 - a pagina mostra o heroi e mais nada. Medido em producao (Chrome headless, viewport 1400x6000): no modo normal 18 dos 24 sao revelados; com --force-prefers-reduced-motion, 0 de 24. Causa em components/site/reveal.tsx: o servidor nao le media query, entao useReducedMotion() devolve falso no SSR e o HTML sai com style='opacity:0;transform:translateY(26px)'; no cliente com reduce, initial={false} manda nao animar e whileInView={undefined} nao fornece alvo, entao nada desfaz o estilo inline. O Lighthouse deu 96 de acessibilidade porque nao executa a pagina sob essa media query.",
+          "recommendation": "Correcao minima de 10 minutos mantendo o motion: whileInView={{opacity:1,y:0}} sempre definido (nunca undefined) e transition={reduce ? {duration:0} : {...}}. Some sozinho se a reescrita em CSS do item 1.1 for feita, porque o bloco @media (prefers-reduced-motion) forca o estado final."
+        },
+        {
+          "title": "Contraste abaixo do minimo WCAG AA em 2 elementos",
+          "severity": "Medium",
+          "description": "Texto #8390a2 sobre #ffffff a 6,4pt = ratio 3,24. Link #059669 sobre #f8fafc a 10,5pt = ratio 3,6. O minimo AA e 4,5.",
+          "recommendation": "Escurecer os dois tokens de cor ate atingir 4,5:1."
+        },
+        {
+          "title": "Sincronizacao de cookies de terceiros sem consentimento visivel",
+          "severity": "Medium",
+          "description": "Clarity e Bing fazem sync de identificadores (c.bing.com/c.gif?ctsa=mr&CtsSyncId=...) sem banner de consentimento. Alem de quebrar com o fim dos cookies de terceiros, e exposicao sob a LGPD.",
+          "recommendation": "Implementar Consent Mode v2 e carregar as tags apenas apos opt-in."
+        }
+      ]
+    }
+  ],
+  "action_plan": {
+    "phases": [
+      {
+        "name": "Fase 1: Correcoes Criticas",
+        "timeframe": "Semana 1",
+        "items": [
+          "Destravar o LCP: terceiros fora do caminho critico, depois motion/react fora da hidratacao inicial comecando por reveal.tsx (~6h, +15 pts)",
+          "noindex, follow em /login e /cadastro com titulos proprios (~15min)",
+          "Adicionar canonical nas 4 paginas que nao tem (~20min)",
+          "Reduzir favicons de 726 KB para 32x32 e 180x180 (~30min)",
+          "Gerar opengraph-image para a rota /editais (~20min)"
+        ]
+      },
+      {
+        "name": "Fase 2: Expor o Acervo",
+        "timeframe": "Semanas 2-3",
+        "items": [
+          "Publicar as ~2.040 questoes restantes com paginacao rastreavel (~2 dias, +10-12 pts)",
+          "Encurtar titulos das paginas de questao removendo o sufixo de marca (~1h)",
+          "Simplificar URLs de questao trocando UUID por ID curto - fazer ANTES de publicar o restante (~3h)",
+          "Enriquecer os hubs /questoes e /editais com 300-500 palavras de contexto (~2h)"
+        ]
+      },
+      {
+        "name": "Fase 3: Autoridade e Conteudo",
+        "timeframe": "Mes 2",
+        "items": [
+          "Criar /sobre, nomear responsavel tecnico com OAB/UF e adicionar CNPJ (~1 dia, +6-8 pts)",
+          "Publicar o arquivo do Cafe com OAB em /cafe-com-oab/[slug] com Article schema e RSS (~1 dia)",
+          "Criar 5 paginas informacionais de topo de funil (~2 semanas)",
+          "Schema complementar: FAQPage na home, Course, propriedades do Quiz (~3h)",
+          "Otimizar terceiros: consolidar GA4 no GTM, Clarity lazyOnload, preconnect (~2h)",
+          "Consent Mode v2 para conformidade LGPD (~4h)"
+        ]
+      },
+      {
+        "name": "Fase 4: Monitoramento e Iteracao",
+        "timeframe": "Continuo",
+        "items": [
+          "PRIORITARIO: configurar GOOGLE_API_KEY, OAuth do Search Console e GA4 API - sem isso nada acima e mensuravel",
+          "Publicar /llms.txt com indice curado",
+          "Popular lastmod nas 253 URLs do sitemap",
+          "Corrigir contraste dos dois tokens de cor abaixo de 4,5:1",
+          "Renomear /Sem fundo.png e usar alt vazio na logo",
+          "Adicionar manifest.json e .well-known/security.txt",
+          "Publicar dados proprios citaveis a partir do acervo e do desempenho dos usuarios"
+        ]
+      }
+    ]
+  },
+  "artifacts": {
+    "findings_dir": "findings/",
+    "screenshots_dir": "screenshots/",
+    "raw_dir": "raw/"
+  }
+}

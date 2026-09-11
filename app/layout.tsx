@@ -60,9 +60,19 @@ const geist = Geist({
   variable: "--font-geist",
 })
 
+// `preload: false` porque esta família NÃO RENDERIZA EM LUGAR NENHUM. O
+// `.font-mono` do globals.css põe `--font-dm-mono` na frente dela, e o DM Mono
+// sempre carrega — medido em set/2026 nas seis rotas públicas: zero elementos
+// com Geist Mono computado. Ela seguia preloadada, 23 KB disputando a janela
+// entre a primeira pintura e o LCP, pra nunca desenhar um caractere.
+//
+// Fica declarada, e não removida, porque continua sendo o fallback do
+// `--font-mono` e das regras de `globals.css`. Sem preload ela só baixa se
+// alguma superfície passar a usá-la de fato.
 const geistMono = Geist_Mono({
   subsets: ["latin"],
   variable: "--font-geist-mono",
+  preload: false,
 })
 
 // ── Fontes da landing page ───────────────────────────────────
@@ -76,11 +86,19 @@ const fraunces = Fraunces({
   display: "swap",
 })
 
+// Sem preload: as duas faces (17,4 KB) são usadas acima da dobra, mas só em
+// rótulo pequeno — o eyebrow do herói e a meta sob o CTA. Com `display: swap`
+// esse texto aparece na fonte de sistema e troca depois, o que ninguém nota num
+// rótulo de 12 px, e os 17,4 KB saem da disputa com o que o LCP precisa.
+//
+// O elemento do LCP é o parágrafo do herói, que usa Geist — essa é a única
+// família cujo preload serve ao LCP.
 const dmMono = DM_Mono({
   subsets: ["latin"],
   weight: ["400", "500"],
   variable: "--font-dm-mono",
   display: "swap",
+  preload: false,
 })
 
 export const metadata: Metadata = {

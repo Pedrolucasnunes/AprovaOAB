@@ -394,21 +394,23 @@ O que está abaixo é só o que um agente precisa saber pra **não estragar** o 
 
 O servidor não lê media query — `useReducedMotion()` devolve falso no SSR e o HTML sai com `style="opacity:0;transform:translateY(26px)"` pra todo mundo. Se o cliente com `reduce` recebe `initial={false}` e `whileInView={undefined}`, não sobra nada que desfaça o estilo inline. **Qualquer refatoração que volte a condicionar `initial`/`whileInView` ao `reduce` reintroduz o bug.** O porquê completo está no comentário do próprio arquivo.
 
-**O Lighthouse não pega isso**: o audit de acessibilidade não executa a página sob a media query, e deu 96 com a landing quebrada. Pra testar:
+**O Lighthouse não pega isso**: o audit de acessibilidade não executa a página sob a media query, e deu 96 com a landing quebrada. A guarda de regressão é `scripts/reveal-reduced-motion.mjs`:
 
 ```bash
-chrome --headless=new --force-prefers-reduced-motion \
-  --window-size=1400,6000 --virtual-time-budget=8000 \
-  --dump-dom <url> | grep -o 'translateY(26px)' | wc -l
+export CHROME_BIN="$LOCALAPPDATA/ms-playwright/chromium-1234/chrome-win64/chrome.exe"
+npm i --no-save playwright-core          # nao e dependencia do projeto
+node scripts/reveal-reduced-motion.mjs   # ou ... http://localhost:3000
 ```
 
-Conta os `<Reveal>` que **continuam** no estado inicial. Rode com e sem a flag: os dois números têm que bater. Produção antes do conserto dava **24 com a flag contra 6 sem** — os 6 são blocos que o orçamento de tempo virtual não alcançou, não bug.
+Sai 0 quando o modo reduzido revela o mesmo tanto que o normal, 1 quando revela menos. Verificado nos dois sentidos: contra a produção consertada devolve paridade, e contra um build do `reveal.tsx` anterior acusa `FALHOU: movimento reduzido esconde 24 bloco(s) a mais`.
 
-Três armadilhas, todas medidas ao escrever esta receita:
+**Não tente trocar isso por um `curl | grep`** — três variantes foram medidas e as três falham:
 
-- **Sem `--virtual-time-budget` a checagem não discrimina nada.** O `--dump-dom` captura antes de o `IntersectionObserver` rodar, e o SSR emite o estado inicial pra todo mundo — os dois modos dão 24 mesmo com a página sã.
-- **`grep -c` conta linhas, não ocorrências.** O DOM despejado tem 2 linhas, então `-c` devolve `1` sempre. Precisa ser `grep -o … | wc -l`.
-- **Procure `translateY(26px)`, não `opacity:0`.** Outros elementos da landing usam `opacity` inline e entram na conta: com `opacity:0` o mesmo teste dava 38 contra 20, ruído que esconde o sinal.
+- Contar `opacity:0` no HTML servido dá **24 na página sã e 24 na quebrada**: o SSR emite o estado inicial pra todo mundo, porque o servidor não lê media query.
+- `chrome --dump-dom` captura antes de o `IntersectionObserver` rodar, então repete o mesmo empate.
+- `--virtual-time-budget` parece resolver e é a pior das três: o tempo virtual avança independente da rede, e o **mesmo build** responde ora 24 ora 6. Esteve recomendado aqui por algumas horas em set/2026, depois de acertar duas vezes seguidas por sorte — o que é exatamente como uma medição instável se disfarça de verificação.
+
+O que discrimina é o estilo **computado**, lido depois de rolar a página e esperar as transições terminarem. Rolagem rápida também mente: passo grande demais corre na frente da transição de 0,65s e conta como travado o bloco que está animando.
 
 Ressalva que continua valendo: o conteúdo ainda depende de JS pra aparecer. A reescrita em CSS do passo 2 do LCP resolve isso e descarta o arquivo.
 

@@ -200,11 +200,22 @@ export default async function QuestaoPage({
       </p>
 
       {/* Stat product-derived — só renderiza com amostra real (sem dado fabricado).
-          Texto único por questão + reforça o CTA, sem revelar a resolução comentada. */}
+          Texto único por questão + reforça o CTA, sem revelar a resolução comentada.
+
+          O TAMANHO DA AMOSTRA VAI JUNTO DA PORCENTAGEM, e não é detalhe de copy:
+          "68% erram" sozinho é indistinguível de número inventado, que é
+          exatamente o que o piso de MIN_ATTEMPTS existe pra impedir. Dizer "de 47
+          respostas" põe a régua à vista de quem lê, em vez de deixá-la só no
+          código. `getQuestionErrorRate` já devolvia `total`; ninguém renderizava.
+
+          Plural sem condicional porque o piso garante: abaixo de 30 respostas a
+          função devolve null e este bloco não existe. */}
       {stat && (
         <p className="mt-5 rounded-lg border border-border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-          📊 <strong className="font-semibold text-foreground">{stat.errPct}% dos alunos</strong> do
-          AprovaOAB erram esta questão. Veja se você acerta.
+          📊 De <strong className="font-semibold text-foreground">{stat.total} respostas</strong> de
+          alunos do AprovaOAB,{" "}
+          <strong className="font-semibold text-foreground">{stat.errPct}% erraram</strong> esta
+          questão. Veja se você acerta.
         </p>
       )}
 

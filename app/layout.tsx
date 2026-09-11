@@ -86,19 +86,27 @@ const fraunces = Fraunces({
   display: "swap",
 })
 
-// Sem preload: as duas faces (17,4 KB) são usadas acima da dobra, mas só em
-// rótulo pequeno — o eyebrow do herói e a meta sob o CTA. Com `display: swap`
-// esse texto aparece na fonte de sistema e troca depois, o que ninguém nota num
-// rótulo de 12 px, e os 17,4 KB saem da disputa com o que o LCP precisa.
+// MANTÉM O PRELOAD, e isso foi decidido por medição, não por princípio.
 //
-// O elemento do LCP é o parágrafo do herói, que usa Geist — essa é a única
-// família cujo preload serve ao LCP.
+// Tirar o preload destas duas faces (17,4 KB) parecia grátis: são usadas acima
+// da dobra só no eyebrow do herói e na meta sob o CTA, rótulos de 12 px onde o
+// `swap` seria imperceptível. Medido em produção, três execuções do Lighthouse
+// contra três da baseline, o resultado foi o oposto do esperado:
+//
+//   FCP observado   751 ms -> 942 ms     (piorou 191 ms)
+//   FCP simulado  1.319 ms -> 1.620 ms   (piorou 301 ms)
+//   performance         84 -> 84         (sem mudança)
+//
+// A piora aparece nos DOIS relógios, então não é artefato do modelo simulado.
+// O LCP simulado melhorava 0,15 s, mas o observado piorava junto do FCP — trocar
+// primeira pintura por uma métrica simulada é troca ruim.
+//
+// Não reabrir sem medir os dois relógios.
 const dmMono = DM_Mono({
   subsets: ["latin"],
   weight: ["400", "500"],
   variable: "--font-dm-mono",
   display: "swap",
-  preload: false,
 })
 
 export const metadata: Metadata = {

@@ -1,8 +1,17 @@
 import Link from "next/link"
+import type { Metadata } from "next"
 import { ArrowLeft } from "lucide-react"
 
-export const metadata = {
-  title: "Termos de Uso — AprovaOAB",
+/**
+ * O título não repete a marca: o `title.template` do layout raiz já acrescenta
+ * " | AprovaOAB", e este arquivo servia "Termos de Uso — AprovaOAB | AprovaOAB".
+ * A description era a de fallback do site, igual à de /politica-de-privacidade.
+ */
+export const metadata: Metadata = {
+  title: "Termos de Uso",
+  description:
+    "Condições de uso da plataforma AprovaOAB: conta, assinatura, cancelamento, propriedade do conteúdo e limites de responsabilidade.",
+  alternates: { canonical: "/termos-de-uso" },
 }
 
 export default function TermosDeUsoPage() {

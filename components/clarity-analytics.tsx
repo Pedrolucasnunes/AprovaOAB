@@ -12,16 +12,24 @@ const CLARITY_ID = process.env.NEXT_PUBLIC_CLARITY_ID
  * recusado a categoria de análise. Análise é opt-out (ligada por padrão), então
  * só pula quando há consentimento salvo com analytics === false.
  *
- * `lazyOnload`, não `afterInteractive`, e o motivo é medido: o clarity.js é o
- * MAIOR consumidor de CPU da landing — 964 ms, mais que qualquer chunk da
- * própria aplicação e mais que o GTM e o GA4 somados. Em `afterInteractive` ele
- * disputa a thread principal justamente na janela do LCP. Em `lazyOnload` só
- * roda depois do `load`, quando a página já está pintada e interativa.
+ * `afterInteractive`, e NÃO `lazyOnload` — já foi trocado por lazyOnload uma vez
+ * e revertido, em set/2026, com a medição que explica por quê.
  *
- * A troca tem custo, e é o custo aceito: a gravação começa mais tarde, então
- * clique feito nos primeiros instantes pode ficar de fora do replay. Clarity é
- * ferramenta de diagnóstico, não de cobrança — vale menos que o primeiro
- * segundo de quem chegou pela busca.
+ * O argumento pra adiar era que o clarity.js custa ~940 ms de CPU, mais que
+ * qualquer chunk da aplicação. O número é real, mas irrelevante pro LCP: no
+ * relógio observado, o clarity só COMEÇA a rodar em ~5,9 s, e o LCP acontece em
+ * ~0,8 s. Ele já rodava cinco segundos depois da pintura. O `lazyOnload` mudou
+ * o início de 5,9 s pra 5,3 s e não separou nenhuma métrica da baseline em três
+ * execuções do Lighthouse.
+ *
+ * A armadilha que produziu o erro: `bootup-time` mede CPU TOTAL, não quando ela
+ * é gasta. Script caro fora da janela crítica parece problema de caminho
+ * crítico em qualquer relatório que ordene por CPU.
+ *
+ * E o custo do adiamento era real: a gravação de sessão começaria mais tarde,
+ * perdendo os primeiros cliques. Enquanto o Search Console não estiver ligado,
+ * o Clarity é a única ferramenta de comportamento que o produto tem — degradá-la
+ * por ganho não demonstrado é troca ruim.
  */
 export function ClarityAnalytics() {
   const [allowed, setAllowed] = useState(false)
@@ -36,7 +44,7 @@ export function ClarityAnalytics() {
   if (!CLARITY_ID || !allowed) return null
 
   return (
-    <Script id="clarity-init" strategy="lazyOnload">
+    <Script id="clarity-init" strategy="afterInteractive">
       {`(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","${CLARITY_ID}");`}
     </Script>
   )

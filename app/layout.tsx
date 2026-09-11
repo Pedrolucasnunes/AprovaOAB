@@ -141,10 +141,10 @@ export default function RootLayout({
             já vive dentro do GTM; não há tag paralela pra consolidar.)
 
             As origens do Clarity ficam de fora de propósito. Preconnect abre
-            socket na hora do carregamento, que é exatamente a banda que o LCP
-            está disputando — abrir conexão adiantada pra um script que acabamos
-            de mandar pro `lazyOnload` desfaria o adiamento. Fica só o
-            dns-prefetch, que resolve o nome sem ocupar conexão.
+            socket durante o carregamento, que é a banda que o LCP está
+            disputando — e o Clarity não precisa dela: medido, ele só começa a
+            rodar ~5 s depois do LCP. Fica só o dns-prefetch, que resolve o nome
+            sem ocupar conexão.
           */}
           <link rel="preconnect" href="https://www.googletagmanager.com" />
           <link rel="dns-prefetch" href="https://scripts.clarity.ms" />

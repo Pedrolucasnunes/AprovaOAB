@@ -39,9 +39,22 @@ Sob `reduce` o elemento entra na viewport e salta pro estado final sem animaçã
 
 **Se for fazer o passo 2 do 1.1 agora, pule este item:** a reescrita em CSS resolve de tabela, porque o bloco `@media (prefers-reduced-motion: reduce)` força o estado final e o conteúdo deixa de depender de JS. Este atalho existe pro caso de o 1.1 ficar pra depois — o bug não deve esperar por ele.
 
-### 1.1 Destravar o LCP `[CRÍTICO]` `[~6h]` `[+15 pts]`
+### 1.1 Destravar o LCP `[✅ ENCERRADO — ver "Resumo por impacto"]`
 
-**Problema:** LCP de 9,5–12,3s no mobile em todas as páginas; 93–94% é render delay.
+> **O diagnóstico abaixo estava errado na CAUSA, e fica registrado por isso.**
+> Resolvido, mas por outro item: os ícones de 726 KB (1.4). Estado final:
+> performance **85**, LCP **3,4 s**, mediana de 3 execuções.
+>
+> A causa não era saturação de main thread. Medido: tarefa longa responde por
+> **menos de 20%** do render delay; o `clarity.js` custa ~940 ms de CPU mas só
+> COMEÇA a rodar em 5,9 s, com o LCP em 0,8 s no relógio observado — nunca
+> esteve no caminho crítico. `bootup-time` mede CPU total, não quando ela é
+> gasta, e é isso que faz script caro fora da janela parecer causa.
+>
+> Dos três passos abaixo: o (1) foi feito e revertido por não medir ganho; o (2)
+> foi feito e vale por robustez, não por performance; o (3) foi cancelado.
+
+**Problema (como estava escrito):** LCP de 9,5–12,3s no mobile em todas as páginas; 93–94% é render delay.
 
 **O que já está resolvido — não refaça:** `components/site/hero.tsx` já usa `initial={false}` na coluna editorial, e o parágrafo do LCP chega em `opacity:1;transform:none` na resposta HTTP. Os 24 elementos em `opacity:0` no HTML são os `<Reveal>` (`whileInView`, abaixo da dobra) — comportamento correto.
 
@@ -240,12 +253,49 @@ O acervo de 2.240 questões + dados de desempenho dos usuários permitem publica
 
 ## Resumo por impacto
 
+> **Para tudo que já foi executado, esta tabela é MEDIDO, não estimado.** A
+> versão original era estimativa e errou a ordem de prioridade por margem
+> grande: deu 6 h e +15 pts pro item de LCP e empacotou os ícones num lote de
+> "+3–4 pts". O oposto aconteceu. Quem for planejar a próxima rodada precisa ler
+> o número real, senão orça pelo chute que já foi desmentido.
+
+### Executado — Fase 1 (set/2026)
+
+| Ação | Esforço | Resultado MEDIDO |
+|---|---|---|
+| 1.0 Conteúdo invisível sob reduced-motion (`c00c3a7`) | 10 min | bug de acessibilidade: 0 de 24 blocos visíveis → paridade com o modo normal |
+| **1.4 Ícones** (`7e99e9d`) | 30 min | **+9 pts, LCP 12,3 s → 3,4 s.** 1,45 MB → 10 KB. A alavanca dominante da fase inteira |
+| 1.2/1.3/1.5 Metadata, canonicals, OG (`fe3ee97`) | 45 min | não mede em performance; corrige duplicata interna e põe `noindex` nas rotas de auth |
+| **1.1a Terceiros** (`b653e14`) | 2 h | **sem ganho mensurável — revertido** (`9e93517`). O `preconnect` ficou |
+| **1.1b `Reveal` em CSS** (`24a0a70`) | 1 h | **zero performance.** Vale por robustez: conteúdo visível sem JS, e a classe de erro de `c00c3a7` deixa de ser alcançável |
+| **Preload de fontes** (`f59f7be`) | 1 h | **sem separação** (84 contra 84). **Regressão de FCP** de 191 ms no relógio observado → **revertido em parte** (`3275ae0`); ficou sem preload só o Geist Mono, que não renderiza em lugar nenhum |
+| 1.1c Revisar componentes client | — | **cancelado.** Tarefa longa responde por menos de 20% do render delay; teto do ganho é da ordem de um décimo de segundo simulado |
+
+**Fase 1 encerrada em performance 85, LCP 3,4 s** (mediana de 3 execuções,
+Lighthouse mobile). A meta era "< 2,5 s e ≥ 85": o score chegou, o LCP parou a
+~900 ms. Decisão registrada: **não continuar** — a faixa "ruim" do Google acaba
+em 4 s e o retorno passou pra Fase 2 e pro Search Console.
+
+**A lição vale mais que os números: tudo que foi atribuído a JavaScript na
+thread principal não entregou — hidratação, `motion`, Clarity. O que entregou
+foi byte na janela entre o FCP e o LCP.** As correções contra medição desta fase
+seguiram esse padrão.
+
+### Ainda estimado — não executado
+
 | Ação | Esforço | Ganho estimado |
 |---|---|---|
-| 1.0 Conteúdo invisível sob reduced-motion | 10min | bug em produção |
-| 1.1 Destravar LCP | 6h | **+15 pts** |
-| 2.1 Publicar 2.040 questões | 2 dias | **+10–12 pts** |
-| 3.1 + 3.2 + 3.3 E-E-A-T e conteúdo | 3 semanas | **+8–10 pts** |
-| 1.2–1.5 Correções técnicas | 1,5h | +3–4 pts |
+| 4.1 Search Console + GA4 | — | **pré-requisito; virou bloqueio da Fase 2** |
+| 2.1 Publicar as questões restantes | 2 dias | +10–12 pts |
+| 3.1 + 3.2 + 3.3 E-E-A-T e conteúdo | 3 semanas | +8–10 pts |
 | 3.4 Schema complementar | 3h | +2–3 pts |
-| 3.5 Otimizar terceiros | 2h | +2 pts |
+
+**Correção de premissa da Fase 2, medida em set/2026.** O gargalo não é produção
+de conteúdo: **1.332 das 2.152 questões têm `explicacao`** (61,9%), não ~200 —
+há 6,6× mais questão comentada do que publicada. Mas a `explicacao` **não vai
+pro HTML**; o diferencial da página pública é o stat de erro do
+`lib/seo/stats.ts`. Hoje **3 questões** passam no `MIN_ATTEMPTS = 30` e nenhuma
+está entre as 200 publicadas, então o bloco não aparece em página nenhuma. Isso
+**não** condiciona a publicação: `getQuestionErrorRate` devolve `null` e a página
+omite o bloco, então as páginas melhoram sozinhas conforme o uso cresce, sem
+migração e sem decisão futura.

@@ -228,13 +228,17 @@
           "title": "LCP de 9,5s a 12,3s no mobile, sendo 93-94% render delay",
           "severity": "Critical",
           "description": "Home: LCP 12,3s (TTFB 694ms / render delay 11.622ms). /questoes/direito-civil: 9,5s (render delay 8.840ms). /provas/45-exame-oab: 12,0s (render delay 11.293ms). O elemento LCP e um paragrafo de texto, nao imagem. DESCARTADO: o gate de animacao no above-the-fold ja esta resolvido - hero.tsx usa initial={false} e o paragrafo do LCP chega em opacity:1;transform:none; os 24 elementos em opacity:0 sao os <Reveal> com whileInView abaixo da dobra. CAUSA REAL: saturacao de main thread - 15 dos 19 componentes em components/site sao 'use client' e a home monta 13 secoes, arrastando motion/react para a hidratacao inicial, somados a 301 KB de GTM + Clarity. Main thread: 1.508ms de script evaluation e 1.244ms de style & layout.",
-          "recommendation": "Nesta ordem, re-medindo a cada passo: (1) tirar Clarity e GTM do caminho critico; (2) tirar motion/react da hidratacao inicial comecando por components/site/reveal.tsx - 21 usos em 8 secoes, scroll-reveal puro que CSS resolve com @keyframes + animation-timeline: view() e animation-fill-mode: both, ou um IntersectionObserver minimo; (3) revisar quais das 15 secoes precisam mesmo ser client components. Respeitar prefers-reduced-motion entregando o estado final."
+          "recommendation": "Nesta ordem, re-medindo a cada passo: (1) tirar Clarity e GTM do caminho critico; (2) tirar motion/react da hidratacao inicial comecando por components/site/reveal.tsx - 21 usos em 8 secoes, scroll-reveal puro que CSS resolve com @keyframes + animation-timeline: view() e animation-fill-mode: both, ou um IntersectionObserver minimo; (3) revisar quais das 15 secoes precisam mesmo ser client components. Respeitar prefers-reduced-motion entregando o estado final.",
+          "status": "corrigido-set-2026",
+          "nota_pos_medicao": "RESOLVIDO. Estado final: performance 85, LCP 3,4s (mediana de 3 execucoes). A causa apontada aqui — saturacao de main thread — estava ERRADA: tarefa longa responde por menos de 20% do render delay. A causa real era peso de arquivo na janela entre FCP e LCP, especificamente os favicons de 726 KB do achado de Imagens. Ver o Resumo por impacto do ACTION-PLAN."
         },
         {
           "title": "301 KB de tags de terceiros na thread principal",
           "severity": "High",
           "description": "GTM (GTM-TJMVZGH2) + gtag direto (G-9X6ZNVDJ10) + Clarity + Bing UET rodando em paralelo. GTM: 301 KB transferidos, 291ms de main thread, 156ms de blocking, 141 KB de JS nao utilizado (43-53%). Clarity: 890ms de main thread - mais que todo o JS da aplicacao. TBT de 190-310ms.",
-          "recommendation": "Consolidar GA4 dentro do GTM removendo o gtag duplicado; carregar Clarity com strategy lazyOnload; reavaliar ROI do Bing UET."
+          "recommendation": "Consolidar GA4 dentro do GTM removendo o gtag duplicado; carregar Clarity com strategy lazyOnload; reavaliar ROI do Bing UET.",
+          "status": "corrigido-set-2026",
+          "nota_pos_medicao": "PARCIALMENTE INCORRETO. (a) O gtag nao e direto: e injetado pelo GTM — abortando o gtm.js, o gtag/js nao carrega. O GA4 ja vive dentro do GTM, nao ha tag paralela pra consolidar. (b) Nao existe Bing UET no projeto: zero referencias a uetq/bat.js; o unico c.bing.com e o c.gif de sincronizacao do Clarity. (c) Os 890ms do Clarity sao reais mas fora da janela do LCP — ele comeca a rodar em 5,9s, com LCP em 0,8s no relogio observado. Mover pra lazyOnload nao separou nenhuma metrica em 3 execucoes e foi revertido."
         },
         {
           "title": "Sem preconnect para 7 origens de terceiros",
@@ -307,9 +311,11 @@
       "findings": [
         {
           "title": "Favicons de 726 KB cada",
-          "severity": "High",
+          "severity": "Critical",
           "description": "/icon.png e /apple-icon.png pesam 726 KB cada, declarados como sizes=1024x1024. Sao 1,45 MB baixados apenas para desenhar um favicon de 32px.",
-          "recommendation": "Gerar variantes 32x32 e 180x180 no App Router (app/icon.png e app/apple-icon.png)."
+          "recommendation": "Gerar variantes 32x32 e 180x180 no App Router (app/icon.png e app/apple-icon.png).",
+          "status": "corrigido-set-2026",
+          "nota_pos_medicao": "RESOLVIDO em 7e99e9d (30 min): 1,45 MB -> 10 KB. Este era o achado de maior impacto da auditoria inteira: um A/B controlado atribuiu a ele +9 pontos de performance e LCP de 7,98s -> 4,48s, e ele foi a causa real do achado critico de LCP, que esta auditoria atribuiu a main thread. O icone saiu em 48x48, nao 32x32: o Google exige favicon quadrado de 48px ou multiplo pra exibi-lo na busca."
         },
         {
           "title": "Logo do schema com 253 KB",
@@ -415,5 +421,16 @@
     "findings_dir": "findings/",
     "screenshots_dir": "screenshots/",
     "raw_dir": "raw/"
+  },
+  "meta": {
+    "revisao_pos_execucao": {
+      "data": "2026-09-11",
+      "resumo": "Fase 1 executada e medida. Encerrada em performance 85, LCP 3,4s. Licao: tudo que foi atribuido a JavaScript na thread principal nao entregou; o que entregou foi byte na janela entre FCP e LCP.",
+      "armadilhas_de_medicao": [
+        "bootup-time mede CPU TOTAL, nao quando ela e gasta — script caro fora da janela critica lidera o relatorio e parece causa de LCP.",
+        "Lighthouse reporta LCP/FCP SIMULADOS e tarefas longas em tempo OBSERVADO: dois relogios, nao comparaveis sem conversao.",
+        "Uma execucao nao sustenta conclusao: a dispersao medida foi 80-85 em performance e 3,43-3,73s em LCP. Minimo de 3, comparar medianas."
+      ]
+    }
   }
 }

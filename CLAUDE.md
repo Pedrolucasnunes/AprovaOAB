@@ -383,18 +383,26 @@ O que está abaixo é só o que um agente precisa saber pra **não estragar** o 
 ### O que já está certo — não "conserte"
 
 - **HTML pré-renderizado em tudo.** `x-nextjs-prerender: 1` em todas as rotas públicas. É o ativo de SEO mais valioso do projeto: crawler e motor de IA leem sem executar JS. Qualquer mudança que empurre uma rota pública pra `force-dynamic` ou pra render só no cliente é regressão grave — a landing e `/questoes` são a porta do orgânico.
-- **Hero já renderiza visível.** `components/site/hero.tsx` usa `initial={false}` na coluna editorial de propósito, pro título e CTA não ficarem escondidos até a hidratação. Os `opacity:0` que aparecem no HTML são os `<Reveal>` (`whileInView`, abaixo da dobra), e **não são a causa do LCP alto** — mas veja o bug do `Reveal` logo abaixo, que é outra coisa.
+- **Hero já renderiza visível.** `components/site/hero.tsx` usa `initial={false}` na coluna editorial de propósito, pro título e CTA não ficarem escondidos até a hidratação. O elemento do LCP é o parágrafo dessa coluna, e ele chega em `opacity:1;transform:none` na resposta HTTP — **não é a causa do LCP alto**. Os `opacity:0` que restam no HTML são de outros usos de `motion` no herói; os `<Reveal>` deixaram de emitir estilo inline em `24a0a70` (ver a regra do `Reveal` abaixo).
 - **CLS = 0 em todas as páginas.** Toda `<img>` tem `width`/`height`. Manter.
 - **Sem `Review`/`AggregateRating`** nos depoimentos — decisão documentada em "Depoimentos da landing", e ela está certa. Não reabrir.
 - **Headers de segurança** (HSTS preload, CSP, `X-Frame-Options`, `Permissions-Policy`) estão acima da média do mercado.
 
-### `Reveal` — por que `whileInView` nunca pode ser `undefined`
+### `Reveal` — CSS puro, e por que ele não pode voltar pro JS
 
-`components/site/reveal.tsx` respeita `prefers-reduced-motion` pela **duração** (`{ duration: 0 }`), nunca removendo a animação. A versão anterior fazia o contrário e deixava a landing inteira invisível pra quem tem a preferência ligada: 0 de 24 blocos revelados, contra 18 de 24 no modo normal (medido em produção, set/2026; corrigido em `c00c3a7`).
+`components/site/reveal.tsx` é Server Component de 20 linhas: põe a classe `.reveal` e duas custom properties. A animação inteira mora em `app/globals.css`. Sem `motion/react`, sem `"use client"`, sem JS.
 
-O servidor não lê media query — `useReducedMotion()` devolve falso no SSR e o HTML sai com `style="opacity:0;transform:translateY(26px)"` pra todo mundo. Se o cliente com `reduce` recebe `initial={false}` e `whileInView={undefined}`, não sobra nada que desfaça o estilo inline. **Qualquer refatoração que volte a condicionar `initial`/`whileInView` ao `reduce` reintroduz o bug.** O porquê completo está no comentário do próprio arquivo.
+**Ele já foi JS e o resultado foi a landing invisível em produção.** A versão com `motion` condicionava `initial`/`whileInView` ao `useReducedMotion()` — media query que o SERVIDOR NÃO LÊ. O HTML saía com `opacity:0;transform:translateY(26px)` pra todo mundo e dependia do cliente pra desfazer; com movimento reduzido ligado não havia alvo de animação, e **0 de 24 blocos apareciam** (contra 18 de 24 no modo normal). Medido em produção, set/2026; corrigido em `c00c3a7`, reescrito em CSS em `24a0a70`.
 
-**O Lighthouse não pega isso**: o audit de acessibilidade não executa a página sob a media query, e deu 96 com a landing quebrada. A guarda de regressão é `scripts/reveal-reduced-motion.mjs`:
+**Qualquer implementação que volte a esconder conteúdo no HTML e depender de JS pra revelar reintroduz a classe de erro inteira** — não só aquele bug.
+
+Três decisões do CSS, todas medidas:
+
+- **A regra base anima na timeline do DOCUMENTO, com `both`.** É também o fallback: onde `animation-timeline: view()` não existir, tudo aparece animado de uma vez no load. O modo de falha é "menos bonito", nunca "invisível".
+- **A faixa é `entry 0% entry 40%`, não o `cover 30%` que a auditoria sugeria.** Faixa por cobertura depende da altura do bloco contra a da tela, e em 390px os blocos ficam altos — o `cover 30%` deixava bloco em 0,80 de opacidade com o centro já na tela. Cinco faixas comparadas em duas larguras; `entry 40%` é a única que dá **1,00 nas duas** com o centro visível.
+- **`entry 15%` foi REJEITADO por escolha, não por esquecimento.** Como a timeline de rolagem não tem equivalente ao `once: true` do motion, o bloco esmaece ao sair pela borda de baixo quando se rola pra cima. Medido: com `entry 40%` a opacidade mínima é 0,54 (desktop) e 0,43 (mobile) — e acontece com o bloco **2–5% visível**, saindo da tela. Com o centro na tela é 1,00 nas duas direções, e bloco que já passou pelo topo não esmaece ao reentrar. `entry 15%` levaria o pior caso a 0,91/0,83, mas ao custo de terminar a revelação antes de o bloco subir na tela — conserta o imperceptível pagando com o perceptível.
+
+**Guarda de regressão: `scripts/reveal-reduced-motion.mjs`.** Ela testa COMPORTAMENTO — paridade entre os modos de movimento —, não implementação, e por isso sobreviveu à troca de `motion` pra CSS.
 
 ```bash
 export CHROME_BIN="$LOCALAPPDATA/ms-playwright/chromium-1234/chrome-win64/chrome.exe"
@@ -402,29 +410,37 @@ npm i --no-save playwright-core          # nao e dependencia do projeto
 node scripts/reveal-reduced-motion.mjs   # ou ... http://localhost:3000
 ```
 
-Sai 0 quando o modo reduzido revela o mesmo tanto que o normal, 1 quando revela menos. Verificado nos dois sentidos: contra a produção consertada devolve paridade, e contra um build do `reveal.tsx` anterior acusa `FALHOU: movimento reduzido esconde 24 bloco(s) a mais`.
+Ela percorre a página e mede o pior momento: blocos transparentes com o **centro já dentro da tela**. Esse critério funciona pra animação por tempo e pra timeline de rolagem, onde "está revelado" depende de onde a página parou.
 
-**Não tente trocar isso por um `curl | grep`** — três variantes foram medidas e as três falham:
+**Duas descobertas sobre a própria guarda, que valem mais que o resultado dela:**
 
-- Contar `opacity:0` no HTML servido dá **24 na página sã e 24 na quebrada**: o SSR emite o estado inicial pra todo mundo, porque o servidor não lê media query.
-- `chrome --dump-dom` captura antes de o `IntersectionObserver` rodar, então repete o mesmo empate.
-- `--virtual-time-budget` parece resolver e é a pior das três: o tempo virtual avança independente da rede, e o **mesmo build** responde ora 24 ora 6. Esteve recomendado aqui por algumas horas em set/2026, depois de acertar duas vezes seguidas por sorte — o que é exatamente como uma medição instável se disfarça de verificação.
+1. **Ela teria aprovado a versão quebrada.** O seletor procurava `opacity` inline, que a versão CSS não produz — media só os elementos do herói e dava "11 de 11 revelados" com os `<Reveal>` fora da conta. Terceira vez nesta auditoria que um instrumento não discriminou. **Antes de confiar em qualquer medição, rode-a onde a resposta é SABIDAMENTE diferente e confirme que ela muda.** (Ela também reportava "0 de 0" quando nada ficava preso: o acumulador do pior momento nunca saía do valor inicial — medição vazia com cara de aprovação.)
+2. **O primeiro teste negativo não "passou" — ele mostrou que o modo de falha deixou de existir.** Removi a regra de `prefers-reduced-motion` esperando ver a guarda falhar, e o conteúdo continuou visível. Em CSS a media query é avaliada onde ela existe e não há estado inline a desfazer. Isso é evidência mais forte que um teste verde: não é "está consertado", é "não é mais alcançável". Pra validar a guarda de fato foi preciso reproduzir a FORMA do bug (`reduced-motion → opacity: 0`), e aí ela acusou `exit 1, esconde 6 blocos a mais`.
 
-O que discrimina é o estilo **computado**, lido depois de rolar a página e esperar as transições terminarem. Rolagem rápida também mente: passo grande demais corre na frente da transição de 0,65s e conta como travado o bloco que está animando.
+Ressalva encerrada: o conteúdo não depende mais de JS. Medido com JS desabilitado — 11 seções, 24 blocos e 2.016 palavras renderizadas.
 
-Ressalva que continua valendo: o conteúdo ainda depende de JS pra aparecer. A reescrita em CSS do passo 2 do LCP resolve isso e descarta o arquivo.
+### LCP — encerrado em set/2026, e o que a medição desmentiu
 
-### LCP — o problema aberto
+**Estado atual: performance 85, LCP 3,4 s** (Lighthouse mobile, 4x CPU, 4G simulado, mediana de 3 execuções). A auditoria de set/2026 registrou 35/100 e LCP de 9,5 a 12,3 s. **Não continue caçando milissegundos aqui** — a faixa "ruim" do Google acaba em 4 s e o retorno passou pra Fase 2 e pro Search Console.
 
-LCP mobile de **9,5s a 12,3s**, sendo 93–94% *render delay*. Não é rede (TTFB 694ms) e não é imagem — o elemento LCP é um parágrafo de texto.
+**A causa era peso de arquivo, não thread principal.** O diagnóstico original atribuía o LCP à saturação de main thread — 15 componentes client, `motion/react` na hidratação, 301 KB de terceiros. Medido, nenhuma dessas hipóteses entregou. O que entregou foi **byte na janela entre o FCP e o LCP**:
 
-É **saturação de main thread**: 15 dos 19 componentes de `components/site/` são `"use client"` e a home monta 13 seções, arrastando `motion/react` pra hidratação inicial; somados a 301 KB de GTM + Clarity, dão 1.508ms de script evaluation e 1.244ms de style & layout.
+| item | esforço | resultado medido |
+|---|---|---|
+| Ícones de 726 KB × 2 (`7e99e9d`) | 30 min | **+9 pontos, LCP 12,3 s → 3,4 s** |
+| Terceiros: Clarity em `lazyOnload` (`b653e14`) | 2 h | sem ganho — **revertido** (`9e93517`) |
+| `Reveal` de `motion` pra CSS (`24a0a70`) | 1 h | zero performance; vale por robustez |
+| Preload de fontes (`f59f7be`) | 1 h | sem separação; **regressão de FCP, revertido em parte** (`3275ae0`) |
 
-Ordem de ataque, re-medindo a cada passo (`npx lighthouse <url> --form-factor=mobile --screenEmulation.mobile`):
+Três armadilhas que produziram atribuições erradas, e que vão produzir de novo em quem repetir a medição sem elas:
 
-1. **Terceiros fora do caminho crítico.** Clarity sozinho custa 890ms de main thread — mais que todo o JS da aplicação. GTM e gtag rodam em paralelo hoje (GA4 devia viver dentro do GTM).
-2. **`motion/react` fora da hidratação inicial.** Maior ganho isolado: `components/site/reveal.tsx`, 21 usos em 8 seções, scroll-reveal puro que CSS resolve com `@keyframes` + `animation-timeline: view()` + `animation-fill-mode: both` (ou um `IntersectionObserver` mínimo). Sempre com o estado final sob `prefers-reduced-motion`.
-3. **Revisar quais seções precisam mesmo ser client** — várias provavelmente só são por causa do `Reveal`.
+- **`bootup-time` mede CPU TOTAL, não quando ela é gasta.** O `clarity.js` custa ~940 ms e lidera qualquer relatório ordenado por CPU — mas no relógio OBSERVADO ele só começa em 5,9 s, e o LCP acontece em 0,8 s. Nunca esteve no caminho crítico.
+- **O Lighthouse reporta LCP/FCP SIMULADOS e tarefas longas em tempo OBSERVADO.** São dois relógios; compará-los sem converter inventa causalidade.
+- **Uma execução não sustenta conclusão.** A dispersão medida neste projeto foi de **80 a 85 em performance e 3,43 a 3,73 s em LCP** — maior que vários "ganhos" que seriam reportados com amostra única. Mínimo de 3, comparar medianas.
+
+**Preload de fonte não é grátis, e não é só somar KB.** Tirar o preload do DM Mono (17,4 KB, usado só em rótulo de 12 px) **piorou o FCP em 191 ms no relógio observado e 301 ms no simulado**, em 3 rodadas contra 3. Foi revertido. O que ficou sem preload é o **Geist Mono**, e por motivo diferente: ele **não renderiza em lugar nenhum** — o `.font-mono` do `globals.css` põe `--font-dm-mono` na frente, e medido nas seis rotas públicas dá zero elementos. Eram 23 KB no caminho crítico pra nunca desenhar um caractere.
+
+O que segue **não** resolvido e foi descartado por custo/benefício, não por impossibilidade: os 15 componentes `"use client"` de `components/site/` (o antigo item 1.1c). A medição mostrou que tarefa longa responde por menos de 20% do render delay, então o teto do ganho é da ordem de um décimo de segundo simulado.
 
 ### Metadata — regras por rota
 

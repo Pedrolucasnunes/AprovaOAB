@@ -27,7 +27,7 @@ O site tem uma **base técnica muito acima da média**: HTML pré-renderizado, c
 
 ### Top 5 problemas críticos
 
-1. **LCP de 9,5s a 12,3s no mobile em todas as páginas** — 93–94% disso é *render delay* por saturação de main thread (hidratação de 15 client components + 301 KB de terceiros).
+1. ~~**LCP de 9,5s a 12,3s no mobile em todas as páginas** — 93–94% disso é *render delay* por saturação de main thread (hidratação de 15 client components + 301 KB de terceiros).~~ **RESOLVIDO em set/2026, e a causa apontada estava errada.** Estado final: performance **85**, LCP **3,4s** (mediana de 3 execuções). Não era main thread — tarefa longa responde por menos de 20% do render delay. Era peso de arquivo na janela entre FCP e LCP: os favicons de 726 KB do achado I1, que esta lista classificou como prioridade 5. Ver a nota em I1 e o "Resumo por impacto" do ACTION-PLAN.
 2. **Só 200 das ~2.240 questões têm página própria indexável** — ~91% do acervo invisível na busca.
 3. **`/login` e `/cadastro` indexáveis** com título e descrição duplicados.
 4. **4 páginas sem tag canonical** (`/login`, `/cadastro`, `/termos-de-uso`, `/politica-de-privacidade`).
@@ -120,7 +120,7 @@ Sob o throttling 4× de CPU do Lighthouse, o browser não completa o layout/pain
 
 ### Correção, em ordem de retorno
 
-1. **Tirar os terceiros do caminho crítico** (P2). É o mais barato: Clarity sozinho custa 890ms de main thread.
+1. ~~**Tirar os terceiros do caminho crítico** (P2). É o mais barato: Clarity sozinho custa 890ms de main thread.~~ **Feito e REVERTIDO** (`b653e14` → `9e93517`): não separou nenhuma métrica em 3 execuções contra 3. Os ~940ms de CPU do Clarity são reais, mas ele só COMEÇA a rodar em 5,9s, com o LCP em 0,8s no relógio observado — nunca esteve no caminho crítico. `bootup-time` mede CPU total, não quando ela é gasta.
 2. **Tirar `motion/react` da hidratação inicial.** O maior ganho isolado é o `<Reveal>` — 21 usos, puro fade-in ao entrar na viewport, que CSS resolve sem JS:
    ```css
    @keyframes rise { from { opacity:0; transform:translateY(26px) } to { opacity:1; transform:none } }
@@ -138,11 +138,11 @@ Meta: LCP na faixa verde (<2,5s) e Performance em 85–95.
 | Origem | Transferência | Main thread | Blocking |
 |---|---|---|---|
 | Google Tag Manager (GTM + gtag) | 301 KB | 291ms | 156ms |
-| Microsoft Clarity | 29 KB | **890ms** | 61ms |
+| Microsoft Clarity | 29 KB | **890ms** (mas fora da janela do LCP — começa em ~5,9s) | 61ms |
 | Bing Ads | 0,8 KB | 0 | 0 |
 | Google Analytics | 0,6 KB | 0 | 0 |
 
-Estão carregados GTM (`GTM-TJMVZGH2`) **e** gtag direto (`G-9X6ZNVDJ10`) **e** Clarity **e** Bing UET. O GTM sozinho tem 141 KB de JS não utilizado (43–53% do bundle). O Clarity consome 890ms de main thread — mais que todo o JS da aplicação.
+~~Estão carregados GTM (`GTM-TJMVZGH2`) **e** gtag direto (`G-9X6ZNVDJ10`) **e** Clarity **e** Bing UET.~~ **Errado em dois pontos, verificado em set/2026:** o gtag NÃO é direto, é injetado pelo GTM (abortando o `gtm.js`, o `gtag/js` não carrega) — o GA4 já vive dentro do GTM. E **não existe Bing UET**: zero referências a `uetq`/`bat.js` no código; o único `c.bing.com` é o `c.gif` de sincronização do Clarity. Carregados de fato: GTM, o GA4 que ele injeta, e o Clarity. O GTM sozinho tem 141 KB de JS não utilizado (43–53% do bundle). O Clarity consome 890ms de main thread — mais que todo o JS da aplicação.
 
 **Correção:** consolidar o GA4 dentro do GTM (remover o gtag duplicado), carregar o Clarity com `strategy="lazyOnload"` no `next/script`, e avaliar se o Bing UET tem ROI hoje.
 
@@ -281,7 +281,7 @@ Todos os blocos JSON-LD parseiam sem erro. A qualidade aqui está bem acima da m
 
 | # | Severidade | Achado |
 |---|---|---|
-| I1 | **Alto** | **`/icon.png` e `/apple-icon.png` têm 726 KB cada** (declarados como `sizes="1024x1024"`). São 1,45 MB baixados só para desenhar um favicon de 32px. Gere variantes 32/180/192/512 e sirva o tamanho certo. |
+| I1 | ~~**Alto**~~ **ERA O ACHADO MAIS IMPORTANTE DA AUDITORIA** | **`/icon.png` e `/apple-icon.png` têm 726 KB cada** (declarados como `sizes="1024x1024"`). São 1,45 MB baixados só para desenhar um favicon de 32px. **Resolvido em `7e99e9d` (30 min): 1,45 MB → 10 KB, e um A/B controlado atribuiu a ele +9 pontos e LCP de 7,98s → 4,48s.** Era a causa dominante do achado P1, que esta auditoria atribuiu a main thread. O ícone saiu em **48×48**, não 32×32: o Google exige favicon quadrado de 48px ou múltiplo para exibi-lo na busca. |
 | I2 | **Médio** | `/aprovaoab-logo-primary.png` (usado no `logo` do schema Organization) tem **253 KB**. |
 | I3 | **Médio** | A logo do header usa `/Sem fundo.png` — nome de arquivo com **espaço e em português**, servido como `/Sem%20fundo.png`. O Lighthouse ainda aponta "Properly size images" nele. |
 | I4 | **Baixo** | Lighthouse: "Image elements have `[alt]` attributes that are redundant text" — a logo tem `alt="AprovaOAB"` ao lado do texto "AprovaOAB". O `alt` deve ser vazio (`alt=""`) quando a imagem é decorativa e o texto já está presente. |

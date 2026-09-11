@@ -1,4 +1,5 @@
 import { Suspense } from "react"
+import type { Metadata } from "next"
 
 import { AuthShell } from "@/components/auth/auth-shell"
 import { LoginForm } from "@/components/auth/login-form"
@@ -16,6 +17,23 @@ import { LoginForm } from "@/components/auth/login-form"
  * memória e o formulário é client. Não há consulta ao banco nesta rota.
  */
 export const dynamic = "force-dynamic"
+
+/**
+ * Tela de autenticação é `noindex`: não tem nada a oferecer a quem chega da
+ * busca, e até agora entrava no índice com o título e a description de
+ * fallback do site — idênticos aos de /cadastro, o que é duplicata interna.
+ * `follow: true` porque os links daqui (termos, privacidade) seguem valendo.
+ *
+ * O título é só "Entrar": o `title.template` do layout raiz acrescenta
+ * " | AprovaOAB". Escrever a marca aqui sairia duplicada.
+ */
+export const metadata: Metadata = {
+  title: "Entrar",
+  description:
+    "Acesse sua conta do AprovaOAB para continuar o diagnóstico, o treino inteligente e os simulados no padrão FGV.",
+  robots: { index: false, follow: true },
+  alternates: { canonical: "/login" },
+}
 
 /**
  * Server Component fino de propósito: é o que permite ao painel da casca

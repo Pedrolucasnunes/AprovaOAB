@@ -1,3 +1,5 @@
+import type { Metadata } from "next"
+
 import { AuthShell } from "@/components/auth/auth-shell"
 import { CadastroForm } from "@/components/auth/cadastro-form"
 
@@ -14,6 +16,15 @@ import { CadastroForm } from "@/components/auth/cadastro-form"
  * memória e o formulário é client. Não há consulta ao banco nesta rota.
  */
 export const dynamic = "force-dynamic"
+
+// Mesma regra de /login — ver o comentário de lá.
+export const metadata: Metadata = {
+  title: "Criar conta",
+  description:
+    "Crie sua conta gratuita no AprovaOAB e comece pelo diagnóstico: descubra em quais matérias você precisa estudar antes de montar o plano.",
+  robots: { index: false, follow: true },
+  alternates: { canonical: "/cadastro" },
+}
 
 /**
  * Ver o comentário em `app/login/page.tsx` — mesma divisão servidor/cliente.

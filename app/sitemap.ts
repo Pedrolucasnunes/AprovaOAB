@@ -21,7 +21,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ])
 
   return [
-    { url: `${BASE}/`, changeFrequency: "weekly", priority: 1 },
+    // Sem barra final, e a escolha é do framework, não de gosto. O Next normaliza
+    // toda URL de metadata contra `trailingSlash` (false, o padrão): o canonical e
+    // o og:url da home saem "https://www.aprovaoab.app.br" mesmo que a página
+    // declare `${APP_URL}/` absoluto — testado. Como as outras 251 entradas já não
+    // têm barra, alinhar o sitemap aqui é uma linha; alinhar o resto exigiria
+    // `trailingSlash: true`, que redirecionaria o site inteiro.
+    { url: BASE, changeFrequency: "weekly", priority: 1 },
     { url: `${BASE}/questoes`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${BASE}/provas`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${BASE}/editais`, changeFrequency: "weekly", priority: 0.7 },

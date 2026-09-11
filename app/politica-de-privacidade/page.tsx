@@ -1,8 +1,13 @@
 import Link from "next/link"
+import type { Metadata } from "next"
 import { ArrowLeft } from "lucide-react"
 
-export const metadata = {
-  title: "Política de Privacidade — AprovaOAB",
+// Ver o comentário em app/termos-de-uso/page.tsx — mesma correção.
+export const metadata: Metadata = {
+  title: "Política de Privacidade",
+  description:
+    "Como o AprovaOAB coleta, usa e protege seus dados: quais informações são guardadas, com quem são compartilhadas e como exercer seus direitos pela LGPD.",
+  alternates: { canonical: "/politica-de-privacidade" },
 }
 
 export default function PoliticaDePrivacidadePage() {

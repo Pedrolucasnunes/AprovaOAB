@@ -332,17 +332,6 @@
   animation: card-float-slow 7s ease-in-out 1s infinite;
 }
 
-/* Reveal no scroll */
-.reveal {
-  opacity: 0;
-  transform: translateY(14px);
-  transition: opacity 0.7s ease, transform 0.7s ease;
-}
-.reveal.in {
-  opacity: 1;
-  transform: translateY(0);
-}
-
 /* ── Container editorial compartilhado (landing) ─────────────── */
 .container-page {
   margin-inline: auto;
@@ -383,6 +372,14 @@ body[data-modo-prova] [data-chrome='dashboard'] {
 }
 
 /* ── Scroll-reveal das seções da landing ─────────────────────────
+   ATENÇÃO AO NOME DA CLASSE: existia um `.reveal` morto neste arquivo (com
+   `.reveal.in`, de um IntersectionObserver que nenhum componente usava mais).
+   Ele punha `opacity: 0` ESTÁTICO, e o componente novo passou a herdá-lo sem
+   ninguém notar — só apareceu ao inspecionar o CSS servido em produção. Foi
+   removido: com ele ali, qualquer cenário em que a animação não se aplicasse
+   deixaria o conteúdo invisível, que é exatamente o modo de falha que a
+   reescrita em CSS existe pra eliminar. Sem ele, o pior caso é "sem animação",
+   nunca "sem conteúdo".
    Par em CSS do components/site/reveal.tsx. O porquê completo está lá; o que
    importa aqui é a ORDEM das três regras, que é o que garante o conteúdo
    visível em qualquer cenário.

@@ -6,9 +6,16 @@ Ordenado por impacto ÷ esforço. Score atual: **68/100**. Potencial realista em
 
 ## Fase 1 — Correções críticas (Semana 1)
 
-### 1.0 Conteúdo invisível sob `prefers-reduced-motion` `[BUG EM PRODUÇÃO]` `[~10min]`
+### 1.0 Conteúdo invisível sob `prefers-reduced-motion` `[✅ RESOLVIDO em c00c3a7]`
 
-**Não é item de SEO — é bug de acessibilidade que está no ar agora.** Com movimento reduzido ligado, os 24 blocos `<Reveal>` ficam permanentemente em `opacity:0`: a landing mostra o herói e mais nada.
+> Corrigido em `c00c3a7`. A medição abaixo fica como estava: é o retrato do
+> defeito, e é o que torna a regra verificável. Depois do conserto, os mesmos
+> 24 blocos aparecem em **0 de 24** travados, nos três viewports testados
+> (390×844, 1400×900, 1400×6000) — o modo reduzido passa a entregar o mesmo
+> conteúdo do modo normal. A regra que impede a volta do bug está no CLAUDE.md,
+> em "`Reveal` — por que `whileInView` nunca pode ser `undefined`".
+
+**Não era item de SEO — era bug de acessibilidade, e estava no ar.** Com movimento reduzido ligado, os 24 blocos `<Reveal>` ficam permanentemente em `opacity:0`: a landing mostra o herói e mais nada.
 
 Medido em produção, viewport de 1400×6000:
 
@@ -81,7 +88,24 @@ export const metadata: Metadata = {
 
 Adicionar `alternates.canonical` em `/login`, `/cadastro`, `/termos-de-uso`, `/politica-de-privacidade`. Aproveitar para escrever `description` própria nas duas páginas legais (hoje usam o fallback do site).
 
-Padronizar também a home: escolher **com barra** (`https://www.aprovaoab.app.br/`) em canonical, `og:url` e sitemap — hoje os três divergem.
+~~Padronizar também a home: escolher **com barra** (`https://www.aprovaoab.app.br/`) em canonical, `og:url` e sitemap — hoje os três divergem.~~
+
+> **Esta recomendação estava errada, nos dois sentidos. Resolvido ao contrário.**
+>
+> **O achado em si era fraco.** Para a raiz, `https://www.aprovaoab.app.br` e
+> `https://www.aprovaoab.app.br/` são a **mesma URL** pela RFC 3986 — caminho
+> vazio equivale a `/`. O Google nunca tratou isso como divergência, então não
+> havia problema de SEO a consertar.
+>
+> **E a direção era inexequível.** O Next normaliza toda URL de metadata contra
+> `trailingSlash` (`false`, o padrão) e serve o canonical **sem** barra mesmo
+> quando a página declara `${APP_URL}/` absoluto — testado no build, não
+> deduzido. Chegar a "com barra" exigiria `trailingSlash: true`, que
+> redirecionaria as 253 URLs do site inteiro para consertar um não-problema.
+>
+> O que foi feito: alinhar a entrada da home **no sitemap**, sem barra, igual às
+> outras 252. Uma linha em `app/sitemap.ts`. Os três passam a coincidir em
+> `https://www.aprovaoab.app.br`.
 
 ---
 

@@ -388,22 +388,29 @@ O que está abaixo é só o que um agente precisa saber pra **não estragar** o 
 - **Sem `Review`/`AggregateRating`** nos depoimentos — decisão documentada em "Depoimentos da landing", e ela está certa. Não reabrir.
 - **Headers de segurança** (HSTS preload, CSP, `X-Frame-Options`, `Permissions-Policy`) estão acima da média do mercado.
 
-### `Reveal` — bug em produção sob `prefers-reduced-motion`
+### `Reveal` — por que `whileInView` nunca pode ser `undefined`
 
-**Com movimento reduzido ligado, os 24 blocos `<Reveal>` ficam permanentemente em `opacity:0`: a landing mostra o herói e mais nada.** Medido em produção (Chrome headless, viewport 1400×6000) — no modo normal 18 dos 24 são revelados; com `--force-prefers-reduced-motion`, **0 de 24**.
+`components/site/reveal.tsx` respeita `prefers-reduced-motion` pela **duração** (`{ duration: 0 }`), nunca removendo a animação. A versão anterior fazia o contrário e deixava a landing inteira invisível pra quem tem a preferência ligada: 0 de 24 blocos revelados, contra 18 de 24 no modo normal (medido em produção, set/2026; corrigido em `c00c3a7`).
 
-`components/site/reveal.tsx`: o servidor não lê media query, então `useReducedMotion()` devolve falso no SSR e o HTML sai com `style="opacity:0;transform:translateY(26px)"`. No cliente com `reduce`, `initial={false}` manda não animar e `whileInView={undefined}` não fornece alvo — não sobra nada que desfaça o estilo inline.
+O servidor não lê media query — `useReducedMotion()` devolve falso no SSR e o HTML sai com `style="opacity:0;transform:translateY(26px)"` pra todo mundo. Se o cliente com `reduce` recebe `initial={false}` e `whileInView={undefined}`, não sobra nada que desfaça o estilo inline. **Qualquer refatoração que volte a condicionar `initial`/`whileInView` ao `reduce` reintroduz o bug.** O porquê completo está no comentário do próprio arquivo.
 
-O Lighthouse dá 96 de acessibilidade porque **não executa a página sob essa media query**. Nota alta aqui não é evidência.
+**O Lighthouse não pega isso**: o audit de acessibilidade não executa a página sob a media query, e deu 96 com a landing quebrada. Pra testar:
 
-Correção mínima mantendo o `motion` — alvo sempre definido, duração zero sob `reduce`:
-
-```tsx
-whileInView={{ opacity: 1, y: 0 }}          // nunca undefined
-transition={reduce ? { duration: 0 } : { duration: 0.65, delay, ease: EASE }}
+```bash
+chrome --headless=new --force-prefers-reduced-motion \
+  --window-size=1400,6000 --virtual-time-budget=8000 \
+  --dump-dom <url> | grep -o 'translateY(26px)' | wc -l
 ```
 
-A reescrita em CSS do passo 2 abaixo resolve isso de tabela, porque o `@media (prefers-reduced-motion: reduce)` força o estado final e o conteúdo deixa de depender de JS pra existir.
+Conta os `<Reveal>` que **continuam** no estado inicial. Rode com e sem a flag: os dois números têm que bater. Produção antes do conserto dava **24 com a flag contra 6 sem** — os 6 são blocos que o orçamento de tempo virtual não alcançou, não bug.
+
+Três armadilhas, todas medidas ao escrever esta receita:
+
+- **Sem `--virtual-time-budget` a checagem não discrimina nada.** O `--dump-dom` captura antes de o `IntersectionObserver` rodar, e o SSR emite o estado inicial pra todo mundo — os dois modos dão 24 mesmo com a página sã.
+- **`grep -c` conta linhas, não ocorrências.** O DOM despejado tem 2 linhas, então `-c` devolve `1` sempre. Precisa ser `grep -o … | wc -l`.
+- **Procure `translateY(26px)`, não `opacity:0`.** Outros elementos da landing usam `opacity` inline e entram na conta: com `opacity:0` o mesmo teste dava 38 contra 20, ruído que esconde o sinal.
+
+Ressalva que continua valendo: o conteúdo ainda depende de JS pra aparecer. A reescrita em CSS do passo 2 do LCP resolve isso e descarta o arquivo.
 
 ### LCP — o problema aberto
 
@@ -422,8 +429,8 @@ Ordem de ataque, re-medindo a cada passo (`npx lighthouse <url> --form-factor=mo
 - **Toda rota pública precisa de `alternates.canonical`.** Hoje faltam em `/login`, `/cadastro`, `/termos-de-uso` e `/politica-de-privacidade`.
 - **Rota de autenticação é `noindex`.** `/login` e `/cadastro` estão indexáveis com o título e a descrição de fallback, idênticos entre si. Querem `robots: { index: false, follow: true }` e título próprio.
 - **Título de página de questão não leva sufixo de marca.** 13 de 14 amostrados passam de 60 caracteres e truncam na SERP — `| AprovaOAB` come ~12 deles.
-- **Barra final:** canonical e `og:url` da home declaram sem barra, o sitemap declara com. Padronizar **com** barra nos três.
-- **`opengraph-image.tsx` em toda rota indexável.** `/editais` e `/editais/[exame]` são as únicas sem — o card de compartilhamento sai vazio justamente nas páginas de data de prova, que são as mais mandadas em grupo de WhatsApp.
+- **Barra final da home: não mexer, já está alinhado.** Canonical, `og:url` e sitemap declaram `https://www.aprovaoab.app.br`, sem barra. A auditoria recomendava padronizar *com* barra; a recomendação estava errada duas vezes. Pela RFC 3986 caminho vazio equivale a `/`, então para a raiz as duas formas são a mesma URL — não havia divergência. E o Next normaliza toda URL de metadata contra `trailingSlash` (`false`, o padrão): o canonical sai sem barra mesmo declarando `${APP_URL}/` absoluto, e só `trailingSlash: true` mudaria isso, redirecionando as 253 URLs do site.
+- **`opengraph-image.tsx` em toda rota indexável.** `/editais` e `/editais/[slug]` são as únicas sem — o card de compartilhamento sai vazio justamente nas páginas de data de prova, que são as mais mandadas em grupo de WhatsApp.
 
 ### Acervo de questões — a maior alavanca
 
@@ -436,7 +443,7 @@ Ao abrir isso:
 - **Troque o UUID da URL por ID curto _antes_ de publicar o resto** — depois seriam 2.240 redirects 301.
 - Nas páginas de prova, exibir enunciado resumido com link pra questão completa, pra não duplicar o texto (a prova 45 já tem 15.266 palavras e 665 KB de HTML).
 
-### `/editais/[exame]` é o template de referência
+### `/editais/[slug]` é o template de referência
 
 794 palavras, cronograma, taxa, passo a passo, FAQ, `FAQPage` + `EducationEvent`, datas com atribuição à fonte oficial. É a melhor página do site em qualidade de SEO e a mais citável por motor de IA. Use como modelo — em especial os hubs `/questoes` (164 palavras) e `/editais` (194), que são rasos demais pro que precisam rankear.
 

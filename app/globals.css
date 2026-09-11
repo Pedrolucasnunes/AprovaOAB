@@ -381,3 +381,55 @@ body[data-modo-prova] [data-slot='sidebar'],
 body[data-modo-prova] [data-chrome='dashboard'] {
   display: none;
 }
+
+/* ── Scroll-reveal das seções da landing ─────────────────────────
+   Par em CSS do components/site/reveal.tsx. O porquê completo está lá; o que
+   importa aqui é a ORDEM das três regras, que é o que garante o conteúdo
+   visível em qualquer cenário.
+
+   1. A regra base anima na timeline do DOCUMENTO, com `both`. Ela é também o
+      fallback: onde `animation-timeline` não existir, tudo aparece animado de
+      uma vez no load. Falha "menos bonito", nunca "invisível".
+   2. O bloco @supports troca pra timeline de rolagem onde houver suporte.
+   3. `prefers-reduced-motion` desliga a animação E fixa o estado final — a
+      media query é avaliada no cliente, onde ela existe, sem depender de JS
+      pra desfazer estado inline. É a classe de erro que a reescrita elimina. */
+@keyframes reveal-rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--reveal-y, 26px));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.reveal {
+  animation: reveal-rise 0.65s cubic-bezier(0.21, 0.61, 0.35, 1) both;
+  animation-delay: var(--reveal-delay, 0s);
+}
+
+@supports (animation-timeline: view()) {
+  .reveal {
+    animation-timeline: view();
+    /* `entry 0% entry 40%`, e NÃO o `cover 30%` que a auditoria sugeria. Faixa
+       baseada em cobertura depende da altura do bloco contra a da tela, e em
+       390px os blocos ficam altos: medido, o `cover 30%` deixava bloco com
+       opacidade 0,80 já com o centro na tela. Com `entry 40%` o bloco está
+       inteiro (1,00) antes de o centro aparecer, nas duas larguras — a revelação
+       acontece enquanto ele sobe da borda de baixo, que é o efeito desejado. */
+    animation-range: entry 0% entry 40%;
+    /* Delay em timeline de rolagem seria deslocamento de scroll, não de tempo:
+       o efeito escalonado vem da posição de cada bloco na página. */
+    animation-delay: 0s;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}

@@ -53,33 +53,50 @@ async function revelados(reduce) {
   const page = await ctx.newPage()
   await page.goto(alvo, { waitUntil: "load", timeout: 60_000 })
 
-  // Rolagem lenta de propósito: passo grande demais corre mais rápido que a
-  // transição de 0,65s e conta como "travado" o bloco que está animando.
-  await page.evaluate(async () => {
-    for (let y = 0; y < document.body.scrollHeight; y += 600) {
-      window.scrollTo(0, y)
-      await new Promise((r) => setTimeout(r, 400))
-    }
-    window.scrollTo(0, 0)
-    await new Promise((r) => setTimeout(r, 2500))
-  })
-
-  const r = await page.evaluate(() => {
-    const els = [...document.querySelectorAll('[style*="opacity"]')]
-    const presos = els.filter((el) => parseFloat(getComputedStyle(el).opacity) < 0.99)
-    return { total: els.length, presos: presos.length }
-  })
+  // Percorre a página e guarda o PIOR momento: quantos blocos ficam
+  // transparentes com o CENTRO deles já dentro da tela. É o que o usuário veria
+  // como buraco — e funciona tanto pra animação por tempo quanto pra timeline de
+  // rolagem, onde "está revelado" depende de onde a página parou.
+  //
+  // Passo pequeno de propósito: passo grande corre na frente da transição de
+  // 0,65s e conta como travado o bloco que está animando. Altura zero é ignorada
+  // — são wrappers de conteúdo que não renderiza naquela largura, invisíveis de
+  // qualquer jeito.
+  const alt = await page.evaluate(() => document.body.scrollHeight)
+  // `presos` guarda o pior momento; `total` guarda o MAIOR número de blocos já
+  // vistos na tela de uma vez. Separados porque, quando nada nunca fica preso,
+  // um único objeto "pior" ficaria no valor inicial e o relatório sairia
+  // "0 de 0" — medição vazia com cara de aprovação.
+  let pior = { presos: 0, total: 0 }
+  let maiorTotal = 0
+  for (let y = 0; y < alt; y += 200) {
+    await page.evaluate((v) => window.scrollTo(0, v), y)
+    await page.waitForTimeout(120)
+    const r = await page.evaluate(() => {
+      let presos = 0, total = 0
+      for (const el of document.querySelectorAll('.reveal, [style*="opacity"]')) {
+        const b = el.getBoundingClientRect()
+        const centro = b.top + b.height / 2
+        if (b.height === 0 || centro < 0 || centro > window.innerHeight) continue
+        total++
+        if (parseFloat(getComputedStyle(el).opacity) < 0.5) presos++
+      }
+      return { presos, total }
+    })
+    if (r.total > maiorTotal) maiorTotal = r.total
+    if (r.presos > pior.presos) pior = r
+  }
 
   await browser.close()
-  return r
+  return { presos: pior.presos, total: maiorTotal }
 }
 
 const normal = await revelados(false)
 const reduzido = await revelados(true)
 
 console.log(`alvo: ${alvo}`)
-console.log(`  normal          ${normal.total - normal.presos} de ${normal.total} revelados`)
-console.log(`  reduced-motion  ${reduzido.total - reduzido.presos} de ${reduzido.total} revelados`)
+console.log(`  normal          pior momento: ${normal.presos} de ${normal.total} blocos na tela invisíveis`)
+console.log(`  reduced-motion  pior momento: ${reduzido.presos} de ${reduzido.total} blocos na tela invisíveis`)
 
 if (reduzido.presos > normal.presos) {
   console.error("")

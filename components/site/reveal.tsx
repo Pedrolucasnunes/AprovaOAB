@@ -1,29 +1,35 @@
-"use client";
+import type { CSSProperties, ReactNode } from "react";
 
-import type { ReactNode } from "react";
-import { motion, useReducedMotion } from "motion/react";
-
-const EASE: [number, number, number, number] = [0.21, 0.61, 0.35, 1];
+import { cn } from "@/lib/utils";
 
 /**
- * `whileInView` e `initial` são SEMPRE definidos, e é o que mantém o conteúdo
- * visível pra quem usa movimento reduzido.
+ * Scroll-reveal em CSS puro. Sem `motion/react`, sem `"use client"`, sem JS.
  *
- * O servidor não lê media query: `useReducedMotion()` devolve falso no SSR e o
- * HTML sai com `style="opacity:0;transform:translateY(26px)"` em todo mundo. Na
- * versão anterior, o cliente com `reduce` recebia `initial={false}` (não anime)
- * e `whileInView={undefined}` (nenhum alvo) — não sobrava nada que desfizesse o
- * estilo inline, e os 24 blocos da landing ficavam invisíveis pra sempre.
- * Medido em produção antes do conserto: 0 de 24 revelados sob
- * `--force-prefers-reduced-motion`, contra 18 de 24 no modo normal.
+ * POR QUE SAIU DO JS, e não foi troca de técnica por gosto:
  *
- * A preferência é respeitada pela DURAÇÃO, não pela ausência de animação: sob
- * `reduce` o bloco entra na viewport e salta pro estado final em 0s.
+ * 1. O CONTEÚDO NÃO DEPENDE MAIS DE JS PRA EXISTIR. A versão anterior servia 24
+ *    blocos da landing em `opacity:0` no HTML e contava com a hidratação pra
+ *    revelá-los. Com JS desabilitado, bloqueado ou quebrado, a página mostrava
+ *    o herói e mais nada.
  *
- * Isto é o conserto mínimo — o conteúdo ainda depende de JS pra aparecer. A
- * reescrita em CSS (`@keyframes` + `animation-timeline: view()` +
- * `animation-fill-mode: both`) prevista no plano de LCP resolve as duas coisas
- * de uma vez, e descarta este arquivo.
+ * 2. A CLASSE DE ERRO DESAPARECE. O bug de set/2026 (`c00c3a7`) não foi azar:
+ *    era a forma do componente. Condicionar props de animação a
+ *    `useReducedMotion()` — uma media query que o SERVIDOR NÃO LÊ — produz HTML
+ *    com estado inicial pra todo mundo e depende do cliente pra desfazer. Em
+ *    CSS a media query é avaliada onde ela existe, e não há estado a desfazer.
+ *
+ * DEGRADAÇÃO, que é o argumento mais forte a favor desta abordagem: onde
+ * `animation-timeline: view()` não existir, a regra base continua valendo e a
+ * animação roda na timeline do DOCUMENTO — tudo aparece animado de uma vez no
+ * load, em vez de ao rolar. O modo de falha é "menos bonito", nunca
+ * "invisível". É o oposto exato do bug que esta reescrita encerra.
+ *
+ * A guarda de regressão é `scripts/reveal-reduced-motion.mjs`: ela testa
+ * COMPORTAMENTO (paridade entre os modos de movimento), não implementação, e
+ * por isso sobreviveu à troca. Aponte-a pra cá.
+ *
+ * A API é a mesma de antes — `delay` e `y` viram custom properties, então
+ * nenhum dos 21 usos precisou mudar.
  */
 export function Reveal({
   children,
@@ -36,16 +42,17 @@ export function Reveal({
   delay?: number;
   y?: number;
 }) {
-  const reduce = useReducedMotion();
   return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, y }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-70px" }}
-      transition={reduce ? { duration: 0 } : { duration: 0.65, delay, ease: EASE }}
+    <div
+      className={cn("reveal", className)}
+      style={
+        {
+          "--reveal-delay": `${delay}s`,
+          "--reveal-y": `${y}px`,
+        } as CSSProperties
+      }
     >
       {children}
-    </motion.div>
+    </div>
   );
 }

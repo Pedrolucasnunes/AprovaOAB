@@ -426,11 +426,12 @@ Ordem de ataque, re-medindo a cada passo (`npx lighthouse <url> --form-factor=mo
 
 ### Metadata — regras por rota
 
-- **Toda rota pública precisa de `alternates.canonical`.** Hoje faltam em `/login`, `/cadastro`, `/termos-de-uso` e `/politica-de-privacidade`.
-- **Rota de autenticação é `noindex`.** `/login` e `/cadastro` estão indexáveis com o título e a descrição de fallback, idênticos entre si. Querem `robots: { index: false, follow: true }` e título próprio.
+- **Toda rota pública precisa de `alternates.canonical`.** As quatro que faltavam (`/login`, `/cadastro`, `/termos-de-uso`, `/politica-de-privacidade`) ganharam em `fe3ee97`. Rota nova nasce com o dela.
+- **Rota de autenticação é `noindex`, com `follow: true`.** `/login` e `/cadastro` entravam no índice com o título E a description de fallback do site — idênticos entre si, duplicata interna em duas páginas que não têm o que oferecer a quem vem da busca. Corrigido em `fe3ee97`.
 - **Título de página de questão não leva sufixo de marca.** 13 de 14 amostrados passam de 60 caracteres e truncam na SERP — `| AprovaOAB` come ~12 deles.
+- **NUNCA escrever a marca no `title` de uma página.** O layout raiz tem `title.template = '%s | AprovaOAB'`, que a acrescenta sozinho. Declarar `title: 'Entrar | AprovaOAB'` serve `Entrar | AprovaOAB | AprovaOAB`. As duas páginas legais viveram assim até `fe3ee97` (`Termos de Uso — AprovaOAB | AprovaOAB`), e o próprio plano de ação sugeria repetir o erro. Quem precisa de controle total usa `title: { absolute: '…' }`.
 - **Barra final da home: não mexer, já está alinhado.** Canonical, `og:url` e sitemap declaram `https://www.aprovaoab.app.br`, sem barra. A auditoria recomendava padronizar *com* barra; a recomendação estava errada duas vezes. Pela RFC 3986 caminho vazio equivale a `/`, então para a raiz as duas formas são a mesma URL — não havia divergência. E o Next normaliza toda URL de metadata contra `trailingSlash` (`false`, o padrão): o canonical sai sem barra mesmo declarando `${APP_URL}/` absoluto, e só `trailingSlash: true` mudaria isso, redirecionando as 253 URLs do site.
-- **`opengraph-image.tsx` em toda rota indexável.** `/editais` e `/editais/[slug]` são as únicas sem — o card de compartilhamento sai vazio justamente nas páginas de data de prova, que são as mais mandadas em grupo de WhatsApp.
+- **`opengraph-image.tsx` em toda rota indexável.** `/editais` e `/editais/[slug]` eram as únicas sem, justamente as páginas de data de prova, que são as mais mandadas em grupo de WhatsApp — resolvido em `fe3ee97`, reusando `ogImage()` de `lib/seo/og-card.tsx`. O card do detalhe troca de frase quando não há edital, em vez de imprimir campo nulo.
 
 ### Acervo de questões — a maior alavanca
 

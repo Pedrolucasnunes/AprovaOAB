@@ -131,6 +131,23 @@ export default function RootLayout({
     >
       {GTM_ID && (
         <head>
+          {/*
+            Preconnect só pro googletagmanager, e a lista curta é deliberada.
+
+            É a única origem de terceiro no caminho crítico: o `gtm.js` sai daqui
+            logo depois da hidratação e o `gtag/js` do GA4 vem da MESMA origem,
+            injetado pelo próprio GTM — então uma conexão cobre os dois. (Medido
+            em set/2026 abortando o gtm.js: sem ele o gtag/js não carrega. O GA4
+            já vive dentro do GTM; não há tag paralela pra consolidar.)
+
+            As origens do Clarity ficam de fora de propósito. Preconnect abre
+            socket na hora do carregamento, que é exatamente a banda que o LCP
+            está disputando — abrir conexão adiantada pra um script que acabamos
+            de mandar pro `lazyOnload` desfaria o adiamento. Fica só o
+            dns-prefetch, que resolve o nome sem ocupar conexão.
+          */}
+          <link rel="preconnect" href="https://www.googletagmanager.com" />
+          <link rel="dns-prefetch" href="https://scripts.clarity.ms" />
           <Script id="consent-default" strategy="beforeInteractive">
             {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('consent','default',{ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',analytics_storage:'granted',functionality_storage:'granted',security_storage:'granted'});`}
           </Script>

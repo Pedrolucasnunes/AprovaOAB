@@ -66,14 +66,57 @@ const questaoVazia = {
   subject_id: "", topic_id: "", explicacao: "",
 }
 
+/**
+ * CSV com aspas de verdade. A versao anterior fazia split por quebra de linha
+ * e por ponto e virgula crus, e isso quebrava de duas formas — a segunda
+ * silenciosa:
+ *
+ * 1. ENUNCIADO COM PARAGRAFO virava varias "questoes". O 47o Exame tem 80
+ *    questoes em 267 linhas fisicas, e a tela mostrava 266 registros.
+ * 2. PONTO E VIRGULA DENTRO DE UMA ALTERNATIVA deslocava todas as colunas
+ *    seguintes da linha. Cinco alternativas daquele mesmo arquivo tem ";" no
+ *    meio da frase. A linha continuava "valida" — campos nao vazios, alguma
+ *    letra A-D caindo na posicao da resposta — e importaria com o enunciado
+ *    truncado e as alternativas trocadas.
+ *
+ * Este parser respeita aspas, aspas duplicadas dentro do campo e quebra de
+ * linha dentro do campo.
+ */
 function parseCSV(text: string): Record<string, string>[] {
-  const lines = text.trim().split("\n")
-  if (lines.length < 2) return []
+  const limpo = text.replace(/^\uFEFF/, "")
+  const linhas: string[][] = []
+  let campo = ""
+  let linha: string[] = []
+  let dentroDeAspas = false
 
-  const headers = lines[0].split(";").map(h => h.trim().replace(/^"|"$/g, ""))
-  return lines.slice(1).map(line => {
-    const values = line.split(";").map(v => v.trim().replace(/^"|"$/g, ""))
-    return Object.fromEntries(headers.map((h, i) => [h, values[i] ?? ""]))
+  for (let i = 0; i < limpo.length; i++) {
+    const c = limpo[i]
+    if (dentroDeAspas) {
+      if (c === '"') {
+        if (limpo[i + 1] === '"') { campo += '"'; i++ } else dentroDeAspas = false
+      } else campo += c
+    } else if (c === '"') dentroDeAspas = true
+    else if (c === ";") { linha.push(campo); campo = "" }
+    else if (c === "\n") { linha.push(campo); linhas.push(linha); linha = []; campo = "" }
+    else if (c !== "\r") campo += c
+  }
+  if (campo !== "" || linha.length) { linha.push(campo); linhas.push(linha) }
+
+  const comConteudo = linhas.filter(l => l.some(v => v.trim() !== ""))
+  if (comConteudo.length < 2) return []
+
+  const headers = comConteudo[0].map(h => h.trim())
+  return comConteudo.slice(1).map(valores => {
+    const registro = Object.fromEntries(
+      headers.map((h, i) => [h, (valores[i] ?? "").trim()]),
+    )
+    // Numero de colunas diferente do cabecalho e sinal de arquivo malformado.
+    // Fica registrado pra validacao recusar, em vez de deixar passar meia
+    // questao como "valida".
+    if (valores.length !== headers.length) {
+      registro._colunas = `${valores.length} em vez de ${headers.length}`
+    }
+    return registro
   })
 }
 
@@ -87,6 +130,7 @@ function validarQuestao(q: Record<string, string>, subjectIds: string[]): { vali
   if (!q.resposta_correta || !["A", "B", "C", "D"].includes(q.resposta_correta.toUpperCase())) {
     erros.push("Resposta correta deve ser A, B, C ou D")
   }
+  if (q._colunas) erros.push(`Linha com ${q._colunas} colunas — arquivo malformado`)
   if (!q.subject_id) erros.push("subject_id obrigatório")
   else if (!subjectIds.includes(q.subject_id)) erros.push(`subject_id "${q.subject_id}" não encontrado`)
 

@@ -236,6 +236,54 @@ function selecionarPublicas<T extends LinhaSelecionavel>(rows: T[], n: number): 
   return [...publicadas, ...selectBest(candidatas, vagas, jaVistos)].sort(compareById)
 }
 
+// Posição de cada questão no anel de links internos. Sai da ORDEM DO LIVRO-CAIXA,
+// que é append-only por construção: quem já está publicado nunca muda de lugar, e
+// publicação nova entra no fim.
+//
+// Isso é requisito, não detalhe. Se o anel fosse ordenado por UUID, a Fase 2
+// (publicar mais por matéria) intercalaria os UUIDs novos no meio e **desfaria de
+// uma vez todos os pares de links internos que já existem** — o Google teria que
+// reprocessar a malha inteira em vez de só absorver as arestas novas. Apendando,
+// só as ~6 últimas páginas de cada matéria mudam de vizinho.
+//
+// Hoje as duas ordens coincidem (o livro-caixa nasceu com os UUIDs de cada matéria
+// em ordem crescente), então esta linha não muda nada agora — ela existe pra que a
+// Fase 2 não pague o churn.
+const ORDEM_PUBLICACAO = new Map([...QUESTOES_PUBLICADAS].map((id, i) => [id, i]))
+
+/**
+ * As `quantas` questões seguintes no anel, em ordem circular — as "irmãs" que a
+ * página linka.
+ *
+ * ANEL, e não `slice(0, n)` sobre a lista ordenada. Medido em produção em
+ * 12/set/2026, com o `slice` que havia antes: numa matéria de 10 publicadas, 6
+ * páginas recebiam 9 links de irmãs, 1 recebia 6 e **3 recebiam ZERO** — a janela
+ * era sempre o começo da lista, então o fim dela nunca era apontado por ninguém.
+ * Como as 20 matérias têm exatamente 10 publicadas, eram **60 das 200 páginas sem
+ * link de irmã nenhum**, vivendo só do hub e da página da prova. E quais eram as
+ * 60 era sorteio, porque a ordem é de UUID.
+ *
+ * No anel todo mundo aponta `quantas` e é apontado por `quantas`. Simetria é o
+ * ponto: link interno que só sai não distribui rastreamento.
+ */
+export function irmasNoAnel<T extends { id: string }>(
+  todas: T[],
+  atualId: string,
+  quantas = 6,
+): T[] {
+  const pos = (id: string) => ORDEM_PUBLICACAO.get(id) ?? Number.MAX_SAFE_INTEGER
+  const anel = todas.slice().sort((a, b) => pos(a.id) - pos(b.id) || compareById(a, b))
+
+  const i = anel.findIndex((q) => q.id === atualId)
+  // Questão fora do anel (recém-selecionada, ainda não escrita no livro-caixa):
+  // ela linka as primeiras, e as irmãs dela a ignoram até o append acontecer.
+  if (i < 0) return anel.filter((q) => q.id !== atualId).slice(0, quantas)
+
+  const irmas: T[] = []
+  for (let k = 1; k <= quantas && k < anel.length; k++) irmas.push(anel[(i + k) % anel.length])
+  return irmas
+}
+
 // Matérias que têm ao menos 1 questão, com slug e contagem (capada no teto público).
 export async function getPublicSubjects(): Promise<PublicSubject[]> {
   const { data: subjects } = await supabaseAdmin

@@ -77,5 +77,40 @@ juntos** — se subissem, um CTR que mexesse não teria causa atribuível.
 | **Description** (`app/questoes/[materia]/[slug]/page.tsx`) | CTR na posição em que a página já está | dias | mesmo relatório de Desempenho, 7–10 dias depois |
 | **Malha interna** (hub `/questoes` → questões) | posição, via rastreamento | 3–4 semanas | quantas das 197 saem de "Detectada" |
 
-A description subiu primeiro, sozinha, em 12/09/2026. O critério é o CTR das
-páginas de questão contra os **771 / 4** desta linha de base.
+A description subiu primeiro, em 12/09/2026. O critério é o CTR das páginas de
+questão contra os **771 / 4** desta linha de base.
+
+### Interferência aceita, e por quê
+
+A regra era não misturar. Ela foi **relaxada no mesmo dia**, deliberadamente: a
+correção da malha interna (anel de irmãs + âncora com título) subiu horas depois
+da description, em 12/09/2026.
+
+O motivo é o denominador. **A linha de base é 4 cliques.** Qualquer leitura de CTR
+sobre 4 cliques é ruído — não existe medição a proteger aqui, e segurar duas
+linhas de código por dez dias pra blindar um número que já nasce sem poder
+estatístico é processo comendo resultado. Isso não era sabido quando a regra foi
+escrita; passou a ser quando a linha de base apareceu.
+
+As duas mudanças continuam separáveis no relatório, e é assim que se deve ler:
+
+- **description** → coluna **CTR**, na posição em que a página já está, efeito em
+  dias;
+- **malha** → coluna **posição**, via rastreamento, efeito em 3–4 semanas. Dentro
+  de 7–10 dias o efeito dela na posição é praticamente nulo.
+
+Ou seja: se o CTR mexer nos próximos 7–10 dias **e a posição média ficar perto de
+13,0**, a causa é a description. Se a posição andar junto, a atribuição está
+contaminada e o número não sustenta conclusão — nesse caso vale esperar as 3–4
+semanas e olhar quantas das 197 saíram de "Detectada".
+
+### Malha interna — o estado medido em 12/09/2026
+
+Antes da correção, medido nas 10 páginas de Direito Eleitoral em produção, e
+idêntico nas 20 matérias (todas têm exatamente 10 publicadas e o código era o
+mesmo): das 10 páginas, 6 recebiam 9 links de irmãs, 1 recebia 6 e **3 recebiam
+zero**. Eram **60 das 200 páginas** sem link de irmã nenhum, vivendo só do hub e
+da página da prova — e quais eram as 60 era sorteio, porque a ordem é de UUID.
+
+Depois da correção, medido nas 200 páginas do build: **grau de entrada 6 e grau de
+saída 6 em todas as 200**, zero órfãs.

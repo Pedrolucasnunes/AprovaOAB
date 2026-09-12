@@ -10,6 +10,7 @@ import {
   getAllPublicQuestions,
   getPublicQuestionById,
   getPublicQuestionsForSubject,
+  irmasNoAnel,
   slugDaQuestao,
   tituloDaQuestao,
   type PublicQuestionDetail,
@@ -137,9 +138,10 @@ export default async function QuestaoPage({
   const corretaTexto =
     alternativas.find((a) => a.letra === q.resposta_correta)?.texto ?? ""
 
-  const related = (await getPublicQuestionsForSubject(q.subject_id))
-    .filter((r) => r.id !== q.id)
-    .slice(0, 6)
+  // Anel, não `slice(0, 6)`: com a janela fixa no começo da lista, 3 das 10
+  // publicadas de cada matéria não recebiam link de irmã nenhum — 60 das 200
+  // páginas do site. Ver `irmasNoAnel`.
+  const related = irmasNoAnel(await getPublicQuestionsForSubject(q.subject_id), q.id, 6)
 
   // Stat product-derived (% de alunos que erram) — só vem com amostra real >= limiar;
   // null quando a questão ainda tem poucas respostas (nada fabricado).
@@ -256,9 +258,16 @@ export default async function QuestaoPage({
               <Link
                 key={r.id}
                 href={`/questoes/${q.subjectSlug}/${slugDaQuestao(r)}`}
-                className="block rounded-lg border border-border bg-card px-4 py-3 text-sm leading-relaxed text-muted-foreground transition-colors hover:border-primary/40 hover:bg-muted/40"
+                className="block rounded-lg border border-border bg-card px-4 py-3 text-sm leading-relaxed font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-muted/40"
               >
-                {preview(r.enunciado, 120)}
+                {/* Âncora = o TÍTULO da questão de destino, não um recorte do
+                    enunciado. Eram 6 links por página cuja âncora começava em
+                    "Durante uma forte tempestade que causou inundações…" — 1.200
+                    links internos sem uma palavra-chave, e sem dizer ao leitor
+                    pra onde vai. `tituloDaQuestao` é o mesmo helper que dá o H1
+                    do destino, então âncora e página de chegada contam a mesma
+                    história. */}
+                {tituloDaQuestao(r, q.subjectName)}
               </Link>
             ))}
           </div>

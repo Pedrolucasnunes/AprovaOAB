@@ -455,10 +455,16 @@ O que segue **não** resolvido e foi descartado por custo/benefício, não por i
 
 O site tem ~2.240 questões (28 provas × 80) e publica **200** com URL própria: 10 por matéria, sem paginação, e cada página de prova linka 10 das 80 que exibe. Cerca de 2.040 questões existem e nunca ganham URL indexável — justamente na busca em que o candidato cola o enunciado no Google. Concorrentes indexam milhares.
 
+**O conjunto publicado é APPEND-ONLY, e isso é invariante, não preferência.** `lib/seo/questoes-publicadas.ts` é o livro-caixa das 200 URLs que já estão no ar; `selecionarPublicas` serve primeiro o que está nele e só depois entrega as vagas que sobram à curadoria de `selectBest`. Antes disso, a escolha era recalculada a cada leitura — e o primeiro critério dela é "uma questão por tópico distinto", então **toda importação com tópicos novos despublicava páginas em silêncio**. Medido em 11/set/2026, com o 47º Exame recém-importado (80 questões, 18 tópicos novos): **25 das 200 URLs sairiam do conjunto**, e cada uma viraria **404** — `getPublicQuestionById` confere se a questão pertence ao subconjunto e a página chama `notFound()`. Não é 301, é página perdida. O 48º rearmaria a mesma bomba.
+
+Para publicar mais: suba `PUBLIC_QUESTIONS_PER_SUBJECT`, faça o deploy, e **depois** acrescente ao livro-caixa os UUIDs que o sitemap novo passou a expor. Nessa ordem — primeiro a URL existe, depois ela entra no livro. **Nunca remova uma linha de lá.** Baixar a constante também não despublica mais nada.
+
+**As 200 publicadas não são "as mais cobradas" — são uma amostra arbitrária estável.** `incidencia_prova`, que o `selectBest` usa como critério nº 1, está **nula nas 2.232 questões** (medido em 11/set/2026: um único valor distinto no banco, e é `null`). Sem ela o desempate cai em ordem de UUID, que é aleatória. Nenhuma tela pode afirmar que são as de maior incidência. O campo é duplamente morto: o importador do admin grava `Number(valor)` e o leitor espera texto, então "alta" entraria como `NaN`.
+
 Ao abrir isso:
 
 - **Paginação em `<a href>` real**, nunca só via JS, ou as páginas seguem invisíveis.
-- **Só publique questão com resolução comentada.** Questão sem comentário é thin content e arrasta o domínio inteiro. Se o gargalo for produção, priorize pelo peso na prova: Ética 8, Processo Civil 7, Civil 6, Constitucional 6, Penal 6, Processo Penal 6.
+- **Só publique questão com resolução comentada.** Questão sem comentário é thin content e arrasta o domínio inteiro. Se o gargalo for produção, priorize pelo peso na prova: Ética 8, Processo Civil 7, Civil 6, Constitucional 6, Penal 6, Processo Penal 6. **Dívida já contraída, medida em 11/set/2026: 85 das 200 páginas publicadas são de questões sem `explicacao` nenhuma** (o banco tem 1.291 de 2.232, 57,8%). Não é thin content visível — a explicação é gated e nunca vai pro HTML —, mas a página promete um comentário gated que, para essas 85, não existe atrás do cadastro.
 - **Troque o UUID da URL por ID curto _antes_ de publicar o resto** — depois seriam 2.240 redirects 301.
 - Nas páginas de prova, exibir enunciado resumido com link pra questão completa, pra não duplicar o texto (a prova 45 já tem 15.266 palavras e 665 KB de HTML).
 

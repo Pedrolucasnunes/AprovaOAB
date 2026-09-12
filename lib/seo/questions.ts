@@ -5,9 +5,15 @@ import { supabaseAdmin } from "@/lib/supabase-admin"
 import { questionSlug, subjectSlug } from "@/lib/slug"
 import { edicaoDaBanca } from "@/lib/exames"
 import { memo } from "@/lib/seo/memo"
+import { QUESTOES_PUBLICADAS } from "@/lib/seo/questoes-publicadas"
 
 // Quantas questões de cada matéria viram página pública. Suba este número para
 // expor mais conteúdo ao SEO (e canibalizar mais o produto pago).
+//
+// Baixar este número NÃO despublica nada: o livro-caixa de
+// `questoes-publicadas.ts` vem primeiro, e URL no ar não sai do ar. Pra tirar
+// uma página do índice é preciso decidir isso explicitamente, e 410/301 é
+// caminho diferente de mudar uma constante.
 export const PUBLIC_QUESTIONS_PER_SUBJECT = 10
 
 /** Linha crua de `questions` — exatamente o que QUESTION_FIELDS projeta. */
@@ -114,6 +120,15 @@ export const carregarTopicos = memo(async (): Promise<Map<string, string>> => {
 
 // Prioridade por incidência na prova (campo livre `incidencia_prova`): alta cai mais
 // → mais demanda de busca → entra primeiro. Desconhecido fica no meio.
+//
+// ATENÇÃO: medido em 11/set/2026, `incidencia_prova` está **nula nas 2.232
+// questões** — um valor distinto no banco inteiro, e é `null`. Então este
+// critério não desempata nada hoje: todos caem no "desconhecido" e a ordem base
+// vira `compareById` puro, isto é, ordem de UUID, isto é, aleatória. As 200
+// páginas publicadas NÃO são as de maior incidência; são uma amostra arbitrária
+// estável. Não escreva em nenhuma tela que elas são "as mais cobradas".
+// (O importador do admin ainda piora isso: ele grava `Number(valor)`, e o leitor
+// aqui espera texto — "alta" entraria como NaN e cairia no mesmo balde.)
 function incidenciaRank(v: string | null | undefined): number {
   const s = (v ?? "").toLowerCase()
   if (/alt/.test(s)) return 0
@@ -126,9 +141,23 @@ function compareById(a: { id: string }, b: { id: string }): number {
   return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
 }
 
-// Escolhe as N "melhores" questões públicas de uma matéria de forma DETERMINÍSTICA
-// (estável entre builds → sitemap/ISR estáveis). Critério:
-//   1) ordem base: maior incidência na prova, desempate por id;
+type LinhaSelecionavel = {
+  id: string
+  topic_id: string | null
+  banca?: string | null
+  incidencia_prova?: string | null
+}
+
+// O par (tópico, edição) é o que dá título e slug — repeti-lo produz duas páginas
+// com o MESMO H1. Mora aqui fora porque `selecionarPublicas` também precisa dele.
+const parDaQuestao = (q: LinhaSelecionavel) =>
+  `${q.topic_id ?? "__none"}|${edicaoDaBanca(q.banca) ?? "__sem"}`
+
+// A CURADORIA: escolhe as N "melhores" de forma DETERMINÍSTICA (estável entre
+// builds → sitemap/ISR estáveis). Não é ela que decide o que fica publicado —
+// isso é `selecionarPublicas`. Critério:
+//   1) ordem base: maior incidência na prova, desempate por id (hoje inerte, ver
+//      `incidenciaRank`: o campo está nulo no banco inteiro);
 //   2) diversidade de tópico: pega 1 por topic_id distinto (evita 10 páginas do mesmo
 //      tema canibalizando entre si). Questões sem tópico contam como um único balde;
 //   3) completa as vagas preferindo pares (tópico, edição) inéditos — é o par que dá
@@ -138,30 +167,30 @@ function compareById(a: { id: string }, b: { id: string }): number {
 //   4) se ainda faltar vaga, completa na ordem base aceitando repetição — página a
 //      menos seria pior que título repetido;
 //   5) retorna ordenado por id (estabilidade).
-function selectBest<
-  T extends {
-    id: string
-    topic_id: string | null
-    banca?: string | null
-    incidencia_prova?: string | null
-  },
->(rows: T[], n: number): T[] {
+//
+// O passo 2 é o que tornava a lista instável: tópico novo no banco reordena tudo.
+function selectBest<T extends LinhaSelecionavel>(
+  rows: T[],
+  n: number,
+  // Tópicos e pares que já estão ocupados por questões escolhidas FORA daqui
+  // (as já publicadas). Sem isso, a vaga nova repetiria um par já no ar — o
+  // defeito que o passo 3 existe pra evitar, reintroduzido pela porta de trás.
+  jaVistos?: { topicos: Set<string>; pares: Set<string> },
+): T[] {
   const base = rows
     .slice()
     .sort((a, b) => incidenciaRank(a.incidencia_prova) - incidenciaRank(b.incidencia_prova) || compareById(a, b))
 
   const picked: T[] = []
   const pickedIds = new Set<string>()
-  const seenTopics = new Set<string>()
-  const seenPares = new Set<string>()
-
-  const par = (q: T) => `${q.topic_id ?? "__none"}|${edicaoDaBanca(q.banca) ?? "__sem"}`
+  const seenTopics = new Set<string>(jaVistos?.topicos)
+  const seenPares = new Set<string>(jaVistos?.pares)
 
   const tomar = (q: T) => {
     picked.push(q)
     pickedIds.add(q.id)
     seenTopics.add(q.topic_id ?? "__none")
-    seenPares.add(par(q))
+    seenPares.add(parDaQuestao(q))
   }
 
   for (const q of base) {
@@ -170,7 +199,7 @@ function selectBest<
   }
   for (const q of base) {
     if (picked.length >= n) break
-    if (!pickedIds.has(q.id) && !seenPares.has(par(q))) tomar(q)
+    if (!pickedIds.has(q.id) && !seenPares.has(parDaQuestao(q))) tomar(q)
   }
   for (const q of base) {
     if (picked.length >= n) break
@@ -178,6 +207,33 @@ function selectBest<
   }
 
   return picked.sort(compareById).slice(0, n)
+}
+
+/**
+ * O conjunto público de uma matéria: **o que já está publicado, mais o que
+ * couber**. É esta função — não `selectBest` — que as páginas usam.
+ *
+ * A ordem é o ponto inteiro. `selectBest` é curadoria, e curadoria pode mudar de
+ * ideia quando o banco muda; URL no ar não pode. Enquanto a escolha era só
+ * curadoria, importar uma prova nova tirava páginas do índice em silêncio: o 47º
+ * Exame sozinho trocaria 25 das 200, e cada uma viraria 404 (ver
+ * `lib/seo/questoes-publicadas.ts`, onde o número está medido).
+ *
+ * Se o livro-caixa já tem mais entradas desta matéria do que o teto, elas
+ * **todas** continuam servidas. Exibir 11 numa página que anuncia 10 é
+ * imprecisão; devolver 404 numa URL que o Google indexou é dano.
+ */
+function selecionarPublicas<T extends LinhaSelecionavel>(rows: T[], n: number): T[] {
+  const publicadas = rows.filter((q) => QUESTOES_PUBLICADAS.has(q.id))
+  const vagas = n - publicadas.length
+  if (vagas <= 0) return publicadas.sort(compareById)
+
+  const jaVistos = {
+    topicos: new Set(publicadas.map((q) => q.topic_id ?? "__none")),
+    pares: new Set(publicadas.map(parDaQuestao)),
+  }
+  const candidatas = rows.filter((q) => !QUESTOES_PUBLICADAS.has(q.id))
+  return [...publicadas, ...selectBest(candidatas, vagas, jaVistos)].sort(compareById)
 }
 
 // Matérias que têm ao menos 1 questão, com slug e contagem (capada no teto público).
@@ -212,10 +268,11 @@ export async function getPublicSubjects(): Promise<PublicSubject[]> {
   return result.filter((s) => s.count > 0)
 }
 
-// As N questões públicas de uma matéria — seleção curada e determinística (estável
-// entre builds). Em vez das N primeiras por id (ordem de UUID = aleatória), escolhe
-// por incidência na prova + diversidade de tópico (ver `selectBest`). `incidencia_prova`
-// só é usado aqui para a seleção — não vai para o tipo público.
+// As N questões públicas de uma matéria — **estável entre builds e imune a
+// importação nova**: passa por `selecionarPublicas`, que serve primeiro o que já
+// está no ar (`lib/seo/questoes-publicadas.ts`) e só depois entrega as vagas que
+// sobram à curadoria de `selectBest`. `incidencia_prova` só é usado aqui para a
+// seleção — não vai para o tipo público, e hoje está nulo no banco inteiro.
 export async function getPublicQuestionsForSubject(subjectId: string): Promise<PublicQuestion[]> {
   const [{ data }, topicos] = await Promise.all([
     supabaseAdmin
@@ -228,7 +285,7 @@ export async function getPublicQuestionsForSubject(subjectId: string): Promise<P
   ])
 
   const rows = (data ?? []) as (LinhaQuestao & { incidencia_prova: string | null })[]
-  return selectBest(rows, PUBLIC_QUESTIONS_PER_SUBJECT).map(({ incidencia_prova: _omit, ...q }) => ({
+  return selecionarPublicas(rows, PUBLIC_QUESTIONS_PER_SUBJECT).map(({ incidencia_prova: _omit, ...q }) => ({
     ...q,
     topicName: q.topic_id ? (topicos.get(q.topic_id) ?? null) : null,
   }))

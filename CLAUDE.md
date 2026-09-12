@@ -459,6 +459,14 @@ O site tem ~2.240 questões (28 provas × 80) e publica **200** com URL própria
 
 Para publicar mais: suba `PUBLIC_QUESTIONS_PER_SUBJECT`, faça o deploy, e **depois** acrescente ao livro-caixa os UUIDs que o sitemap novo passou a expor. Nessa ordem — primeiro a URL existe, depois ela entra no livro. **Nunca remova uma linha de lá.** Baixar a constante também não despublica mais nada.
 
+**Guarda de regressão: `scripts/conjunto-publico.mjs`.** Rode depois de toda importação e antes de qualquer mudança no critério de seleção — preencher `incidencia_prova`, por exemplo, reordena tudo e é o momento de maior risco.
+
+```bash
+node scripts/conjunto-publico.mjs   # limpa o .next, builda, compara com o livro-caixa
+```
+
+Ele **não reproduz o `selectBest`** de propósito: cópia do algoritmo ficaria verde justamente no dia em que alguém mudasse o critério: o guarda roda o build de verdade e lê o que o código produziu. Também não pede as 200 páginas por HTTP — estar no sitemap e responder 200 são a mesma afirmação (as duas saem de `getPublicQuestionsForSubject`), e 200 requisições dispararia o Attack Challenge da Vercel, cujo 403 é indistinguível de "a página sumiu". Validado nos dois sentidos: exit 0 no estado atual, exit 1 com a seleção voltando a ser recalculada, acusando as mesmas 25 da medição no banco.
+
 **As 200 publicadas não são "as mais cobradas" — são uma amostra arbitrária estável.** `incidencia_prova`, que o `selectBest` usa como critério nº 1, está **nula nas 2.232 questões** (medido em 11/set/2026: um único valor distinto no banco, e é `null`). Sem ela o desempate cai em ordem de UUID, que é aleatória. Nenhuma tela pode afirmar que são as de maior incidência. O campo é duplamente morto: o importador do admin grava `Number(valor)` e o leitor espera texto, então "alta" entraria como `NaN`.
 
 Ao abrir isso:

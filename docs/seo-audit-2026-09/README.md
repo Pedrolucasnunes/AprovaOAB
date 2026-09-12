@@ -11,6 +11,7 @@ Auditoria completa de `https://www.aprovaoab.app.br/` feita em 11/09/2026.
 | `FULL-AUDIT-REPORT.md` | Relatório completo com a evidência por trás de cada achado. |
 | `findings/*.md` | Um arquivo por categoria, para ler só a parte que interessa. |
 | `audit-data.json` | Mesma coisa em formato estruturado, para gerar relatório ou diff futuro. |
+| `medicoes-search-console.md` | **Dado de campo, que esta auditoria não teve.** Linha de base de 12/09/2026 e as duas leituras que ela derrubou. |
 
 O resumo operacional — o que não pode ser quebrado e o que está aberto — está na seção **SEO** do `CLAUDE.md` da raiz, que é o que uma sessão de Claude Code carrega automaticamente.
 
@@ -28,6 +29,8 @@ O resumo operacional — o que não pode ser quebrado e o que está aberto — e
 Coletado: headers HTTP, HTML servido de 12 páginas, sitemap completo (253 URLs), robots.txt, amostra aleatória de 14 páginas de questão, peso de todos os assets da home, 3 execuções de Lighthouse.
 
 Rodou **sem** dados de campo (CrUX), Search Console, GA4 e perfil de backlinks — nenhuma credencial configurada na época, e a quota pública da API do PageSpeed estava esgotada. **Os números de performance são de laboratório, não de campo.**
+
+**Correção, 12/09/2026:** o Search Console **já estava verificado** desde 10/06/2026, com três meses de dado acumulado. "Sem credencial" era limitação desta sessão de auditoria, não ausência de dado — e virou "precisa configurar" por engano. Os números estão em `medicoes-search-console.md`, e **derrubaram duas conclusões deste relatório**. Leia-o antes do `ACTION-PLAN.md`.
 
 ## Reproduzir as medições
 

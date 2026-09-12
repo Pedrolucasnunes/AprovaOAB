@@ -79,12 +79,29 @@ export async function generateMetadata({
   if (!q) return { robots: { index: false, follow: false } }
 
   const title = tituloDaQuestao(q, q.subjectName)
-  // Description híbrida: rótulo primeiro, enredo depois. Só o enunciado (o que
-  // havia antes) abria com "José é proprietário de imóvel rural…" — nenhuma
-  // palavra que alguém busque, nos caracteres que mais pesam. Só o rótulo seria
-  // idêntico em todas as páginas do mesmo tema.
+  // A description NÃO devolve o enunciado, e essa é a decisão inteira.
+  //
+  // Ela já foi só enunciado ("José é proprietário de imóvel rural…" — nenhuma
+  // palavra que alguém busque nos caracteres que mais pesam) e depois híbrida,
+  // rótulo + 90 chars de enunciado. Medido no Search Console em 12/set/2026: as
+  // 59 páginas de questão indexadas somam 771 impressões e **4 cliques**, em
+  // posição média 13,0 — e as consultas são o enunciado colado no Google. Ou
+  // seja, o snippet oferecia a quem já tinha o enunciado exatamente o enunciado.
+  //
+  // O que a página entrega e o concorrente costuma cobrar é o GABARITO ABERTO:
+  // `components/seo/questao-interativa.tsx` mostra "Gabarito: alternativa X" ao
+  // responder, sem login. É a única promessa que o HTML sustenta — a resolução
+  // comentada é gated e **não pode** ser prometida aqui.
+  //
+  // Template não produz duplicata: o par (tópico, edição) é único nas 200
+  // publicadas (medido, 0 repetições), porque é o mesmo par que dá título e slug
+  // e o `selectBest` preenche vaga preferindo par inédito. O `preview` é só
+  // guarda de tamanho — hoje o maior sai em 149 chars, nenhum acima de 158.
   const rotulo = title.replace(" — Questão d", " · questão d")
-  const description = `${rotulo}. ${preview(q.enunciado, 90)}`
+  const description = preview(
+    `${rotulo} · ${q.subjectName}. Responda e veja o gabarito na hora, sem cadastro.`,
+    158,
+  )
   const canonical = `/questoes/${q.subjectSlug}/${slugDaQuestao(q)}`
   return {
     title,

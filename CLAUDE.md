@@ -380,6 +380,17 @@ Auditoria completa em `docs/seo-audit-2026-09/` — `FULL-AUDIT-REPORT.md` (37 a
 
 O que está abaixo é só o que um agente precisa saber pra **não estragar** o que já funciona. O resto está na auditoria.
 
+### Antes de propor mudança, leia o estado atual onde ele é observável
+
+**HTML servido pra marcação, banco pra dado — nunca a intenção do código nem relatório de três semanas atrás.** Quatro propostas desta auditoria morreram nisso, e nenhuma por falta de dado: a evidência estava no próprio crawl dela.
+
+- Um **bloco de relacionadas que já existia** na página de questão, com `h2` e tudo, proposto como se fosse construir do zero.
+- Uma **description que já tinha mudado** num deploy anterior: o diagnóstico dizia "é o enunciado truncado" e ela era híbrida havia semanas.
+- Um **critério de ordenação cujo campo é nulo em 100% das linhas** (`incidencia_prova`), tratado como curadoria por peso na prova.
+- **"Os eixos `/provas` e `/questoes` são silos"** — o Header linka os dois em toda página, e a página de prova já linka as 20 matérias. A medição que "provou" o silo usava um padrão de busca que exigia barra depois de `/provas`.
+
+O erro não é inferir sem medir; é desenhar a partir de um retrato antigo tratando o retrato como presente.
+
 ### O que já está certo — não "conserte"
 
 - **HTML pré-renderizado em tudo.** `x-nextjs-prerender: 1` em todas as rotas públicas. É o ativo de SEO mais valioso do projeto: crawler e motor de IA leem sem executar JS. Qualquer mudança que empurre uma rota pública pra `force-dynamic` ou pra render só no cliente é regressão grave — a landing e `/questoes` são a porta do orgânico.
@@ -472,7 +483,7 @@ Ele **não reproduz o `selectBest`** de propósito: cópia do algoritmo ficaria 
 Ao abrir isso:
 
 - **Paginação em `<a href>` real**, nunca só via JS, ou as páginas seguem invisíveis.
-- **Só publique questão com resolução comentada.** Questão sem comentário é thin content e arrasta o domínio inteiro. Se o gargalo for produção, priorize pelo peso na prova: Ética 8, Processo Civil 7, Civil 6, Constitucional 6, Penal 6, Processo Penal 6. **Dívida já contraída, medida em 11/set/2026: 85 das 200 páginas publicadas são de questões sem `explicacao` nenhuma** (o banco tem 1.291 de 2.232, 57,8%). Não é thin content visível — a explicação é gated e nunca vai pro HTML —, mas a página promete um comentário gated que, para essas 85, não existe atrás do cadastro.
+- **Só publique questão com resolução comentada.** Questão sem comentário é thin content e arrasta o domínio inteiro. Se o gargalo for produção, priorize pelo peso na prova. **Medido nas 28 provas do acervo em 12/set/2026** (média de questões por prova), não de cabeça: Ética **8,3** · Constitucional **7,4** · Civil **6,8** · Processo Civil **6,6** · Penal **6,1** · Processo Penal **5,7** · Trabalho 5,3 · Administrativo 5,3 · Processo do Trabalho 5,2 · Tributário 4,8 · Empresarial 4,5 — e a cauda: Eleitoral 0,8, Previdenciário 0,7, Financeiro 0,6. A lista anterior aqui era escrita à mão e punha Constitucional em 4º com 6; ela é a 2ª mais pesada da prova. O hub `/questoes` renderiza esses números derivados do banco, então eles não podem divergir: se mudar, muda nos dois lugares porque o hub calcula. **Dívida já contraída, medida em 11/set/2026: 85 das 200 páginas publicadas são de questões sem `explicacao` nenhuma** (o banco tem 1.291 de 2.232, 57,8%). Não é thin content visível — a explicação é gated e nunca vai pro HTML —, mas a página promete um comentário gated que, para essas 85, não existe atrás do cadastro.
 - **Troque o UUID da URL por ID curto _antes_ de publicar o resto** — depois seriam 2.240 redirects 301.
 - Nas páginas de prova, exibir enunciado resumido com link pra questão completa, pra não duplicar o texto (a prova 45 já tem 15.266 palavras e 665 KB de HTML).
 

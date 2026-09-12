@@ -110,26 +110,51 @@ export default async function MateriaPage({
       </p>
 
       <div className="mt-10 space-y-3">
-        {questions.map((q, i) => (
+        {questions.map((q) => (
           <Link
             key={q.id}
             href={`/questoes/${subject.slug}/${slugDaQuestao(q)}`}
             className="block rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/40 hover:bg-muted/40"
           >
-            <div className="mb-2 flex items-center gap-2">
-              <span className="font-mono text-xs text-muted-foreground">
-                Questão {i + 1}
-              </span>
-              {(q.banca || q.ano) && (
-                <span className="font-mono text-xs text-muted-foreground">
-                  · {[q.banca, q.ano].filter(Boolean).join(" · ")}
-                </span>
-              )}
-            </div>
-            <p className="text-sm leading-relaxed text-foreground">{preview(q.enunciado)}</p>
+            {/* O título do destino é a primeira linha do card, no lugar de
+                "Questão 1 · Exame de Ordem Unificado - XLI (FGV) · 2024". Dois
+                motivos, e nenhum é estético.
+
+                A ÂNCORA: era o recorte do enunciado. Eram 200 links internos
+                começando em "Durante uma forte tempestade que causou
+                inundações…" — sem palavra-chave e sem dizer ao leitor pra onde
+                vão. `tituloDaQuestao` é o mesmo helper que dá o H1 do destino.
+
+                O RÓTULO: "Questão 1" era a posição NESTA lista, e o leitor lê
+                como a posição na prova. O banco não guarda a ordem da questão no
+                exame — é a mesma razão pela qual a página de prova não pode
+                numerar as 80. Afirmação que o dado não sustenta.
+
+                O enunciado continua, embaixo, onde ele serve: ajudar a escolher
+                qual abrir. */}
+            <p className="text-sm font-medium leading-relaxed text-foreground">
+              {tituloDaQuestao(q, subject.name)}
+            </p>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              {preview(q.enunciado)}
+            </p>
           </Link>
         ))}
       </div>
+
+      {/* Liga o eixo matéria ao eixo exame. Os dois se cruzavam só num sentido:
+          a página de prova já linka as 20 matérias, e daqui não havia caminho de
+          volta a não ser o menu do topo, que é o mesmo em toda página. */}
+      <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
+        {/* Sem "as 80 questões": os exames 19, 35, 37 e 43 têm 78, e só a página
+            da prova conhece a contagem real (derivada de `questoes.length`). */}
+        Cada uma delas veio de um exame diferente. A prova completa de cada edição, com todas as
+        questões e o gabarito, está em{" "}
+        <Link href="/provas" className="text-primary underline-offset-4 hover:underline">
+          provas da OAB
+        </Link>
+        .
+      </p>
 
       {intro && (intro.topicos?.length || intro.dica) && (
         <section className="mt-12 max-w-2xl">

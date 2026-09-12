@@ -99,6 +99,16 @@ export default async function ProvasHubPage() {
           ainda não entrou: a FGV repete estruturas de enunciado e concentra a cobrança em poucos
           temas por matéria.
         </p>
+        {/* Caminho de volta pro eixo matéria. A página de cada prova já linka as
+            20 matérias; o hub não linkava nenhuma. */}
+        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+          Se você preferir atacar uma disciplina por vez em vez de uma prova inteira, o mesmo
+          acervo está organizado em{" "}
+          <Link href="/questoes" className="text-primary underline-offset-4 hover:underline">
+            questões por matéria
+          </Link>
+          , com a média de quanto cada uma vale na prova contada nestes {exames.length} exames.
+        </p>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
           O que costuma faltar não é resolver mais questões, e sim saber{" "}
           <em>quais</em> errar de novo custa aprovação. É isso que o diagnóstico do AprovaOAB mede

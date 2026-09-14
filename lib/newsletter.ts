@@ -880,7 +880,93 @@ export const EDICAO_14: NewsletterEdicao = {
   examLabel: "até a 1ª fase do 48º",
 }
 
+// Semana sem evento: o recurso fechou quinta (10/9) e o próximo marco é 21/9
+// (edital do 48º) / 23/9 (resultado do 47º). Sem perecível pra abrir, a edição
+// abre pelo achado do termômetro, que é o material mais forte desta semana.
+//
+// SEM TRAVESSÃO: pedido do Pedro em 14/set/2026 pra esta edição. O texto usa
+// vírgula, dois-pontos, ponto e vírgula e parênteses no lugar do sinal.
+//
+// Números do termômetro medidos em 14/set/2026 contra o banco inteiro (28 provas
+// completas, 2.232 questões; 609 respostas de treino + 693 de simulado). O 47º
+// entrou no acervo depois da prova de 6/9. Faltam o 28º e o 46º, que nunca foram
+// importados, e a contagem diz isso em vez de arredondar pra "todas".
+//
+// Datas conferidas: cronograma do 47º/48º em oab.org.br/noticia/64207 e as datas
+// de resultado (23/09 preliminar, 05/10 final) no comunicado do gabarito
+// preliminar (nº 64579). Caso Ximenes Lopes conferido na sentença da Corte IDH
+// (Série C nº 149) e na cobertura da Justiça Global, que peticionou junto com a
+// irmã da vítima.
+export const EDICAO_15: NewsletterEdicao = {
+  numero: 15,
+  subject: "☕ Café com OAB #15: as 8 questões que vieram das matérias que ninguém estuda",
+  preheader:
+    "No 47º, a cauda valeu 8 e o Constitucional valeu 5. Não foi acaso: mudou no 38º Exame.",
+  intro: [
+    "Semana quieta, e é de propósito. 🤫 O prazo de recurso fechou na quinta passada, e a partir dali <strong>não existe mais nada sob o seu controle</strong> até o dia 23. Se você fez a prova, esta é a semana de deixar quieto: conferir o gabarito pela décima vez não muda nenhuma resposta.",
+    "Os dois marcos chegam juntos na semana que vem: <strong>segunda (21/9) sai o edital do 48º Exame</strong> e <strong>quarta (23/9) sai o resultado preliminar da 1ª fase do 47º</strong>. Os detalhes dos dois estão logo abaixo. 📅",
+    "E como esta é a semana sem notícia, ela virou a semana de medir. Fui contar, prova por prova, o que a FGV vem cobrando nas <strong>28 provas completas</strong> do nosso banco, e encontrei uma mudança que começou no <strong>38º Exame</strong> e que quase nenhum plano de estudo leva em conta. Está no termômetro, e é o motivo desta edição. ⚖️",
+  ],
+  termometro:
+    "🟡 <strong>A cauda cresceu, e ninguém avisou.</strong> Pegue as quatro matérias mais raras da prova: <strong>Direito Eleitoral, Previdenciário, Financeiro e Direitos Humanos</strong>. São as que todo cronograma manda deixar por último, e com razão histórica: nas <strong>19 provas do 18º ao 37º</strong> que temos no acervo, as quatro <strong>juntas</strong> nunca passaram de <strong>3 questões</strong>, e em duas provas não apareceu nenhuma. Agora o que mudou: nas <strong>9 provas do 38º pra cá</strong>, elas nunca somaram <strong>menos de 6</strong>, e em <strong>seis dessas nove</strong> somaram exatamente <strong>8</strong>. No <strong>47º Exame</strong>, o de domingo passado, foram <strong>2 de cada uma, 8 no total</strong>. No mesmo caderno, <strong>Direito Constitucional caiu pra 5 questões</strong>, o menor número dele nas 28 provas do acervo (a média é 7,4). Ou seja: a prova de domingo pagou <strong>mais pontos</strong> nas quatro matérias que os cursos mandam pular do que na segunda maior matéria do exame. 📉 E tem o outro lado, o nosso: <strong>Direitos Humanos é a matéria em que menos se acerta na plataforma inteira, 30% em 33 respostas</strong>, a pior taxa entre as 20. Conteúdo pequeno, cobrado com mais frequência do que antes, e respondido pior do que qualquer outro. É o ponto mais barato da prova parado no chão.",
+  questao: {
+    // Direitos Humanos tem n=33 na materia (suficiente pro termometro), mas
+    // NENHUMA questao dela chega ao piso de n>=8: a maior amostra e n=2. Por isso
+    // o titulo padrao ("derrubou geral") foi sobrescrito e a `fonte` nao cita
+    // taxa da plataforma: com n=2, qualquer % sugeriria amostra que nao existe.
+    titulo: "🎯 A questão da semana, em Direitos Humanos",
+    fonte: "FGV · Exame de Ordem XXXVI/2022 · dificuldade média",
+    enunciado:
+      "Você, como advogado(a), foi contratado(a) para esclarecer algumas alternativas na defesa e proteção do direito de circulação e de residência de um determinado grupo de pessoas, que vem sendo violado, em razão de preconceito. Nessa reunião, as vítimas disseram que já tentaram todas as medidas administrativas junto aos órgãos governamentais competentes e nada foi resolvido. Uma das vítimas propôs que fosse encaminhada petição para a Corte Interamericana de Direitos Humanos, a fim de instaurar um processo para a decisão daquela Corte que pudesse resultar em condenação do Estado brasileiro, indenização das vítimas e garantia dos direitos violados. Assim, com base no que dispõe a Convenção Americana sobre Direitos Humanos, cabe a você esclarecer que as vítimas",
+    alternativas: [
+      {
+        letra: "A",
+        texto:
+          "não têm o direito de submeter diretamente um caso à decisão da Corte Interamericana de Direitos Humanos.",
+      },
+      {
+        letra: "B",
+        texto:
+          "devem comprovar o esgotamento de todos os recursos da jurisdição interna para encaminhar a petição para a Corte.",
+      },
+      {
+        letra: "C",
+        texto:
+          "podem submeter o caso à decisão da Corte, mas devem requerer que sejam tomadas medidas provisórias em caráter de urgência, dada a gravidade da situação.",
+      },
+      {
+        letra: "D",
+        texto:
+          "não podem enviar a petição, uma vez que o Brasil não reconhece a competência da Corte em casos relativos à aplicação da Convenção Americana sobre Direitos Humanos.",
+      },
+    ],
+    gabarito: "A",
+    comentario:
+      "A questão inteira mora em <strong>dois artigos que quase ninguém lê juntos</strong>. O <strong>art. 44 da Convenção Americana</strong> diz quem pode reclamar: “<em>Qualquer pessoa ou grupo de pessoas, ou entidade não governamental legalmente reconhecida em um ou mais Estados membros da Organização, pode apresentar <strong>à Comissão</strong> petições que contenham denúncias ou queixas de violação desta Convenção</em>”. Já o <strong>art. 61.1</strong> diz quem pode processar: “<em><strong>Somente os Estados Partes e a Comissão</strong> têm direito de submeter caso à decisão da Corte</em>”. 🔍 Repare que são duas portas diferentes, e a vítima só tem a chave da primeira. Ela peticiona à <strong>Comissão</strong>; a Comissão analisa, tenta solução amistosa e é <strong>ela</strong> que decide levar (ou não) o caso à <strong>Corte</strong>. O indivíduo nunca é autor perante a Corte, nem com o caso mais grave do mundo. Resposta: <strong>A</strong>. 🧭 <strong>Fixa assim:</strong> a Comissão é a porta, a Corte é a sala; quem entra pela porta não escolhe entrar na sala.",
+  },
+  pegadinha:
+    "O achado desta edição não é a resposta certa, é a <strong>letra B</strong>. 🎭 Leia de novo: “<em>devem comprovar o esgotamento de todos os recursos da jurisdição interna</em>”. Isso é <strong>verdade</strong>. Está no <strong>art. 46.1, “a”</strong> da Convenção, é requisito de admissibilidade e cai em prova o tempo todo. A FGV pegou uma <strong>afirmação correta sobre o sistema</strong> e colou nela <strong>o destinatário errado</strong>: o esgotamento é condição pra petição ser admitida <strong>na Comissão</strong>, não pra “encaminhar a petição para a Corte”, que é coisa que a vítima não faz em hipótese nenhuma. Quem estudou o assunto reconhece a frase, sente que está certa e marca. É a pegadinha mais cara que existe, porque ela pune justamente quem estudou. 🧠 E o enunciado ainda plantou uma segunda camada: as vítimas “<em>tentaram todas as medidas <strong>administrativas</strong></em>”. Medida administrativa não é recurso da jurisdição interna; nem o requisito da letra B estaria cumprido no caso. A <strong>letra C</strong> cai pelo mesmo art. 61.1 (medida provisória existe, art. 63.2, mas é a Comissão que pede enquanto o caso não está na Corte). E a <strong>letra D</strong> é falsa de fato: o Brasil reconheceu a competência da Corte em <strong>dezembro de 1998</strong>, e esse reconhecimento foi promulgado pelo <strong>Decreto 4.463/2002</strong>. <strong>Regra de bolso:</strong> quando a alternativa disser uma verdade que você reconhece, confira se ela responde <strong>a pergunta que foi feita</strong>.",
+  noticia: {
+    titulo: "📰 Tá rolando: duas datas na semana que vem, e nada nesta",
+    texto:
+      "🗓️ <strong>Segunda, 21/9: edital de abertura do 48º Exame.</strong> É ele que fecha tudo o que hoje é previsão: taxa, pedido de isenção, conteúdo programático, regras de inscrição. O que já está confirmado no cronograma oficial da OAB: <strong>inscrições de 28/9 a 5/10</strong> (oito dias, no oab.fgv.br), <strong>1ª fase em 10/01/2027</strong> e 2ª fase em 28/02/2027. Como referência, a taxa do 47º foi de <strong>R$ 350,00</strong> e o pedido de isenção correu na mesma janela da inscrição; o valor e o prazo do 48º só valem quando saírem no edital. 📌 <strong>Quarta, 23/9: resultado preliminar da 1ª fase do 47º.</strong> Ele já sai com o <strong>gabarito definitivo</strong> aplicado, ou seja, com as anulações e as trocas decididas nos recursos. O <strong>resultado final vem em 5/10</strong> e corrige basicamente erro material (cálculo, nome, lançamento), então <strong>o número que importa é o do dia 23</strong>. A nota de corte segue a de sempre: <strong>40 das 80</strong>. 🧩 Quem passar na 1ª fase faz a <strong>2ª fase em 18/10</strong>, e vale fazer essa conta agora: são <strong>25 dias</strong> entre o resultado e a prova prático-profissional. Quem está na faixa dos 40 começa a 2ª fase <strong>esta semana</strong>, não no dia 23. 🔁 E quem passar na 1ª fase do 47º mas não concluir a 2ª tem <strong>reaproveitamento</strong> no 48º: edital complementar em <strong>13/11</strong>, inscrições de <strong>23 a 30/11</strong>. Todas essas datas ficam reunidas e atualizadas em <a href=\"" +
+      APP_URL +
+      "/editais\" style=\"color:#c8a04a;font-weight:600;\">aprovaoab.app.br/editais</a>.",
+  },
+  curiosidade: {
+    titulo: "💡 Você sabia?",
+    texto:
+      "A regra da questão de hoje tem nome e sobrenome no Brasil: <strong>Damião Ximenes Lopes</strong>. 🕯️ Ele era uma pessoa com transtorno mental e morreu em 1999, depois de maus-tratos numa clínica psiquiátrica conveniada ao SUS, em Sobral (CE). A irmã dele, <strong>Irene Ximenes</strong>, fez exatamente o que o art. 44 permite a qualquer pessoa: <strong>peticionou à Comissão Interamericana em 22 de novembro de 1999</strong>, junto com a organização Justiça Global. O que ela <strong>não</strong> podia fazer era processar o Brasil na Corte, e é aí que a letra A da questão deixa de ser decoreba: quem levou o caso à Corte foi a <strong>Comissão</strong>, e só em <strong>outubro de 2004</strong>, quase cinco anos depois da petição. ⚖️ Em <strong>julho de 2006</strong> veio a sentença: a <strong>primeira condenação do Brasil</strong> na Corte Interamericana, e também a primeira vez que aquela Corte julgou violação de direitos humanos de uma pessoa com transtorno mental. Duas lições que a prova cobra sem contar essa história: o filtro da Comissão é <strong>lento</strong>, e é ele que explica por que o sistema interamericano julga tão poucos casos; e a vítima, que não pode ser autora, continua sendo <strong>a razão de tudo</strong>. 😉",
+  },
+  dica:
+    "São <strong>117 dias</strong> até 10 de janeiro, e eles cabem bem se você resistir a duas tentações opostas. 🧭 A primeira é começar pela cauda por causa do termômetro de hoje: <strong>não faça isso</strong>. Ética, Constitucional, Civil, Processo Civil, Penal e Processo Penal continuam somando cerca de <strong>41 das 80 questões</strong>, e nenhuma quantidade de Direito Financeiro compensa chegar fraco nelas. A segunda tentação é a de sempre, e é a que o termômetro desmonta: <strong>deixar as quatro pequenas fora do plano</strong>, como se elas ainda valessem os 3 pontos de dez anos atrás, quando nas últimas nove provas elas valeram de 6 a 8. 📌 O encaixe que funciona: as pesadas ocupam o <strong>grosso</strong> dos 117 dias; as quatro pequenas entram como <strong>blocos curtos e tardios</strong>, de novembro em diante, porque o conteúdo delas é fechado, muito literal e esquece rápido. Uma semana boa em Direitos Humanos (Convenção Americana, Comissão e Corte, tratados de que o Brasil é parte) já muda a sua taxa numa matéria em que a média da plataforma é 30%. 🎯 E antes de montar qualquer cronograma, <strong>meça</strong>: esta semana é ideal pra isso, justamente porque não tem nada mais acontecendo. O <a href=\"" +
+    APP_URL +
+    "/dashboard\" style=\"color:#c8a04a;font-weight:600;\">diagnóstico</a> leva 10 minutos, é de graça e devolve o mapa por matéria; sem ele você monta o plano da pessoa que imagina ser, e não o da que respondeu as questões. Semana que vem tem edital e tem resultado. Esta aqui é sua. 🍀",
+  examDays: 117,
+  examLabel: "até a 1ª fase do 48º",
+}
+
 // ATENÇÃO: o cron de segunda recria o rascunho da CURRENT_EDICAO sem checar se ela
 // já foi enviada. Esquecer de mover este ponteiro gera, no Resend, um rascunho
 // idêntico ao da semana passada — foi o que aconteceu em 03/ago/2026 com a #8.
-export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_14
+export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_15

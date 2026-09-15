@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { CookiePreferencesTrigger } from "@/components/cookie-preferences-trigger";
 import { Logo } from "@/components/site/logo";
+import { WHATSAPP_ICON_PATH, whatsappSupportUrl } from "@/lib/support";
 
 // `route: true` = rota real (next/link). Âncoras usam "/#..." pra funcionar de
 // qualquer página (na landing rolam; em /questoes navegam pra landing + seção).
@@ -82,6 +83,42 @@ export function Footer() {
                 </li>
               ))}
             </ul>
+
+            {/* Suporte, e de propósito FORA do `SOCIAL_LINKS`: aquele array é o
+                espelho do `sameAs` do Organization, que declara PERFIS que
+                identificam a entidade. Um `wa.me` é canal de atendimento, não
+                perfil — entrar ali quebraria o par com o layout ou empurraria um
+                não-perfil pro `sameAs`. Pelo mesmo motivo o `rel` aqui não tem
+                `me`, que é afirmação de identidade.
+
+                Com rótulo, não só ícone verde no meio das redes: quem cai de
+                busca numa página de questão não conhece o site, e um ícone sem
+                texto não diz que ali existe gente pra responder. Era o único
+                canal de contato do produto e ele não aparecia em NENHUMA das
+                páginas públicas de SEO — só na home e no app logado (medido no
+                HTML servido em 14/set/2026: `wa.me` 1× na home, 0× em
+                /questoes, /questoes/[materia], página de questão, /provas e
+                /editais/[slug]).
+
+                Isto NÃO é mudança de SEO e não deve ser creditada por nada que
+                as medições de setembro mostrarem: não existe fator de
+                ranqueamento que leia contato no rodapé. É confiança e produto. */}
+            <a
+              href={whatsappSupportUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 inline-flex items-center gap-2 text-sm text-night-muted transition-colors duration-200 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-night"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="h-[18px] w-[18px] shrink-0"
+                aria-hidden="true"
+              >
+                <path d={WHATSAPP_ICON_PATH} />
+              </svg>
+              Suporte no WhatsApp
+            </a>
           </div>
 
           <nav aria-label="Produto" className="md:col-span-2">

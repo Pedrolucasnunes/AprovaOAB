@@ -104,6 +104,30 @@ Ou seja: se o CTR mexer nos próximos 7–10 dias **e a posição média ficar p
 contaminada e o número não sustenta conclusão — nesse caso vale esperar as 3–4
 semanas e olhar quantas das 197 saíram de "Detectada".
 
+### O que subiu durante a janela, e o que foi segurado
+
+Registro corrido, pra quem for ler os números de outubro saber o que estava no ar.
+Nenhum dos dois toca link interno, `title`, `description` ou canonical, que são as
+três coisas que as leituras medem.
+
+| quando | o quê | superfície |
+|---|---|---|
+| 14/09, 20h32 (`6b2b2d6`) | Café com OAB #15 | só a landing: a seção da newsletter renderiza a `CURRENT_EDICAO` (assunto, 1º parágrafo e a questão) |
+| 15/09, 06h40 (`de1c4d2`) | suporte no WhatsApp no rodapé | todas as páginas, um link externo `wa.me` |
+
+O rodapé é a mudança **segura** de subir aqui, e por dois motivos que valem pra
+qualquer coisa que se queira subir no meio de uma janela: ele não entra no snippet
+da SERP, então não mexe na leitura de **CTR**; e o link é **externo**, então não
+mexe na malha interna, que é o que a leitura de **rastreamento** observa. Não é
+mudança de SEO e **não pode ser creditada por nada que estes relatórios mostrarem**:
+não existe fator de ranqueamento que leia contato no rodapé.
+
+**Segurado de propósito:** apagar `app/provas/loading.tsx` e `app/editais/loading.tsx`,
+que duplicam cabeçalho e rodapé em ~30 páginas (ver CLAUDE.md, seção
+"`loading.tsx` numa rota de SEO duplica o cabeçalho e o rodapé no HTML"). Esse
+conserto **muda a contagem de links internos** dessas páginas, que é precisamente o
+que a leitura de "Páginas" mede. Vai no lote de depois de 3–10/out.
+
 ### Malha interna — o estado medido em 12/09/2026
 
 Antes da correção, medido nas 10 páginas de Direito Eleitoral em produção, e

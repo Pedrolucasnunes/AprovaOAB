@@ -399,6 +399,43 @@ O erro não é inferir sem medir; é desenhar a partir de um retrato antigo trat
 - **Sem `Review`/`AggregateRating`** nos depoimentos — decisão documentada em "Depoimentos da landing", e ela está certa. Não reabrir.
 - **Headers de segurança** (HSTS preload, CSP, `X-Frame-Options`, `Permissions-Policy`) estão acima da média do mercado.
 
+### `loading.tsx` numa rota de SEO duplica o cabeçalho e o rodapé no HTML
+
+**Medido em 15/set/2026, no HTML servido em produção:**
+
+| rota | `<header>` | `<footer>` | `animate-pulse` |
+|---|:---:|:---:|:---:|
+| `/questoes`, `/questoes/[materia]`, página de questão | 1 | 1 | 0 |
+| `/provas`, `/provas/[exame]` (28 páginas) | **2** | **2** | 1 |
+| `/editais`, `/editais/[slug]` | **2** | **2** | 1 |
+
+A causa são `app/provas/loading.tsx` e `app/editais/loading.tsx`: os dois renderizam
+`<SeoShell>`, que é justamente quem monta o `Header` e o `Footer`. Um `loading.tsx`
+cria fronteira de Suspense, e o markup do esqueleto viaja no HTML prerenderizado
+**junto** com o conteúdo real. Resultado: **todo link do menu e do rodapé aparece em
+dobro** nessas ~30 páginas, pro robô e pro leitor de tela.
+
+`/questoes` está limpo porque o `loading.tsx` dele foi removido no Deploy A, quando
+se descobriu que a fronteira de Suspense fazia a resposta sair com 200 antes de a
+página renderizar (o soft 404). **É o mesmo arquivo, com um segundo sintoma que
+ninguém tinha procurado.** Os dois que sobraram são de `ff3d764` e `36c9c92`,
+ago/2026, então isso está no ar desde o eixo de provas.
+
+Foi achado ao contar `wa.me` depois de pôr o suporte no rodapé (`de1c4d2`): a
+mudança não causou nada, só deu uma string nova pra contar. **Contagem de elemento
+estrutural em página de SEO é medição barata que ninguém fazia** — `<header>`,
+`<footer>`, `<h1>` e `<main>` deveriam ser 1 em toda rota pública.
+
+**Conserto decidido: apagar os dois `loading.tsx`**, como já foi feito em
+`/questoes` e pelo mesmo motivo — as páginas são prerenderizadas, o esqueleto quase
+nunca chega a aparecer, e o preço dele é a casca inteira duplicada.
+
+**Só NÃO agora, e o porquê é a parte que importa:** remover isso muda a contagem de
+links internos de ~30 páginas, e a malha interna é exatamente o que a leitura de
+"Páginas" do Search Console (prevista pra 3–10/out/2026) existe pra observar.
+Consertar no meio da janela contamina a medição que se está esperando. **Vai no lote
+de depois da segunda leitura** (decisão do Pedro em 15/set/2026).
+
 ### `Reveal` — CSS puro, e por que ele não pode voltar pro JS
 
 `components/site/reveal.tsx` é Server Component de 20 linhas: põe a classe `.reveal` e duas custom properties. A animação inteira mora em `app/globals.css`. Sem `motion/react`, sem `"use client"`, sem JS.

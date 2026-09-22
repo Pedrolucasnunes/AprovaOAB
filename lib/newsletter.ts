@@ -966,7 +966,99 @@ export const EDICAO_15: NewsletterEdicao = {
   examLabel: "até a 1ª fase do 48º",
 }
 
+// Semana do edital do 48º (publicado em 21/9). O edital abre a edição porque tem
+// prazo (inscrição de 28/9 a 5/10, abrindo e fechando às 17h); o termômetro vem
+// com uma CORREÇÃO da #15, que disse que a cauda cresceu no 38º "e ninguém
+// avisou". Avisaram: a OAB anunciou a mudança em 21/03/2023
+// (oab.org.br/noticia/60826). O dado da #15 estava certo; a frase, não.
+//
+// SEM TRAVESSÃO no conteúdo, como na #15.
+//
+// Edital conferido no PDF oficial (s.oab.org.br/arquivos/2026/09/fb43fb37-...pdf,
+// 43 páginas): inscrição e isenção 2.1.2 e 2.6; taxa 2.1.2; boleto até 4/12
+// 2.1.2.1; reaproveitamento em 12/11 (2.8.1.1; o comunicado anterior da OAB
+// dizia 13/11); 80 questões e 13h às 18h 3.1.1 e 3.4.1; mínimo de 15% 3.4.1.1;
+// corte da legislação 3.6.14.4; 40 pontos 4.1.3; cronograma no Anexo.
+//
+// Grade medida em 22/set/2026 contra o banco inteiro (28 provas, 2.232
+// questões), contando questões por matéria em cada prova: 38º ao 47º (9 provas)
+// contra 23º ao 37º (15 provas). Os pisos finos de Direitos Humanos e
+// Internacional NÃO entram no texto: a soma Ética + DH + Filosofia fica abaixo
+// dos 12 do item 3.4.1.1 em várias provas do acervo, o que aponta questão de DH
+// classificada em outra matéria. As sete matérias citadas como fixas não têm
+// esse problema.
+//
+// Questão: n = 10 (4 acertos), acima do piso de n>=8, então o título padrão se
+// sustenta. Conferida no texto do Planalto: Lei 8.213/91 arts. 26, I (redação da
+// Lei 13.846/2019), 65 (redação da LC 150/2015; a original dizia "exceto ao
+// doméstico"), 66 e 69; Decreto 3.048/99 art. 82, I e § 3º (redação do Decreto
+// 10.410/2020); EC 72/2013; LC 150 de 1º/06/2015.
+export const EDICAO_16: NewsletterEdicao = {
+  numero: 16,
+  subject: "☕ Café com OAB #16: saiu o edital do 48º, e a inscrição abre e fecha às 17h",
+  preheader:
+    "R$ 350, de 28/9 a 5/10. E a grade de questões por matéria que o edital não publica, medida em 9 provas.",
+  intro: [
+    "Saiu. 📜 O <strong>edital de abertura do 48º Exame</strong> foi publicado nesta segunda, 21/9, e eu li as 43 páginas pra você não precisar. O essencial cabe numa linha: <strong>inscrição de 28/9 a 5/10, taxa de R$ 350, 1ª fase em 10 de janeiro</strong>. O resto, incluindo um horário que vai pegar gente desprevenida, está na notícia. ⏰",
+    "Quarta (23/9) tem o outro marco da semana: o <strong>resultado preliminar da 1ª fase do 47º</strong>. Se você fez a prova de 6/9, é esse o número que importa.",
+    "E eu devo uma correção à edição passada. Ela está no termômetro, e acabou virando o achado mais útil desta semana: <strong>a grade de questões por matéria que o edital não publica</strong>. ⚖️",
+  ],
+  termometro:
+    "🟡 <strong>A grade que o edital não imprime.</strong> Começo pela correção: na edição passada eu escrevi que as matérias pequenas cresceram a partir do 38º Exame “e ninguém avisou”. <strong>Avisaram, sim.</strong> Em <strong>março de 2023</strong>, o Conselho Federal da OAB anunciou que o 38º passaria a cobrar <strong>2 questões de Direito Eleitoral, 2 de Financeiro e 2 de Previdenciário</strong>, e que, pra caber tudo nas mesmas 80, <strong>Administrativo, Civil, Processo Civil, Trabalho, Constitucional e Empresarial perderiam uma questão cada</strong>. Os números que eu mostrei estavam certos; a frase, não. 📏 E a correção virou o achado desta semana, porque o nosso acervo reproduz esse anúncio sem que ninguém tenha contado pra ele. Nas <strong>9 provas do 38º ao 47º</strong>, Eleitoral, Financeiro e Previdenciário vieram com <strong>exatamente 2 questões cada, nas nove</strong>. E as seis que perderam uma questão perderam mesmo. Contando o número mais frequente por prova, antes e depois: Civil e Processo Civil passaram de 7 pra 6, Trabalho de 6 pra 5, Empresarial de 5 pra 4; Administrativo firmou em 5 (oito das nove provas); e Constitucional, que sempre oscilou, caiu de <strong>7,9 pra 6,3</strong> de média. 🧩 O edital de segunda lista as 20 matérias e manda 80 questões, mas <strong>não diz quantas de cada</strong>. A prova diz. Desde o 38º, <strong>sete matérias vieram com o mesmo número nas nove provas</strong>: Tributário com 5; Eleitoral, Financeiro, Previdenciário, Ambiental, Consumidor e Filosofia do Direito com 2 cada. Some Ética, que deu 8 em oito das nove, e são <strong>25 das 80 questões com tamanho praticamente conhecido</strong> antes de você abrir o caderno. Filosofia é o caso extremo: <strong>exatamente 2 questões em todas as 28 provas do acervo</strong>, do 18º ao 47º.",
+  questao: {
+    fonte:
+      "FGV · Exame de Ordem XXXIX/2023 · dificuldade média · 6 em cada 10 erraram na plataforma",
+    enunciado:
+      "Marina, empregada doméstica, é casada com Pedro, trabalhador avulso. Ambos são pessoas de baixa renda. O casal possui 2 (dois) filhos, um com 7 (sete) anos e outro com 15 (quinze) anos, sendo este inválido. Marina contribui para a Previdência Social há 2 (dois) anos e Pedro iniciou a contribuição há 4 (quatro) meses. Diante do caso narrado, assinale a afirmativa correta.",
+    alternativas: [
+      {
+        letra: "A",
+        texto: "Pedro não possui a carência mínima para receber o benefício do salário-família.",
+      },
+      {
+        letra: "B",
+        texto:
+          "Marina e Pedro não fazem jus ao salário-família por possuírem um filho maior de 14 (quatorze) anos.",
+      },
+      {
+        letra: "C",
+        texto:
+          "Marina e Pedro têm direito ao benefício do salário-família, na proporção do respectivo número de filhos.",
+      },
+      {
+        letra: "D",
+        texto:
+          "Pedro, na qualidade de trabalhador avulso, não possui direito ao benefício do salário-família.",
+      },
+    ],
+    gabarito: "C",
+    comentario:
+      "Três artigos da <strong>Lei 8.213/91</strong> resolvem a questão, e cada um derruba uma alternativa errada. O <strong>art. 65</strong> diz quem recebe: “<em>O salário-família será devido, mensalmente, ao segurado empregado, <strong>inclusive o doméstico</strong>, e ao segurado <strong>trabalhador avulso</strong>, na proporção do respectivo número de filhos ou equiparados</em>”. Marina é doméstica e Pedro é avulso: os dois estão no artigo, com nome e sobrenome. Letra D fora. O <strong>art. 66</strong> diz por qual filho: “<em>até 14 (quatorze) anos de idade <strong>ou inválido de qualquer idade</strong></em>”. O de 7 anos conta pela idade; o de 15 conta pela invalidez. Letra B fora. E o <strong>art. 26, I</strong> diz que <strong>independe de carência</strong> a concessão de “<em>pensão por morte, salário-família e auxílio-acidente</em>”, então os 4 meses de contribuição de Pedro não importam. Letra A fora. 🔍 Sobra a C, que é o próprio art. 65 (“<em>na proporção do respectivo número de filhos</em>”). E o detalhe que fecha a conta: quando pai e mãe são segurados empregados, domésticos ou avulsos, <strong>os dois recebem</strong> (Decreto 3.048/99, art. 82, § 3º). Aqui, cada um recebe duas cotas, uma por filho. Resposta: <strong>C</strong>.",
+  },
+  pegadinha:
+    "Repare no desenho: <strong>cada alternativa errada é uma isca plantada no enunciado</strong>. 🎭 Os <strong>4 meses</strong> de contribuição de Pedro estão lá pra você pensar em carência (letra A). Os <strong>15 anos</strong> do filho estão lá pra você lembrar do limite de 14 e passar reto pela palavra “inválido”, que vem logo depois (letra B). E a profissão de Pedro, <strong>trabalhador avulso</strong>, está lá porque avulso não tem patrão fixo, e parece estranho um benefício pago junto com o salário chegar a quem não tem empregador (letra D). Chega, sim: o do avulso pode ser recebido pelo sindicato (art. 69 da Lei 8.213) e é pago pelo sindicato ou pelo órgão gestor de mão de obra, por convênio (art. 82, I, do Decreto 3.048). 🧠 <strong>Fixa assim:</strong> salário-família é benefício de quem tem <strong>alguém pagando junto com a remuneração</strong>: empregado, doméstico e avulso. Na ativa, quem fica de fora é quem contribui por conta própria: contribuinte individual, facultativo e segurado especial. E ele <strong>não pede carência nenhuma</strong>: o que conta é a renda baixa e o filho de até 14 anos, ou inválido de qualquer idade.",
+  noticia: {
+    titulo: "📰 Tá rolando: o edital do 48º, no que ele muda a sua semana",
+    texto:
+      "📜 <strong>O edital de abertura do 48º Exame saiu nesta segunda, 21/9.</strong> O que importa agora, com o item do edital entre parênteses pra você conferir: ⏰ <strong>Inscrição das 17h de 28/9 às 17h de 5/10</strong>, horário de Brasília, só pela internet, em oab.fgv.br (2.1.2). Repare no horário: <strong>abre e fecha às 17h</strong>, não à meia-noite. Quem deixar pra noite do dia 5 ficou de fora. 💰 <strong>Taxa de R$ 350,00</strong>, a mesma do 47º. O boleto pode ser pago até <strong>4/12</strong>, com reimpressão até as 17h desse dia, e a FGV não manda boleto por e-mail (2.1.2.1). 🆓 <strong>Isenção</strong> pra quem está inscrito no <strong>CadÚnico</strong>, informando o NIS e enviando a documentação <strong>na mesma janela da inscrição</strong>, 28/9 a 5/10 (2.6). Resultado preliminar em 4/11 e definitivo em 2/12. Quem teve isenção no 47º e faltou à prova precisa justificar a ausência nesse mesmo prazo (2.6.3). 📚 <strong>A lei da sua prova é a de 21/9/2026.</strong> Legislação que entrar em vigor depois da publicação do edital, e alteração posterior a ele, <strong>não é cobrada</strong> (3.6.14.4). 🧮 A prova segue com <strong>80 questões, das 13h às 18h de Brasília</strong>, e aprova quem fizer <strong>40 pontos</strong> (3.1.1 e 4.1.3). O edital garante no mínimo <strong>15% da prova, 12 questões,</strong> de Estatuto da Advocacia, Regulamento Geral e Código de Ética, Direitos Humanos e Filosofia do Direito (3.4.1.1). O que ele não diz é quantas questões vêm de cada matéria; isso está no termômetro. 🗓️ <strong>Depois da prova:</strong> locais em 4/1, gabarito preliminar no mesmo dia 10/1, recurso de 12 a 14/1, resultado preliminar em 27/1, final em 10/2 e <strong>2ª fase em 28/2/2027</strong>. 🔁 Quem passar na 1ª fase do 47º e não fechar a 2ª tem <strong>reaproveitamento</strong> no 48º, com edital complementar previsto pra <strong>12/11</strong> (2.8.1.1). Uma correção pequena aqui também: o calendário anterior da OAB, que citei nas duas últimas edições, dizia 13/11; o edital fixou 12/11. Todas as datas, já atualizadas pelo edital, estão em <a href=\"" +
+      APP_URL +
+      "/editais/48-exame-oab\" style=\"color:#c8a04a;font-weight:600;\">aprovaoab.app.br/editais/48-exame-oab</a>.",
+  },
+  curiosidade: {
+    titulo: "💡 Você sabia?",
+    texto:
+      "A Marina da questão de hoje não teria direito a esse benefício até 2015, e não por interpretação: por <strong>texto expresso</strong>. 📜 A redação original do art. 65 da Lei 8.213/91 dizia que o salário-família era devido ao segurado empregado, “<em><strong>exceto ao doméstico</strong></em>”. A virada veio em duas etapas. Primeiro, a <strong>Emenda Constitucional 72, de 2 de abril de 2013</strong>, a “PEC das Domésticas”, reescreveu o parágrafo único do art. 7º da Constituição e estendeu às trabalhadoras domésticas uma lista de direitos; o salário-família (inciso XII) ficou no grupo dos que dependiam de “<em>condições estabelecidas em lei</em>”. A lei veio dois anos depois: a <strong>Lei Complementar 150, de 1º de junho de 2015</strong>, trocou duas palavras no art. 65. Onde estava “exceto ao doméstico”, passou a estar “<strong>inclusive o doméstico</strong>”. 🔁 Por isso, desconfie de resumo antigo nessa matéria: quem estudou por material anterior a 2015 aprendeu a regra ao contrário, e marcaria a questão de hoje errado com toda a convicção. E vale como lembrete pra semana do edital: o que entrar em vigor depois de 21/9 não cai no 48º, mas o que mudou antes cai, por mais recente que seja. 😉",
+  },
+  dica:
+    "São <strong>110 dias</strong> até 10 de janeiro, e a grade do termômetro serve pra uma coisa: <strong>parar de planejar com média velha</strong>. 🧭 Se o seu cronograma ainda trata Constitucional como matéria de 8 questões e deixa Eleitoral, Financeiro e Previdenciário pro fim como se valessem zero, ele foi montado pra uma prova que mudou em 2023. O número mais frequente de cada matéria desde o 38º: <strong>Ética 8; Constitucional entre 5 e 7; Civil, Processo Civil, Penal e Processo Penal 6; Tributário, Trabalho, Processo do Trabalho e Administrativo 5; Empresarial 4</strong>; e as outras nove com 2 ou 3 cada. 📌 As três que entraram em 2023 somam <strong>6 questões</strong>, o tamanho de Processo Civil inteiro, em conteúdo muito mais curto. Não é motivo pra começar por elas (as pesadas continuam sendo o grosso do plano), mas é motivo pra elas terem <strong>data marcada</strong> no cronograma, e não o tempo que sobrar. 🗓️ E a tarefa da semana que vem é burocrática e inegociável: <strong>segunda, 28/9, depois das 17h, faça a inscrição</strong>, e o pedido de isenção junto, se for o seu caso. Oito dias parecem muito até o dia 5 às 16h50. 🎯 Se você ainda não sabe onde está em cada matéria, o <a href=\"" +
+    APP_URL +
+    "/dashboard\" style=\"color:#c8a04a;font-weight:600;\">diagnóstico</a> leva 10 minutos, é de graça e devolve o mapa. Boa semana, e boa sorte na quarta pra quem espera o resultado do 47º. 🍀",
+  examDays: 110,
+  examLabel: "até a 1ª fase do 48º",
+}
+
 // ATENÇÃO: o cron de segunda recria o rascunho da CURRENT_EDICAO sem checar se ela
 // já foi enviada. Esquecer de mover este ponteiro gera, no Resend, um rascunho
-// idêntico ao da semana passada — foi o que aconteceu em 03/ago/2026 com a #8.
-export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_15
+// idêntico ao da semana passada — foi o que aconteceu em 03/ago/2026 com a #8, e
+// de novo em 21/set/2026 com a #15.
+export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_16

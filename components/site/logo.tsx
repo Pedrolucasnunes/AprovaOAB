@@ -7,7 +7,7 @@ export function Logo({ className }: { className?: string }) {
   return (
     <Link
       href="/"
-      aria-label="AprovaOAB — voltar ao início"
+      aria-label="AprovaOAB, voltar ao início"
       className={cn("flex w-fit items-center gap-2.5", className)}
     >
       <Image

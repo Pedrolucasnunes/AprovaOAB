@@ -156,7 +156,7 @@ export function Benefits() {
               </h3>
               <p className="mt-2 text-sm leading-relaxed text-night-muted">
                 Enunciado, quatro alternativas e simulados completos de 80
-                questões — o mesmo formato do dia da prova.
+                questões, o mesmo formato do dia da prova.
               </p>
               <div className="mt-auto pt-5">
                 <MiniAlternative />
@@ -172,7 +172,7 @@ export function Benefits() {
                 Desempenho que você enxerga
               </h3>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Aproveitamento por matéria e evolução a cada sessão — você sabe
+                Aproveitamento por matéria e evolução a cada sessão: você sabe
                 o que falta, sem surpresa.
               </p>
               <div className="mt-auto pt-5">
@@ -192,7 +192,7 @@ export function Benefits() {
                   </h3>
                   <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                     Sessões curtas distribuídas nos seus dias. Constância vence
-                    maratona de véspera — e a agenda cuida disso por você.
+                    maratona de véspera, e a agenda cuida disso por você.
                   </p>
                 </div>
               </div>

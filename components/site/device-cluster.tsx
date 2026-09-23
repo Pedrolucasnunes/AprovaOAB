@@ -383,7 +383,7 @@ function QuestionView({
                     : "bg-destructive/10 text-destructive"
                 )}
               >
-                {hit ? "Boa!" : `Quase — a correta é a ${LETTERS[q.correct]}.`}
+                {hit ? "Boa!" : `Quase! A correta é a ${LETTERS[q.correct]}.`}
               </p>
               <button
                 type="button"
@@ -454,8 +454,8 @@ function ResultView({
 
       <p className="mt-3 text-[10.5px] leading-relaxed text-muted-foreground">
         {wrong.length > 0
-          ? `No diagnóstico completo são 16 questões nas 8 matérias mais pesadas — e ${wrong[0].subject} entraria como prioridade do seu plano.`
-          : "Você gabaritou os exemplos. No diagnóstico completo — 16 questões nas 8 matérias mais pesadas — o algoritmo encontra seus pontos fracos reais."}
+          ? `No diagnóstico completo são 16 questões nas 8 matérias mais pesadas, e ${wrong[0].subject} entraria como prioridade do seu plano.`
+          : "Você gabaritou os exemplos. No diagnóstico completo, com 16 questões nas 8 matérias mais pesadas, o algoritmo encontra seus pontos fracos reais."}
       </p>
 
       <div className="mt-4 space-y-2">
@@ -517,7 +517,7 @@ function QuizPanel({
       </AnimatePresence>
 
       <p className="mt-auto pt-3 font-mono text-[8.5px] uppercase tracking-[0.12em] text-muted-foreground/80">
-        Exemplo ilustrativo — questões reais seguem o padrão FGV
+        Exemplo ilustrativo: questões reais seguem o padrão FGV
       </p>
     </div>
   );
@@ -904,7 +904,7 @@ export function DeviceCluster() {
       </motion.div>
 
       <p className="mt-7 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-night-muted/70 sm:mt-16 lg:mt-20 lg:text-left">
-        Demo interativa — dados ilustrativos · questões reais no padrão FGV
+        Demo interativa: dados ilustrativos · questões reais no padrão FGV
       </p>
     </div>
   );

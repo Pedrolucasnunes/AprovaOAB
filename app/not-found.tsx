@@ -49,7 +49,7 @@ export default function NotFound() {
 
         <p className="mx-auto mt-6 max-w-md text-base leading-relaxed text-muted-foreground">
           A página que você procurou não existe ou mudou de endereço. Seu plano de
-          estudos continua de pé — é só voltar pro treino.
+          estudos continua de pé, é só voltar pro treino.
         </p>
 
         <div className="mt-8">

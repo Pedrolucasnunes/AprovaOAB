@@ -66,8 +66,8 @@ function DiagnosisVignette() {
 
 function PlanVignette() {
   const rows = [
-    { day: "SEG", text: "Direito Penal — 20 questões" },
-    { day: "TER", text: "Civil: contratos — 15 questões" },
+    { day: "SEG", text: "Direito Penal, 20 questões" },
+    { day: "TER", text: "Civil: contratos, 15 questões" },
     { day: "QUA", text: "Revisão dos erros da semana" },
   ];
   return (
@@ -85,7 +85,7 @@ function PlanVignette() {
         ))}
       </ul>
       <p className="mt-3 font-mono text-[9px] uppercase tracking-[0.14em] text-muted-foreground">
-        Plano da semana — exemplo
+        Plano da semana (exemplo)
       </p>
     </div>
   );
@@ -145,12 +145,12 @@ function SimuladoVignette() {
 const STEPS = [
   {
     title: "Faça o diagnóstico",
-    body: "Um teste curto, com questões objetivas das 8 matérias mais pesadas da 1ª fase. Você descobre seu nível real, matéria por matéria — sem achismo.",
+    body: "Um teste curto, com questões objetivas das 8 matérias mais pesadas da 1ª fase. Você descobre seu nível real, matéria por matéria, sem achismo.",
     visual: <DiagnosisVignette />,
   },
   {
     title: "Receba um plano montado pelos seus erros",
-    body: "O treino inteligente concentra cerca de 70% da carga nos temas em que você mais erra — e reequilibra o plano conforme você evolui.",
+    body: "O treino inteligente concentra cerca de 70% da carga nos temas em que você mais erra, e reequilibra o plano conforme você evolui.",
     visual: <PlanVignette />,
   },
   {
@@ -169,7 +169,7 @@ export function HowItWorks() {
             <SectionHeading
               eyebrow="02 · Como funciona"
               title="Três passos. Nenhum desperdício."
-              lead="Do diagnóstico ao simulado: um caminho direto, montado em cima dos seus erros — não de um cronograma genérico."
+              lead="Do diagnóstico ao simulado: um caminho direto, montado em cima dos seus erros, não de um cronograma genérico."
             />
             <Link
               href="/cadastro"

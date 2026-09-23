@@ -47,7 +47,7 @@ const PLANS: Plan[] = [
     oldPrice: PRECO_PRO_ANTERIOR ?? undefined,
     period: "/mês",
     note: PROMOCAO_ATE ? `Preço promocional até ${PROMOCAO_ATE}` : undefined,
-    description: "Pra saber se você passaria hoje — e fechar o que falta até a prova.",
+    description: "Pra saber se você passaria hoje, e fechar o que falta até a prova.",
     // ORDEM DELIBERADA: simulado primeiro, questões ilimitadas em terceiro.
     //
     // Era o inverso. Dos 10 depoimentos de `lib/depoimentos.ts`, 4 citam o
@@ -58,8 +58,8 @@ const PLANS: Plan[] = [
     // vende. O primeiro bullet promete o VEREDITO, não o formato: é o relatório
     // que as pessoas descrevem, o simulado é o veículo.
     features: [
-      "Simulados completos no padrão FGV — com o relatório que mostra se você passaria hoje",
-      "Plano dinâmico — se ajusta aos seus erros",
+      "Simulados completos no padrão FGV, com o relatório que mostra se você passaria hoje",
+      "Plano dinâmico, que se ajusta aos seus erros",
       "Questões ilimitadas",
       "Revisão dos erros",
       "Tudo do Grátis",
@@ -151,7 +151,7 @@ export function Pricing() {
             center
             eyebrow="04 · Planos"
             title="Comece grátis. Evolua quando fizer sentido."
-            lead="O plano grátis existe de verdade — e o Pro você cancela quando quiser, direto na plataforma."
+            lead="O plano grátis existe de verdade, e o Pro você cancela quando quiser, direto na plataforma."
           />
         </Reveal>
 

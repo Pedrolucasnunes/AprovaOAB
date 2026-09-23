@@ -14,7 +14,7 @@ const PILARES = [
   {
     icon: CalendarDays,
     titulo: "O que mudou na OAB",
-    resto: "— prazos, gabarito, edital e calendário do próximo exame",
+    resto: "em prazos, gabarito, edital e calendário do próximo exame",
   },
   {
     icon: Lightbulb,
@@ -89,7 +89,7 @@ export function Newsletter() {
             <p className="mt-5 max-w-md text-base leading-relaxed text-night-muted">
               Toda terça de manhã, um e-mail curto pra manter o ritmo entre uma
               sessão de estudo e outra. Uma questão comentada, o que mudou na
-              OAB e uma curiosidade — direto, sem enrolação e de graça.
+              OAB e uma curiosidade. Tudo direto, sem enrolação e de graça.
             </p>
 
             <p className="mt-7 inline-flex items-center gap-2 rounded-full border border-night-border bg-night-card px-3.5 py-2 font-mono text-xs text-night-muted">

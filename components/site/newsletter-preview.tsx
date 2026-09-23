@@ -97,7 +97,7 @@ export function NewsletterPreview({ ed }: { ed: NewsletterEdicao }) {
           é a mesma arte em WebP de 1120px e 21 KB, só pra web. */}
       <Image
         src="/cafe-com-oab-banner.webp"
-        alt="Café com OAB — sua dose semanal rumo à aprovação"
+        alt="Café com OAB, sua dose semanal rumo à aprovação"
         width={1120}
         height={373}
         loading="lazy"

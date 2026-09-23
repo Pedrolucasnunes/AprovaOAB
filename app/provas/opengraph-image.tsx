@@ -1,6 +1,6 @@
 import { ogImage, OG_SIZE, OG_CONTENT_TYPE } from "@/lib/seo/og-card"
 
-export const alt = "Provas da OAB — questões e gabarito de todos os exames | AprovaOAB"
+export const alt = "Provas da OAB: questões e gabarito de todos os exames | AprovaOAB"
 export const size = OG_SIZE
 export const contentType = OG_CONTENT_TYPE
 

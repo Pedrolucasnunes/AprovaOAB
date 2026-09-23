@@ -15,7 +15,7 @@ export default function ProvasNotFound() {
         </h1>
         <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
           O link pode estar quebrado ou esse exame ainda não entrou no banco. Veja as provas da
-          OAB disponíveis — todas com enunciado, alternativas e gabarito.
+          OAB disponíveis, todas com enunciado, alternativas e gabarito.
         </p>
         <div className="mt-6">
           <Link

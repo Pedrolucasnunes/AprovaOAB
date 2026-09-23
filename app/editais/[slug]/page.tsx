@@ -35,7 +35,7 @@ export async function generateMetadata({
   const edital = getEditalBySlug(slug)
   if (!edital) return {}
 
-  const title = `Edital do ${edital.ordinal} Exame OAB — datas, inscrição e cronograma`
+  const title = `Edital do ${edital.ordinal} Exame OAB: datas, inscrição e cronograma`
   // Sem taxa anunciada a frase muda em vez de imprimir "taxa de null" — a
   // description é o que o Google mostra no resultado, e ali não cabe placeholder.
   const description =
@@ -126,7 +126,7 @@ export default async function EditalPage({
       {!edital.publicado && (
         <p className="mt-5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
           As datas abaixo são <strong>previsões</strong> baseadas no calendário da OAB. O edital
-          oficial deste exame ainda não foi publicado — confirme sempre na fonte da FGV.
+          oficial deste exame ainda não foi publicado. Confirme sempre na fonte da FGV.
         </p>
       )}
 
@@ -159,8 +159,8 @@ export default async function EditalPage({
           </span>
           <span className="block text-xs text-muted-foreground">
             {edital.publicado
-              ? "Documento completo no site da FGV — inscrição, regras e conteúdo programático."
-              : "Comunicado do Conselho Federal da OAB com as datas — o edital de abertura ainda não saiu."}
+              ? "Documento completo no site da FGV: inscrição, regras e conteúdo programático."
+              : "Comunicado do Conselho Federal da OAB com as datas. O edital de abertura ainda não saiu."}
           </span>
         </span>
         <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -205,7 +205,7 @@ export default async function EditalPage({
       ) : (
         <p className="mt-2 text-base leading-relaxed text-muted-foreground">
           A taxa do {edital.ordinal} Exame{" "}
-          <strong className="font-semibold text-foreground">ainda não foi divulgada</strong> — o
+          <strong className="font-semibold text-foreground">ainda não foi divulgada</strong>, e o
           valor é definido no edital de abertura. Candidatos que atendem aos requisitos podem
           solicitar isenção dentro do prazo que o edital estabelecer.
         </p>
@@ -228,7 +228,7 @@ export default async function EditalPage({
       <div className="mt-10 rounded-2xl border border-border bg-muted/20 p-6">
         <h2 className="text-lg font-semibold text-foreground">O que cai na 1ª fase</h2>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          A 1ª fase tem 80 questões de múltipla escolha, distribuídas por 17 disciplinas — de Ética
+          A 1ª fase tem 80 questões de múltipla escolha, distribuídas por 17 disciplinas, de Ética
           e Direito Constitucional a Civil, Penal e Trabalho. No AprovaOAB, um diagnóstico gratuito
           mapeia suas lacunas em 10 minutos e monta um plano de estudos pelos seus erros. Você pode{" "}
           <Link href="/questoes" className="font-medium text-primary hover:underline">
@@ -266,7 +266,7 @@ export default async function EditalPage({
       {/* Disclaimer */}
       <p className="mt-8 rounded-lg border border-border bg-muted/10 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
         O AprovaOAB é uma plataforma independente de estudos, sem vínculo com a OAB ou com a FGV.
-        As datas aqui reunidas têm caráter informativo — em caso de dúvida, sempre confirme no edital
+        As datas aqui reunidas têm caráter informativo. Em caso de dúvida, sempre confirme no edital
         oficial publicado pela FGV.
       </p>
 

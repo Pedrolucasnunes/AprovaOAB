@@ -3,7 +3,7 @@ import { ImageResponse } from "next/og"
 // Imagem de compartilhamento (WhatsApp, LinkedIn, X...) gerada dinamicamente.
 // Aplica-se à home e a qualquer rota sem opengraph-image própria.
 export const alt =
-  "AprovaOAB — estude só o que você precisa pra passar na 1ª fase da OAB"
+  "AprovaOAB: estude só o que você precisa pra passar na 1ª fase da OAB"
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 

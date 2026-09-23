@@ -1,7 +1,7 @@
 import { ogImage, OG_SIZE, OG_CONTENT_TYPE } from "@/lib/seo/og-card"
 import { getEditalBySlug } from "@/lib/editais"
 
-export const alt = "Edital do Exame de Ordem — datas e cronograma · AprovaOAB"
+export const alt = "Edital do Exame de Ordem: datas e cronograma · AprovaOAB"
 export const size = OG_SIZE
 export const contentType = OG_CONTENT_TYPE
 

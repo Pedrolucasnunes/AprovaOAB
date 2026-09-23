@@ -22,7 +22,7 @@ const ITEMS = [
   {
     question: "As questões são no padrão real da prova?",
     answer:
-      "Sim. O banco segue o formato da FGV, banca que aplica o Exame de Ordem: enunciado, quatro alternativas e simulados completos de 80 questões — incluindo questões de exames anteriores e inéditas construídas no mesmo padrão.",
+      "Sim. O banco segue o formato da FGV, banca que aplica o Exame de Ordem: enunciado, quatro alternativas e simulados completos de 80 questões, incluindo questões de exames anteriores e inéditas construídas no mesmo padrão.",
   },
   {
     question: "Preciso de cartão de crédito pra começar?",
@@ -32,7 +32,7 @@ const ITEMS = [
   {
     question: "Já reprovei na 1ª fase. Funciona pra mim?",
     answer:
-      "Foi pensando nisso que o AprovaOAB existe. Em vez de revisar o edital inteiro de novo, o diagnóstico encontra exatamente onde você perde pontos e o plano concentra o treino ali. Quem já fez a prova costuma ter lacunas específicas — é isso que o treino ataca primeiro.",
+      "Foi pensando nisso que o AprovaOAB existe. Em vez de revisar o edital inteiro de novo, o diagnóstico encontra exatamente onde você perde pontos e o plano concentra o treino ali. Quem já fez a prova costuma ter lacunas específicas, e é isso que o treino ataca primeiro.",
   },
   {
     question: "Como funciona o cancelamento?",

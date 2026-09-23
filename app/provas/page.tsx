@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const faixa =
     recente && antigo ? ` Do ${antigo.numero}º ao ${recente.numero}º Exame.` : ""
 
-  const title = "Provas da OAB — questões e gabarito de todos os exames"
+  const title = "Provas da OAB: questões e gabarito de todos os exames"
   const description =
     `Todas as provas da 1ª fase do Exame de Ordem disponíveis no AprovaOAB, com enunciado, ` +
     `alternativas e gabarito de cada questão.${faixa} Grátis.`
@@ -39,7 +39,7 @@ export default async function ProvasHubPage() {
 
   const jsonLd = [
     collectionPage({
-      name: "Provas da OAB — questões e gabarito de todos os exames",
+      name: "Provas da OAB: questões e gabarito de todos os exames",
       description:
         "Provas da 1ª fase do Exame de Ordem Unificado, com enunciado, alternativas e gabarito de cada questão.",
       path: "/provas",
@@ -56,14 +56,14 @@ export default async function ProvasHubPage() {
       <JsonLd data={jsonLd} />
 
       <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-        Provas da OAB — questões e gabarito
+        Provas da OAB: questões e gabarito
       </h1>
       <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">
         {/* Contagens reais, derivadas do banco. Nenhum número escrito à mão. */}
         {exames.length} exames da 1ª fase do Exame de Ordem Unificado
         {anos.length > 0 && ` (${Math.min(...anos)}–${Math.max(...anos)})`}, num total de{" "}
         {totalQuestoes.toLocaleString("pt-BR")} questões com enunciado, alternativas e gabarito.
-        Escolha um exame para ver a prova completa — a resolução comentada e o plano de estudos
+        Escolha um exame para ver a prova completa. A resolução comentada e o plano de estudos
         ficam no AprovaOAB.
       </p>
 
@@ -94,8 +94,8 @@ export default async function ProvasHubPage() {
           Como usar as provas anteriores da OAB
         </h2>
         <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-          A 1ª fase do Exame de Ordem tem 80 questões objetivas e exige 50% de acerto — 40 questões
-          — para aprovação. Resolver provas anteriores é o jeito mais direto de descobrir o que
+          A 1ª fase do Exame de Ordem tem 80 questões objetivas e exige 50% de acerto (40 questões)
+          para aprovação. Resolver provas anteriores é o jeito mais direto de descobrir o que
           ainda não entrou: a FGV repete estruturas de enunciado e concentra a cobrança em poucos
           temas por matéria.
         </p>

@@ -9,7 +9,7 @@ import { SectionHeading } from "@/components/site/section-heading";
 
 const HIGHLIGHTS = [
   "Questões reais no padrão FGV, separadas por matéria",
-  "Gabarito em todas — sem precisar criar conta",
+  "Gabarito em todas, sem precisar criar conta",
   "Comentário completo e plano de estudos no AprovaOAB",
 ];
 
@@ -61,7 +61,7 @@ export function FreeQuestions() {
             </p>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
               Direito Constitucional, Penal, Civil, Ética, Trabalho e todas as
-              outras disciplinas cobradas no Exame de Ordem — cada uma com o
+              outras disciplinas cobradas no Exame de Ordem, cada uma com o
               próprio conjunto de questões e gabarito.
             </p>
             <Link

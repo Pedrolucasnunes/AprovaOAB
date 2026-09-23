@@ -2,7 +2,7 @@ import { ogImage, OG_SIZE, OG_CONTENT_TYPE } from "@/lib/seo/og-card"
 import { getExame, parseExameSlug } from "@/lib/seo/provas"
 
 export const revalidate = 86400
-export const alt = "Prova e gabarito do Exame de Ordem — AprovaOAB"
+export const alt = "Prova e gabarito do Exame de Ordem · AprovaOAB"
 export const size = OG_SIZE
 export const contentType = OG_CONTENT_TYPE
 

@@ -204,7 +204,7 @@ export function Footer() {
 
           <div className="mt-5 flex flex-col justify-between gap-3 sm:flex-row">
             <p className="text-xs text-night-muted">
-              © 2026 AprovaOAB — feito no Brasil.
+              © 2026 AprovaOAB. Feito no Brasil.
             </p>
             <p className="max-w-md text-xs leading-relaxed text-night-muted">
               Plataforma independente de estudos, sem vínculo com a OAB ou com a

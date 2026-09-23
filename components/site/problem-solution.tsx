@@ -89,7 +89,7 @@ export function ProblemSolution() {
                 <em className="italic text-primary-deep">estudar certo</em>.
               </>
             }
-            lead="O edital da 1ª fase cobre quase vinte matérias — e a maioria dos candidatos revisa tudo com o mesmo peso, gastando semanas no que já domina."
+            lead="O edital da 1ª fase cobre quase vinte matérias, e a maioria dos candidatos revisa tudo com o mesmo peso, gastando semanas no que já domina."
           />
           <p className="mt-5 max-w-md text-[15px] leading-relaxed text-muted-foreground">
             Quem tem pouco tempo não precisa de mais conteúdo. Precisa saber

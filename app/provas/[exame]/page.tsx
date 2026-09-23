@@ -37,7 +37,7 @@ export async function generateMetadata({
   const dados = numero === null ? null : await getExame(numero)
   if (!dados) return {}
 
-  const title = `${dados.numero}º Exame OAB — prova e gabarito (${dados.ano})`
+  const title = `${dados.numero}º Exame OAB: prova e gabarito (${dados.ano})`
   const description =
     `Prova completa do ${dados.numero}º Exame de Ordem (${dados.romano}, ${dados.ano}): ` +
     `${dados.totalQuestoes} questões de ${dados.totalMaterias} matérias, com enunciado, ` +
@@ -79,7 +79,7 @@ export default async function ProvaPage({
   // o de "practice problems" já é servido pelas páginas individuais.
   const jsonLd = [
     collectionPage({
-      name: `${dados.numero}º Exame de Ordem — prova e gabarito`,
+      name: `${dados.numero}º Exame de Ordem: prova e gabarito`,
       description: `Prova completa do ${dados.numero}º Exame de Ordem Unificado (${dados.ano}), com gabarito.`,
       path: `/provas/${dados.slug}`,
     }),
@@ -108,7 +108,7 @@ export default async function ProvaPage({
       </nav>
 
       <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-        {dados.numero}º Exame da OAB — prova e gabarito
+        {dados.numero}º Exame da OAB: prova e gabarito
       </h1>
 
       <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">
@@ -125,7 +125,7 @@ export default async function ProvaPage({
           banco não sustenta: a FGV numera as questões de 1 a 80 e nós não guardamos
           essa posição; e nem toda edição está completa no banco. */}
       <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-        As questões estão agrupadas por matéria, não na ordem original da prova — a numeração
+        As questões estão agrupadas por matéria, não na ordem original da prova: a numeração
         da FGV não é reproduzida aqui.
         {dados.totalQuestoes < 80 && (
           <>

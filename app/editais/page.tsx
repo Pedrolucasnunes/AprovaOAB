@@ -11,13 +11,13 @@ import { OG_BASE } from "@/lib/seo/og"
 export const revalidate = 86400
 
 export const metadata: Metadata = {
-  title: "Editais da OAB — datas e cronograma dos Exames de Ordem",
+  title: "Editais da OAB: datas e cronograma dos Exames de Ordem",
   description:
     "Consulte o edital de cada Exame de Ordem: datas da 1ª e 2ª fase, inscrição, taxa e cronograma completo, conferidos na fonte oficial da FGV.",
   alternates: { canonical: "/editais" },
   openGraph: {
     ...OG_BASE,
-    title: "Editais da OAB — datas e cronograma dos Exames de Ordem",
+    title: "Editais da OAB: datas e cronograma dos Exames de Ordem",
     description:
       "Datas da 1ª e 2ª fase, inscrição, taxa e cronograma completo de cada Exame de Ordem.",
     url: "/editais",
@@ -31,7 +31,7 @@ export default function EditaisHubPage() {
   // o hub não tinha nada.
   const jsonLd = [
     collectionPage({
-      name: "Editais da OAB — datas e cronograma dos Exames de Ordem",
+      name: "Editais da OAB: datas e cronograma dos Exames de Ordem",
       description:
         "Datas da 1ª e 2ª fase, inscrição, taxa e cronograma completo de cada Exame de Ordem.",
       path: "/editais",
@@ -54,7 +54,7 @@ export default function EditaisHubPage() {
         Editais da OAB
       </h1>
       <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">
-        Escolha o Exame de Ordem para ver o cronograma completo — datas da 1ª e 2ª fase, período de
+        Escolha o Exame de Ordem para ver o cronograma completo: datas da 1ª e 2ª fase, período de
         inscrição, taxa e resultados. As informações são conferidas na fonte oficial da FGV. O plano
         de estudos personalizado e os simulados no padrão FGV ficam no AprovaOAB.
       </p>

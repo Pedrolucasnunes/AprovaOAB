@@ -16,13 +16,13 @@ import { Footer } from "@/components/site/footer"
 import { WhatsAppFab } from "@/components/landing/whatsapp-fab"
 
 export const metadata: Metadata = {
-  title: "AprovaOAB — Estude só o que você precisa pra passar na 1ª fase",
+  title: "AprovaOAB: estude só o que você precisa pra passar na 1ª fase",
   description:
     "Diagnóstico por matéria, plano de estudos montado pelos seus erros e simulados completos no padrão FGV. Comece grátis, sem cartão de crédito.",
   alternates: { canonical: "/" },
   openGraph: {
     ...OG_BASE,
-    title: "AprovaOAB — Estude só o que você precisa pra passar na OAB",
+    title: "AprovaOAB: estude só o que você precisa pra passar na OAB",
     description:
       "Diagnóstico por matéria, plano montado pelos seus erros e simulados no padrão FGV. Comece grátis, sem cartão de crédito.",
     url: "/",

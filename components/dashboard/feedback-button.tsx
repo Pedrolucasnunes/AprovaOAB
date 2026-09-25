@@ -30,11 +30,15 @@ export function FeedbackButton() {
   const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
 
-  // Oculta nas páginas de resolução de questões (simulado ativo, treino e banco de questões)
+  // Oculta nas páginas de resolução de questões (simulado ativo, treino, banco de
+  // questões e diagnóstico). A tela de RESULTADO do diagnóstico não entra: ali a
+  // pessoa não está respondendo nada e acabou de ver o mapa, que é justamente
+  // quando ela tem o que dizer.
   const ocultarEmQuestoes =
     /^\/dashboard\/simulados\/[^/]+$/.test(pathname) ||
     pathname === "/dashboard/treino" ||
-    pathname === "/dashboard/questoes"
+    pathname === "/dashboard/questoes" ||
+    pathname === "/dashboard/diagnostico-inicial"
   if (ocultarEmQuestoes) return null
 
   async function handleSubmit(e: React.FormEvent) {

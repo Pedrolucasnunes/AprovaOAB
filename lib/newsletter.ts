@@ -1057,8 +1057,95 @@ export const EDICAO_16: NewsletterEdicao = {
   examLabel: "até a 1ª fase do 48º",
 }
 
+// Semana da inscrição do 48º (28/9 às 17h até 5/10 às 17h). O perecível abre a
+// edição, e o detalhe que a sustenta é de calendário: o resultado FINAL do 47º
+// sai em 5/10, o mesmo dia em que a inscrição fecha, e ele só corrige erro
+// material (o recurso de 24 e 25/9 era só pra isso).
+//
+// SEM TRAVESSÃO no conteúdo, como na #15 e na #16 (e agora em todo o texto
+// público, decisão do Pedro de 23/set/2026).
+//
+// Anulação conferida no comunicado da OAB de 23/9 (s.oab.org.br/arquivos/2026/09/
+// 37e0b52e-...pdf): questão 47 do caderno tipo 1, Empresarial. Casada pelo texto
+// com o caderno oficial (7d502f11-...pdf): é a da duplicata sem data de emissão e
+// sem lugar de pagamento. Regra do ponto pra todos: item 5.9 do edital.
+//
+// Termômetro medido em 28/set/2026: 612 respostas com tempo gravado em
+// question_attempts; 443 válidas (3 s a 15 min), de 39 pessoas; 159 abaixo de
+// 3 s (26%). Mediana 78 s; 11% acima de 225 s. Terços por tamanho (enunciado +
+// alternativas): até 946, 949 a 1.185, 1.195 a 2.146 caracteres; medianas 65,
+// 68 e 103 s; acerto 47%, 50% e 49%. São respostas de treino e diagnóstico
+// (sessões de no máximo 30 questões), não de simulado, e o texto diz isso.
+//
+// Questão: 46 do caderno tipo 1 do 47º, gabarito D, conferido no gabarito
+// preliminar oficial (s.oab.org.br/arquivos/2026/09/9dceea61-...pdf). Não foi
+// anulada. Ninguém respondeu ainda na plataforma, então o título não fala de
+// taxa. CDC arts. 1º, 18 § 1º, 19 e 118; ADCT art. 48; CF arts. 5º XXXII e
+// 170 V, todos no texto do Planalto.
+export const EDICAO_17: NewsletterEdicao = {
+  numero: 17,
+  subject: "☕ Café com OAB #17: a inscrição do 48º fecha segunda, às 17h",
+  preheader:
+    "E o resultado final do 47º sai no mesmo dia. Se a sua nota preliminar ficou abaixo de 40, não espere por ele.",
+  intro: [
+    "A inscrição do <strong>48º Exame</strong> abriu nesta segunda (28/9), às 17h, e fecha na segunda que vem, <strong>5/10, também às 17h</strong>. ⏰ Se a sua prova é a de 10 de janeiro, essa é a tarefa da semana. E não deixe pro último dia, porque o último dia termina às cinco da tarde.",
+    "Tem um detalhe de calendário que vai pegar gente: o <strong>resultado final do 47º sai no mesmo dia 5/10</strong>. Quem fez a prova de setembro e ficou abaixo de 40 no resultado preliminar não deve esperar por ele pra se inscrever. O porquê está na notícia, junto com a questão que a OAB anulou. 📌",
+    "No termômetro, fui medir uma coisa que quase ninguém olha: <strong>o tempo</strong>. São 443 respostas cronometradas na plataforma, e o resultado muda o que eu diria sobre o relógio da prova. ⚖️",
+  ],
+  termometro:
+    "🟡 <strong>O relógio da prova sobra.</strong> A 1ª fase dá <strong>5 horas pra 80 questões</strong>, já contando o tempo de passar as respostas pra folha: são <strong>3 minutos e 45 segundos por questão</strong>. Medi quanto tempo as pessoas gastam na plataforma em <strong>443 respostas cronometradas</strong>, de 39 pessoas, descartando as dadas em menos de 3 segundos e as que ficaram mais de 15 minutos abertas. A mediana é <strong>1 minuto e 18 segundos</strong>, e só <strong>11%</strong> das respostas passaram de 3min45. Nesse ritmo, as 80 questões levariam menos de duas horas, e a prova dá cinco. ⏱️ Dois achados vêm junto. O primeiro: <strong>enunciado longo não derruba mais que o curto</strong>. Separei as questões em três tamanhos, e as mais longas (1.200 caracteres ou mais, contando as alternativas) levam mais tempo, 1min43 contra pouco mais de 1 minuto das curtas. Mas a taxa de acerto é praticamente a mesma nas três faixas: <strong>47%, 50% e 49%</strong>. O tamanho assusta; não pesa. O segundo achado é menos confortável: <strong>1 em cada 4 respostas foi dada em menos de 3 segundos</strong>, tempo em que não dá pra ler nem a primeira linha. Essas a gente tira do placar, porque não medem nada. Na prova, elas viram ponto perdido.",
+  questao: {
+    titulo: "🎯 A questão da semana, do 47º Exame",
+    fonte: "FGV · Exame de Ordem XLVII/2026 · a prova de 6 de setembro · dificuldade média",
+    enunciado:
+      "Ana encomendou 2 litros de sorvete de cupuaçu para o seu almoço de aniversário diretamente da fábrica de sorvete Gelado Ltda. Ao receber a encomenda, percebeu que o pote estava leve e, ao questionar o entregador, esse lhe disse que o sabor estava sendo muito pedido e, àquela hora, só restava pouco mais de 1 (um) litro no estoque, razão pela qual estava autorizado a abater o preço. Ana informou que o problema não era o preço, mas sim a quantidade de sobremesa para os convidados. Assistindo ao diálogo, Rita, advogada, ofereceu auxílio jurídico para Ana, que insistia nos 2 litros de sorvete. Diante disso, quanto à orientação a ser prestada por Rita, assinale a afirmativa correta.",
+    alternativas: [
+      {
+        letra: "A",
+        texto: "Ana deve permitir que o fabricante apresente outra forma de solução para o problema.",
+      },
+      {
+        letra: "B",
+        texto: "Ana deve aceitar o abatimento do preço, ante a opção exercida pelo preposto do fabricante.",
+      },
+      {
+        letra: "C",
+        texto: "Ana deve ficar com o pote entregue e nada pagar, ante a alegação de que não há mais o produto.",
+      },
+      {
+        letra: "D",
+        texto:
+          "Ana deve optar entre abater o preço, pedir a complementação ou a substituição do produto ou, ainda, o desfazimento da compra.",
+      },
+    ],
+    gabarito: "D",
+    comentario:
+      "O <strong>art. 19 do Código de Defesa do Consumidor</strong> resolve a questão sozinho. Ele trata do <strong>vício de quantidade</strong>, quando o conteúdo é “<em>inferior às indicações constantes do recipiente, da embalagem, rotulagem ou de mensagem publicitária</em>”, e diz que o consumidor pode exigir, “<em><strong>alternativamente e à sua escolha</strong></em>”: <strong>I</strong>, o abatimento proporcional do preço; <strong>II</strong>, a complementação do peso ou medida; <strong>III</strong>, a substituição do produto por outro da mesma espécie; <strong>IV</strong>, a restituição imediata da quantia paga, com correção e sem prejuízo de perdas e danos. 🔍 A letra D é exatamente essa lista, na ordem do artigo: abater, complementar, substituir ou desfazer a compra. E a expressão que decide a questão é “<em>à sua escolha</em>”. A escolha é da Ana, não do entregador. Resposta: <strong>D</strong>.",
+  },
+  pegadinha:
+    "As três erradas têm o mesmo defeito: <strong>tiram a escolha da mão da consumidora</strong>. 🎭 A <strong>letra B</strong> é a mais traiçoeira, porque o abatimento do preço <strong>está</strong> no art. 19 (é o inciso I). O erro é o “<em>ante a opção exercida pelo preposto</em>”: quem escolhe entre as quatro saídas é o consumidor, e ali o entregador escolheu por ela. É a técnica que apareceu na edição #15: uma afirmação verdadeira presa ao sujeito errado. A <strong>letra A</strong> puxa uma regra que existe, mas mora em outro lugar. É o art. 18, § 1º, que dá ao fornecedor até <strong>30 dias pra sanar o vício</strong> antes de o consumidor poder escolher. O art. 19 não dá prazo nenhum ao fornecedor: a escolha é da consumidora, desde já. E a <strong>letra C</strong> não está em artigo nenhum, porque ficar com o produto sem pagar nada não é uma das quatro saídas. 🧠 <strong>Fixa assim:</strong> faltou quantidade, o consumidor escolhe entre quatro saídas (abater, completar, trocar ou devolver), e ninguém escolhe por ele.",
+  noticia: {
+    titulo: "📰 Tá rolando: a inscrição, a questão anulada e o dia 5/10",
+    texto:
+      "⏰ <strong>Inscrição do 48º: aberta desde segunda (28/9), às 17h, até segunda que vem, 5/10, às 17h</strong>, horário de Brasília, em oab.fgv.br (edital, item 2.1.2). Taxa de <strong>R$ 350,00</strong>, com boleto pago até 4/12. Quem está no <strong>CadÚnico</strong> pede isenção na mesma janela, com o NIS e a documentação (item 2.6). 📌 <strong>O 47º teve uma questão anulada.</strong> Junto com o resultado preliminar, que saiu na quarta, 23/9, a OAB anulou a <strong>questão 47 do caderno tipo 1</strong> (Direito Empresarial, a da duplicata sem data de emissão e sem lugar de pagamento) e as correspondentes dos outros cadernos. O ponto foi dado a todo mundo. A regra é o item 5.9 do edital, que no 48º diz que a pontuação vai “<em>a todos os examinandos indistintamente, inclusive aos que não tenham interposto recurso</em>”. 🗓️ <strong>E aqui está o detalhe que vai pegar gente:</strong> o <strong>resultado final</strong> da 1ª fase do 47º sai em <strong>5/10</strong>, o mesmo dia em que fecha a inscrição do 48º. Só que o resultado final não reavalia questão: o prazo de recurso contra o preliminar, em 24 e 25/9, era só pra <strong>erro material</strong>, como um nome trocado ou uma soma errada. Então, se a sua nota no preliminar ficou <strong>abaixo de 40</strong>, não espere o dia 5 pra decidir: faça a inscrição no 48º esta semana. Se ficou em <strong>40 ou mais</strong>, a 2ª fase é em <strong>18/10</strong>, com os locais saindo em <strong>9/10</strong>, e cada dia desta semana conta. 🔁 Passou na 1ª fase do 47º e não fechar a 2ª? O reaproveitamento no 48º tem edital complementar previsto pra <strong>12/11</strong>. Todas as datas estão em <a href=\"" +
+      APP_URL +
+      "/editais/48-exame-oab\" style=\"color:#c8a04a;font-weight:600;\">aprovaoab.app.br/editais/48-exame-oab</a>.",
+  },
+  curiosidade: {
+    titulo: "💡 Você sabia?",
+    texto:
+      "O Código de Defesa do Consumidor foi <strong>encomendado pela própria Constituição, com prazo</strong>. 📜 O art. 48 do Ato das Disposições Constitucionais Transitórias diz: “<em>O Congresso Nacional, dentro de <strong>cento e vinte dias</strong> da promulgação da Constituição, elaborará código de defesa do consumidor</em>”. A Constituição foi promulgada em 5 de outubro de 1988, então os 120 dias venceriam no começo de fevereiro de 1989. O código saiu em <strong>11 de setembro de 1990</strong> (Lei 8.078), quase dois anos depois, e ainda ganhou <strong>180 dias</strong> pra entrar em vigor (art. 118). ⏳ A defesa do consumidor aparece em mais dois lugares da Constituição: é <strong>direito fundamental</strong> (art. 5º, XXXII: “<em>o Estado promoverá, na forma da lei, a defesa do consumidor</em>”) e <strong>princípio da ordem econômica</strong> (art. 170, V). E o próprio CDC faz questão de dizer de onde veio: o <strong>art. 1º</strong> declara que as normas dele são “<em>de ordem pública e interesse social</em>”, nos termos exatamente desses três dispositivos. Não é um favor do legislador ao consumidor; é uma ordem da Constituição, cumprida com atraso. E um detalhe de calendário pra fechar: segunda, 5/10, o dia em que a inscrição do 48º fecha, a Constituição faz <strong>38 anos</strong>. 😉",
+  },
+  dica:
+    "São <strong>103 dias</strong> até 10 de janeiro. 🧭 A primeira coisa desta semana não é estudar, é <strong>fazer a inscrição</strong>, até segunda às 17h. A segunda é usar o termômetro a seu favor. Se o seu ritmo for parecido com o da plataforma, vai sobrar tempo na prova, e tempo que sobra só vale alguma coisa se virar <strong>releitura</strong>. Um jeito simples de treinar isso desde já: responda, marque as questões em que ficou em dúvida, e só no fim volte a elas, relendo o comando antes das alternativas (a questão pede a afirmativa correta ou a incorreta?). 📌 E uma ressalva honesta sobre o número de hoje: ele vem do treino e do diagnóstico, que são sessões de no máximo 30 questões. Na prova são cinco horas seguidas, e a 60ª questão não é lida com a mesma cabeça da 6ª. Por isso o simulado completo, <strong>no horário da prova, das 13h às 18h</strong>, continua sendo o treino que mais se parece com o dia. E se você é do time das respostas em 3 segundos: na plataforma elas só somem do placar; na prova, custam ponto. 🎯 Pra saber por onde começar os 103 dias, o <a href=\"" +
+    APP_URL +
+    "/dashboard\" style=\"color:#c8a04a;font-weight:600;\">diagnóstico</a> leva 10 minutos e devolve o mapa por matéria, de graça. Boa semana, e boa inscrição. 🍀",
+  examDays: 103,
+  examLabel: "até a 1ª fase do 48º",
+}
+
 // ATENÇÃO: o cron de segunda recria o rascunho da CURRENT_EDICAO sem checar se ela
 // já foi enviada. Esquecer de mover este ponteiro gera, no Resend, um rascunho
-// idêntico ao da semana passada — foi o que aconteceu em 03/ago/2026 com a #8, e
-// de novo em 21/set/2026 com a #15.
-export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_16
+// idêntico ao da semana passada. Aconteceu em 03/ago/2026 com a #8, em
+// 21/set/2026 com a #15 e em 28/set/2026 com a #16.
+export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_17

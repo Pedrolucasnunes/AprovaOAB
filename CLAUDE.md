@@ -72,6 +72,8 @@ Campos relevantes além do Auth padrão:
 
 O campo `plano` é atualizado **exclusivamente pelo webhook do Stripe** (`/api/stripe/webhook`), nunca diretamente pelo cliente.
 
+**Escrita em `public.users` é server-only: só pela service role (webhook do Stripe, rotas admin e demais rotas de servidor), igual a `turmas` e `user_events`.** Não há policy de `INSERT`/`UPDATE`/`DELETE` para `authenticated` nem `anon`, e o grant de escrita a esses papéis foi revogado (`supabase/migrations/20261001_users_write_server_only.sql`). O cliente só faz `SELECT` da própria linha (perfil, trial, simulados) — isso continua liberado; a edição de nome/senha do perfil vai por `supabase.auth.updateUser`, que escreve em `auth.users`, não nesta tabela.
+
 ### Datas do banco — CUIDADO com timezone
 
 As colunas `timestamp` do schema público (`question_attempts`, `simulados`, `users`…) são **sem time zone**, gravando hora UTC — o PostgREST devolve strings **sem offset** (ex.: `"2026-06-18T22:22:34.677157"`). Um `new Date()` cru interpreta isso como hora *local* (no navegador em Brasília: mostra a hora UTC como se fosse local, 3h adiantada; no Vercel o servidor é UTC). **Sempre parsear com `parseDbDate` e formatar/bucketar com os helpers de `lib/datas.ts`** (`formatarDataHoraBrasil`, `ymdBrasil`, `horaBrasil`, `inicioDoDiaBrasil`, `tempoRelativo`). As datas da Auth API (`last_sign_in_at` etc.) já vêm com `Z` e passam intactas pelo `parseDbDate`.

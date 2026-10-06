@@ -1144,8 +1144,103 @@ export const EDICAO_17: NewsletterEdicao = {
   examLabel: "até a 1ª fase do 48º",
 }
 
+// Semana depois do prazo. A inscrição do 48º fechou às 17h de 5/10 e o resultado
+// definitivo da 1ª fase do 47º saiu às 16h05 do mesmo dia (oab.org.br/noticia/
+// 64652). Nenhuma prorrogação na lista de notícias do portal do Exame, conferida
+// na noite de 5/10.
+//
+// SEM TRAVESSÃO no conteúdo (decisão do Pedro de 23/set/2026).
+//
+// Termômetro medido em 5/out/2026 (scratchpad/comando18.cjs). Frase de comando de
+// cada uma das 2.232 questões: o trecho a partir do último verbo de comando
+// (assinale, marque, indique...), ou a última frase quando não há verbo (572
+// questões terminam em frase aberta). Controles sintéticos: o classificador de
+// negação pega "incorreta", "NÃO" e "exceto" e deixa passar "correta". Das 17
+// suspeitas, 15 eram "não" de narrativa (inspeção manual, uma por uma); sobram 2
+// comandos invertidos, no 21º (Trabalho, "indique aquele que não é devido") e no
+// 43º (Financeiro, "o Poder Executivo estadual não poderá"). Zero comandos com
+// "incorreta", "exceto", "errada" ou "falsa". 1.178 terminam em "assinale a
+// afirmativa correta"; 1.500 têm "correta", "correto" ou "corretamente" (1.420
+// sem contar "correto", que aparece em 80, como "seria correto afirmar").
+//
+// Questão: 23 do caderno tipo 3 do 43º (prova de 27/4/2025), casada pelo texto
+// com o caderno oficial (s.oab.org.br/arquivos/2025/04/f357a8e2-...pdf). Gabarito
+// definitivo D (s.oab.org.br/arquivos/2025/05/2d003602-...pdf); não foi anulada
+// (as anuladas do tipo 3 são a 6 e a 71). O banco grava ano 2024 pra essa
+// edição; a prova foi em 2025, e é isso que a fonte diz. Ninguém respondeu essa
+// questão na plataforma, então o título não fala de taxa. LRF arts. 19, 20, 21,
+// 23, 25 e 42 conferidos no texto do Planalto, descartada a redação riscada.
+//
+// Edital do 48º: homologação só depois do pagamento (2.1.2); reimpressão do
+// boleto até 17h de 4/12, e a FGV e a OAB "não enviarão boleto bancário por
+// e-mail" (2.1.2.1). Link falso: oab.org.br/noticia/64648 (1/10). 1º turno das
+// eleições em 4/10: TSE.
+export const EDICAO_18: NewsletterEdicao = {
+  numero: 18,
+  subject: "☕ Café com OAB #18: em 28 provas, a FGV nunca pediu a incorreta",
+  preheader:
+    "Contei os comandos das 2.232 questões do acervo. E a questão de hoje é uma das duas que viram a pergunta do avesso.",
+  intro: [
+    "Segunda foi dia de prazo e de resultado. A inscrição do <strong>48º Exame</strong> fechou às 17h, e o <strong>resultado definitivo da 1ª fase do 47º</strong> saiu uma hora antes, às 16h05. Se você se inscreveu, ainda falta um passo pra inscrição valer; se passou no 47º, faltam <strong>12 dias</strong> pra 2ª fase. Os dois estão na notícia. 📌",
+    "No termômetro, fui checar uma dica que eu mesmo dei na edição passada: reler o comando pra ver se a questão pede a afirmativa correta ou a incorreta. Contei os comandos das <strong>2.232 questões</strong> do acervo, e a resposta está no assunto deste e-mail. 🔎",
+    "E a questão da semana é uma raridade: uma das <strong>duas</strong>, em 28 provas, em que a FGV virou a pergunta do avesso. É de <strong>Direito Financeiro</strong>, sobre a Lei de Responsabilidade Fiscal, e a curiosidade conta o que essa lei tem a ver com a eleição de domingo. ⚖️",
+  ],
+  termometro:
+    "🟡 <strong>A pergunta é sempre a mesma.</strong> Na edição passada, a dica mandava reler o comando antes das alternativas pra conferir se a questão pede a afirmativa correta ou a incorreta. Fui ver se essa dúvida existe na OAB. Separei a frase de comando de cada uma das <strong>2.232 questões das 28 provas do acervo</strong>, entre o 18º e o 47º Exame, e li uma por uma as que traziam qualquer palavra de negação. 🔎 O resultado: a FGV <strong>não pediu a alternativa incorreta nenhuma vez</strong>. Nenhum comando com “incorreta”, “exceto”, “errada” ou “falsa”. <strong>1.178 questões, 53% do acervo, terminam com as mesmas quatro palavras: “assinale a afirmativa correta”</strong>. Somando as variações, como “assinale a opção que apresenta, corretamente, a orientação”, <strong>2 em cada 3 comandos</strong> trazem “correta”, “correto” ou “corretamente”. O resto pede a opção que responde ao caso, ou termina numa frase aberta que a alternativa completa, do tipo “você, como advogado(a), responde que”. 🔁 E a negação? Apareceu <strong>duas vezes em 28 provas</strong>, sempre com um “não” dentro do comando: no 21º Exame (“indique aquele que <strong>não</strong> é devido pela empresa”) e no 43º (“o Poder Executivo estadual <strong>não</strong> poderá”). Mesmo nessas duas, a resposta certa é uma afirmação verdadeira: a FGV perguntou pelo que não pode e pelo que não é devido, e não pela alternativa errada. A do 43º é a questão desta semana. 🎯 Na OAB, procurar “incorreta” no comando é gastar atenção onde a FGV não esconde nada. A pegadinha mora no caso e nas palavras pequenas das alternativas.",
+  questao: {
+    titulo: "🎯 A questão da semana: uma das duas",
+    fonte: "FGV · Exame de Ordem XLIII/2025 · a prova de 27 de abril · dificuldade alta",
+    enunciado:
+      "O Estado Beta, no último ano, ultrapassou o limite de despesa total de pessoal, que, segundo a Lei de Responsabilidade Fiscal (LRF), é de, no máximo, 60% da Receita Corrente Líquida (RCL). Por falta de gestão responsável, apesar de os demais Poderes e órgãos autônomos terem se enquadrado dentro dos respectivos percentuais fixados como limites individuais, o Poder Executivo Estadual ainda não conseguiu alcançar a redução determinada pela própria LRF, dentro do prazo por ela estipulado, para atender ao percentual máximo de 49% da RCL, fixado como limite individual de despesas com pessoal para o Poder Executivo Estadual. Diante desse cenário, à luz da Lei de Responsabilidade Fiscal, o Poder Executivo estadual não poderá",
+    alternativas: [
+      {
+        letra: "A",
+        texto: "realizar qualquer operação de crédito, apenas.",
+      },
+      {
+        letra: "B",
+        texto:
+          "receber transferências voluntárias (exceto nas áreas de educação, saúde e assistência social), mas poderá obter garantia de outro ente, bem como poderá contratar operações de crédito.",
+      },
+      {
+        letra: "C",
+        texto:
+          "obter garantia de outro ente, nem contratar operações de crédito, ressalvadas as que visem à redução das despesas com pessoal, mas poderá receber transferências voluntárias em quaisquer áreas.",
+      },
+      {
+        letra: "D",
+        texto:
+          "receber transferências voluntárias (exceto nas áreas de educação, saúde e assistência social), nem obter garantia de outro ente, nem contratar operações de crédito, ressalvadas as destinadas ao pagamento da dívida mobiliária e as que visem à redução das despesas com pessoal.",
+      },
+    ],
+    gabarito: "D",
+    comentario:
+      "A regra está no <strong>art. 23 da Lei de Responsabilidade Fiscal</strong> (LC 101/2000), e os números do caso também estão na lei: os 60% do Estado vêm do art. 19, II, e os 49% do Executivo estadual, do art. 20, II, “c”. Quem passa do limite tem <strong>dois quadrimestres</strong> pra eliminar o excesso, pelo menos um terço no primeiro (art. 23, caput). Se não conseguir, o <strong>§ 3º</strong> diz que, “<em>enquanto perdurar o excesso</em>”, o Poder ou órgão “<em>não poderá</em>”: <strong>I</strong>, “<em>receber transferências voluntárias</em>”; <strong>II</strong>, “<em>obter garantia, direta ou indireta, de outro ente</em>”; <strong>III</strong>, “<em>contratar operações de crédito, ressalvadas as destinadas ao pagamento da dívida mobiliária e as que visem à redução das despesas com pessoal</em>”. Falta a ressalva do parêntese, e ela mora em outro artigo: o <strong>art. 25, § 3º</strong> tira da suspensão as transferências voluntárias “<em>relativas a ações de educação, saúde e assistência social</em>”. 🔍 A letra D é a soma exata dos dois artigos: as três proibições, as duas ressalvas da operação de crédito e a exceção das transferências. Resposta: <strong>D</strong>.",
+  },
+  pegadinha:
+    "Num comando negativo, cada alternativa é uma <strong>lista de proibições</strong>, e as três erradas estragam a lista de jeitos diferentes. 🎭 A <strong>letra A</strong> erra duas vezes em seis palavras: o “<em>qualquer</em>” apaga as duas ressalvas da operação de crédito, e o “<em>apenas</em>” apaga as outras duas proibições. As <strong>letras B e C</strong> começam com uma proibição verdadeira e depois contrabandeiam uma permissão com “<em>mas poderá</em>”. A B libera a garantia e a operação de crédito, que são os incisos II e III. A C libera as transferências “<em>em quaisquer áreas</em>”, que é o inciso I, e ainda esquece uma das duas ressalvas da operação de crédito, a da dívida mobiliária. É o tipo de questão em que o “não” do comando cobra caro: no meio da terceira alternativa, quem lê depressa já perdeu a conta do que pode e do que não pode. 🧠 <strong>Fixa assim:</strong> estourou o limite de pessoal e não reduziu no prazo, o Poder fica sem três coisas: <strong>transferência voluntária</strong> (menos educação, saúde e assistência social), <strong>garantia de outro ente</strong> e <strong>operação de crédito</strong> (menos a que paga a dívida mobiliária e a que reduz a despesa com pessoal).",
+  noticia: {
+    titulo: "📰 Tá rolando: inscrição fechada, resultado final e 12 dias pra 2ª fase",
+    texto:
+      "✅ <strong>Resultado definitivo da 1ª fase do 47º: saiu segunda (5/10), às 16h05</strong>, no site da OAB, com consulta individual pela FGV. Quem passou faz a <strong>2ª fase no domingo, 18/10</strong>; os locais de prova saem na <strong>sexta, 9/10</strong>, e o resultado preliminar da 2ª fase está previsto pra 12/11. 🔒 <strong>Inscrição do 48º: encerrada segunda, às 17h.</strong> Até a noite de segunda, o portal do Exame de Ordem não tinha anunciado prorrogação. 💰 <strong>Se você se inscreveu, ainda falta pagar.</strong> O edital é direto: “<em>a homologação da inscrição somente se dará após o pagamento da taxa de inscrição</em>”, de R$ 350,00 (item 2.1.2). O boleto pode ser reimpresso até as <strong>17h de 4/12</strong>, pra pagamento no mesmo dia, “<em>impreterivelmente</em>” (2.1.2.1); se houver feriado ou banco fechado na sua cidade, a regra é antecipar (2.1.2.1.1). ⚠️ <strong>Cuidado com boleto que chega por fora.</strong> Na quinta (1/10), a OAB alertou para um <strong>link falso</strong> circulando com a inscrição do 48º e pediu que os candidatos acessem “<em>exclusivamente o site oficial</em>” da FGV, oab.fgv.br, conferindo o endereço antes de digitar dados pessoais. E o mesmo item 2.1.2.1 avisa que a FGV e a OAB “<em>não enviarão boleto bancário por e-mail</em>”. Boleto que chegou por e-mail não veio delas. 🔁 Passou na 1ª fase do 47º e não fechar a 2ª? O edital complementar do reaproveitamento no 48º sai em <strong>12/11</strong>. Todas as datas estão em <a href=\"" +
+      APP_URL +
+      "/editais/48-exame-oab\" style=\"color:#c8a04a;font-weight:600;\">aprovaoab.app.br/editais/48-exame-oab</a>.",
+  },
+  curiosidade: {
+    titulo: "💡 Você sabia?",
+    texto:
+      "A lei da questão de hoje <strong>muda de regra no fim do mandato</strong>, e domingo, 4/10, foi o 1º turno da eleição pra presidente, governador, senador e deputado. 🗳️ Três dispositivos da LRF cuidam desse momento. O primeiro é parente direto da questão: pelo <strong>art. 23, § 4º</strong>, as três proibições do § 3º “<em>aplicam-se imediatamente se a despesa total com pessoal exceder o limite no primeiro quadrimestre do último ano do mandato</em>”. Ou seja: no último ano, não existem os dois quadrimestres pra se ajustar. O segundo é o <strong>art. 21, II</strong>, na redação da Lei Complementar 173/2020: é “<em>nulo de pleno direito</em>” o ato “<em>de que resulte aumento da despesa com pessoal nos 180 (cento e oitenta) dias anteriores ao final do mandato</em>”, e o § 1º manda aplicar a regra “<em>inclusive durante o período de recondução ou reeleição</em>”. O terceiro é o <strong>art. 42</strong>: nos “<em>últimos dois quadrimestres do seu mandato</em>”, o titular do Poder não pode “<em>contrair obrigação de despesa que não possa ser cumprida integralmente dentro dele</em>”, nem deixar parcelas pro ano seguinte sem dinheiro em caixa pra pagar. 🧾 As três miram o mesmo alvo: a conta que sobra pro sucessor. E pra prova ficam três números: <strong>180 dias</strong> (art. 21), <strong>dois quadrimestres</strong> (art. 42) e o <strong>primeiro quadrimestre do último ano</strong> (art. 23, § 4º). 😉",
+  },
+  dica:
+    "São <strong>96 dias</strong> até 10 de janeiro. 🧭 A lição do termômetro cabe numa troca de hábito: <strong>pare de caçar “incorreta” no comando</strong>, porque em 28 provas ela não apareceu. Gaste essa atenção em três lugares: no <strong>caso</strong>; nas <strong>palavras que mudam o tamanho de uma alternativa</strong>, como “apenas”, “qualquer”, “em quaisquer” e “mas poderá”, que derrubaram três alternativas da questão de hoje; e, nas raras vezes em que ele aparece, no <strong>“não” do comando</strong>, que vira a pergunta inteira. 📌 A tarefa da semana é burocrática: se você se inscreveu no 48º, <strong>pague o boleto</strong>. O prazo vai até 4/12, mas inscrição sem pagamento não é homologada, e não há o que ganhar esperando. Boleto, só pelo oab.fgv.br. 🎯 Se você passou na 1ª fase do 47º, boa 2ª fase no domingo, 18/10. E se está começando os 96 dias, o <a href=\"" +
+    APP_URL +
+    "/dashboard\" style=\"color:#c8a04a;font-weight:600;\">diagnóstico</a> leva 10 minutos e devolve o mapa por matéria, de graça. Boa semana. 🍀",
+  examDays: 96,
+  examLabel: "até a 1ª fase do 48º",
+}
+
 // ATENÇÃO: o cron de segunda recria o rascunho da CURRENT_EDICAO sem checar se ela
 // já foi enviada. Esquecer de mover este ponteiro gera, no Resend, um rascunho
 // idêntico ao da semana passada. Aconteceu em 03/ago/2026 com a #8, em
-// 21/set/2026 com a #15 e em 28/set/2026 com a #16.
-export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_17
+// 21/set/2026 com a #15, em 28/set/2026 com a #16 e em 05/out/2026 com a #17.
+export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_18

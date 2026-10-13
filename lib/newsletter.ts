@@ -1239,8 +1239,102 @@ export const EDICAO_18: NewsletterEdicao = {
   examLabel: "até a 1ª fase do 48º",
 }
 
+// Semana entre os dois turnos (1º em 4/10, 2º em 25/10, TSE) e da 2ª fase do 47º
+// (18/10, 13h; locais em 9/10: examedeordem.oab.org.br/Noticias/Noticia/64675).
+// A edição é de Direito Eleitoral.
+//
+// SEM TRAVESSÃO no conteúdo (decisão do Pedro de 23/set/2026).
+//
+// O termômetro NÃO usa taxa de acerto, de propósito. Medido em 12/out/2026:
+// Eleitoral tem 25 respostas válidas na plataforma; as 18 de treino (16 certas,
+// 89%) são de 2 pessoas, e o diagnóstico, com 6 pessoas, dá 33%. O "84%" do
+// ranking por matéria é de duas pessoas, não da base (Filosofia, n=30, é de UMA).
+// O termômetro é a própria prova: as 18 questões de Eleitoral do 38º ao 47º (2 por
+// exame), lidas uma por uma e separadas pelo que cobram: 6 ações e prazos (41º
+// RCED; 43º captação e AIJE; 44º AIME; 47º impugnação de registro e captação), 4
+// dinheiro (38º honorários como gasto; 40º prestação de contas; 41º FEFC; 45º
+// Fundo Partidário), 3 partidos e alianças (38º federação; 39º autonomia e
+// coligação), 3 propaganda (40º prévias na TV; 42º e 44º imprensa escrita), 1
+// conduta vedada (45º) e 1 alistamento (42º). A classificação é leitura nossa,
+// não o campo topic_id do banco.
+//
+// Questão: 20 do caderno tipo 1 do 47º (prova de 6/9/2026), casada pelo texto com
+// o caderno oficial (s.oab.org.br/arquivos/2026/09/7d502f11-...pdf). Gabarito
+// definitivo B (s.oab.org.br/arquivos/2026/09/572dc8e2-...pdf); não foi anulada
+// (no tipo 1, só a 47). Uma resposta na plataforma: o título não fala de taxa.
+// Captação ilícita (art. 41-A) NÃO é crime: é ilícito eleitoral com multa e
+// cassação; o crime é a corrupção eleitoral do art. 299 do Código Eleitoral.
+// Lei 9.504/97 arts. 2º, 41-A e 43; LC 64/90 art. 22, XVI; Código Eleitoral arts.
+// 222 e 224; CF arts. 14 § 10 e 77 § 2º: texto vigente do Planalto, sem a redação
+// riscada. No § 3º do art. 224 o Planalto risca "após o trânsito em julgado" (ADI
+// 5.525): não citar.
+export const EDICAO_19: NewsletterEdicao = {
+  numero: 19,
+  subject: "☕ Café com OAB #19: em Eleitoral, a FGV repete a pergunta",
+  preheader:
+    "Li as 18 questões de Eleitoral desde o 38º. Um terço é sobre qual ação cabe e até quando. E a 2ª fase do 47º é domingo.",
+  intro: [
+    "Domingo passado foi o 1º turno, e o 2º, onde houver, é no dia 25. 🗳️ Então esta edição é de <strong>Direito Eleitoral</strong>, que desde o 38º Exame vale <strong>2 questões fixas</strong> em toda prova. Li as 18 que a FGV fez desde então pra ver o que ela cobra, e a resposta cabe numa frase: <strong>qual ação cabe e até quando</strong>.",
+    "E tem um detalhe que eu não esperava: <strong>a FGV repete</strong>. A questão da semana é a mais recente de um par, a mesma regra cobrada no 43º e no 47º, com a mesma resposta. 🔁",
+    "Pra quem passou na 1ª fase do 47º: a 2ª fase é <strong>domingo, 18/10, às 13h</strong>. Os locais saíram na sexta, e o que a OAB orienta está na notícia. 📌",
+  ],
+  termometro:
+    "🟡 <strong>O que a FGV cobra em Eleitoral.</strong> Desta vez o termômetro não é a taxa de acerto da plataforma: Eleitoral tem poucas respostas aqui, a maioria delas de duas pessoas, e isso mede essas duas pessoas, não a matéria. O dado firme é a própria prova. Desde o 38º, Eleitoral vale exatamente 2 questões por exame, e eu li as <strong>18 questões do 38º ao 47º</strong>, uma por uma, separando pelo que cada uma cobra. 📋 <strong>6 de 18, uma em cada três, perguntam qual ação eleitoral cabe e até quando</strong>: impugnação de registro, investigação judicial eleitoral (AIJE), representação por captação ilícita de sufrágio, recurso contra a expedição de diploma (RCED) e ação de impugnação de mandato eletivo (AIME). Depois vêm <strong>dinheiro</strong> (4: fundo partidário, fundo de campanha, gastos e prestação de contas), <strong>partidos e alianças</strong> (3: federação, coligação e escolha de candidatos) e <strong>propaganda</strong> (3), e fecham uma de conduta vedada e uma de alistamento. 🔁 E duas regras caíram duas vezes, com a mesma resposta. A <strong>captação ilícita de sufrágio</strong> caiu no 43º e de novo no 47º, as duas resolvidas pela representação que vai até a diplomação. A <strong>propaganda paga em jornal</strong> caiu no 42º e no 44º, as duas com a mesma resposta: permitida até a antevéspera da eleição. Em nove provas, 4 das 18 questões foram repeteco.",
+  questao: {
+    titulo: "🎯 A questão da semana: a regra que caiu duas vezes",
+    fonte: "FGV · Exame de Ordem XLVII/2026 · a prova de 6 de setembro · dificuldade média",
+    enunciado:
+      "Uma emissora de televisão divulgou ampla reportagem a respeito da conduta de João na eleição do ano Y, candidato com registro deferido para concorrer ao cargo de Deputado Estadual pelo partido político Sigma, que fora filmado enquanto conversava com Pedro, eleitor com domicílio eleitoral no mesmo Estado de João. Nessa conversa, João afirmou que, caso Pedro lhe confiasse o voto na eleição a ser realizada em outubro do referido ano, teria os recursos necessários para pintar a casa dele. Ao tomar conhecimento do teor da reportagem, o presidente do diretório estadual do partido político Beta o consultou como advogado(a) em relação à caracterização, ou não, da captação ilícita de sufrágio vedada pela Lei nº 9.504/1997, de modo a ensejar a cassação do registro de João. Quanto à orientação jurídica a ser dada, assinale a afirmativa correta.",
+    alternativas: [
+      {
+        letra: "A",
+        texto: "Não houve pedido explícito de voto, logo o dolo de João não está caracterizado.",
+      },
+      {
+        letra: "B",
+        texto:
+          "É cabível o ajuizamento de representação por captação ilícita de sufrágio, desde que isso seja feito até a data da diplomação.",
+      },
+      {
+        letra: "C",
+        texto:
+          "Desde que seja demonstrado que Pedro aceitou a oferta de João, está caracterizada a captação ilícita de sufrágio, que observará a mesma sistemática afeta à investigação judicial eleitoral.",
+      },
+      {
+        letra: "D",
+        texto:
+          "Como a solicitação de João foi direcionada a um único eleitor, a conduta não apresenta potencialidade para comprometer a normalidade da eleição, logo não está configurada a captação ilícita de sufrágio.",
+      },
+    ],
+    gabarito: "B",
+    comentario:
+      "A resposta inteira está no <strong>art. 41-A da Lei 9.504/97</strong>, a Lei das Eleições. O caput descreve a conduta: o candidato “<em>doar, oferecer, prometer, ou entregar, ao eleitor, com o fim de obter-lhe o voto, bem ou vantagem pessoal de qualquer natureza</em>”, “<em>desde o registro da candidatura até o dia da eleição</em>”, sob pena de multa e “<em>cassação do registro ou do diploma</em>”. João tinha registro deferido e prometeu pintar a casa de Pedro em troca do voto: está tudo ali. E o <strong>§ 3º</strong> dá o prazo que a letra B repete: a representação “<em>poderá ser ajuizada até a data da diplomação</em>”. 🔍 É a mesma resposta da questão do 43º, a dos três sacos de cimento: a FGV trocou o presente, de cimento pra pintura, e manteve a regra. Resposta: <strong>B</strong>.",
+  },
+  pegadinha:
+    "As três erradas fazem a mesma coisa: <strong>inventam um requisito que a lei não pede</strong>. 🎭 A <strong>letra A</strong> exige pedido explícito de voto, e o <strong>§ 1º</strong> diz o contrário com todas as letras: “<em>é desnecessário o pedido explícito de votos, bastando a evidência do dolo, consistente no especial fim de agir</em>”. A <strong>letra C</strong> exige que Pedro aceite a oferta, mas o caput pune quem <strong>promete</strong>: a conduta de quem oferece não depende do sim de quem recebe. E repare no truque da C: a segunda metade é verdadeira, porque a captação ilícita segue mesmo o procedimento do art. 22 da Lei Complementar 64/90, o da investigação judicial eleitoral. A meia-verdade está lá pra você engolir a condição falsa junto. A <strong>letra D</strong> exige “potencialidade” de afetar a eleição, mas o caput fala em “<em>ao eleitor</em>”, no singular: o que a lei protege é o voto de cada um, e não o placar. Nem pro abuso de poder a lei pede isso desde 2010: o art. 22, XVI, da mesma lei complementar manda considerar “<em>apenas a gravidade das circunstâncias</em>”, e não “<em>a potencialidade de o fato alterar o resultado da eleição</em>”. 🧠 <strong>Fixa assim:</strong> prometeu, ofereceu, doou ou entregou vantagem a um eleitor em troca do voto, entre o registro e a eleição, é captação ilícita. Não precisa pedir o voto com todas as letras, não precisa o eleitor aceitar e não precisa mudar o resultado. E a representação vai <strong>até a diplomação</strong>.",
+  noticia: {
+    titulo: "📰 Tá rolando: 2ª fase do 47º no domingo, às 13h",
+    texto:
+      "🗓️ <strong>2ª fase do 47º: domingo, 18/10, às 13h</strong>, horário de Brasília. Os locais de prova saíram na <strong>sexta (9/10)</strong>, e a consulta é individual, pelo link na página de acompanhamento do Exame de Ordem. A OAB pede que cada examinando chegue ao local “<em>com antecedência mínima de uma hora e meia</em>” do início, e o <strong>gabarito preliminar sai no mesmo dia</strong>. O resultado preliminar da 2ª fase está previsto pra <strong>12/11</strong>. 📌 <strong>48º:</strong> a inscrição está encerrada, e ela só é homologada com o pagamento da taxa (edital, item 2.1.2). O boleto vence em <strong>4/12</strong>, e o próximo marco do calendário é o edital complementar do reaproveitamento, em <strong>12/11</strong>. 🗳️ E fora da OAB: o <strong>2º turno</strong>, onde houver, é em <strong>25/10</strong>. Todas as datas do 48º estão em <a href=\"" +
+      APP_URL +
+      "/editais/48-exame-oab\" style=\"color:#c8a04a;font-weight:600;\">aprovaoab.app.br/editais/48-exame-oab</a>.",
+  },
+  curiosidade: {
+    titulo: "💡 Você sabia?",
+    texto:
+      "Todo 2º turno traz de volta a corrente de que, <strong>se mais da metade dos eleitores votar nulo, a eleição é anulada</strong>. Não é, e a lei explica por quê. 🗳️ O voto nulo nem entra na conta. No 1º turno, vence quem tem a maioria absoluta dos votos, “<em>não computados os em branco e os nulos</em>” (Constituição, <strong>art. 77, § 2º</strong>, e Lei das Eleições, <strong>art. 2º</strong>); no 2º, quem tem “<em>a maioria dos votos válidos</em>” (art. 2º, § 1º). A confusão vem do <strong>art. 224 do Código Eleitoral</strong>, que manda marcar nova eleição “<em>se a nulidade atingir a mais de metade dos votos</em>”. Só que essa nulidade é outra coisa: é o voto que a <strong>Justiça Eleitoral anula</strong>. E o <strong>art. 222</strong> do mesmo código diz quando: a votação é anulável quando “<em>viciada de falsidade, fraude, coação</em>” ou por “<em>captação de sufrágios vedado por lei</em>”. 🔗 Ou seja: o voto nulo que o eleitor digita não anula nada, mas o voto comprado, como o da questão de hoje, pode. E desde 2015 há uma regra a mais (§ 3º do art. 224): quando a Justiça Eleitoral indefere o registro, cassa o diploma ou tira o mandato de quem venceu uma eleição majoritária, há nova eleição, “<em>independentemente do número de votos anulados</em>”. Em 2022, o TSE resumiu assim: votos em branco ou nulos “<em>não são transferidos para o vencedor nem cancelam uma eleição</em>”. 😉",
+  },
+  dica:
+    "São <strong>89 dias</strong> até 10 de janeiro. 🧭 Em Eleitoral, o termômetro vira método: monte uma <strong>tabela das ações eleitorais</strong> com três colunas, <strong>o que ataca, quem pode propor e até quando</strong>, e preencha com a lei aberta. Duas linhas a lei já entrega prontas: a representação por captação ilícita vai <strong>até a diplomação</strong> (art. 41-A, § 3º, da Lei 9.504/97), e a ação de impugnação de mandato eletivo, <strong>até 15 dias depois dela</strong> (art. 14, § 10, da Constituição). Um terço das questões de Eleitoral desde o 38º sai dessa tabela, e são duas questões que não mudam de tamanho de uma prova pra outra. 📌 No 48º, o boleto vence em 4/12, e sem pagamento a inscrição não vale. Se você passou na 1ª fase do 47º: boa prova no domingo, e chegue com uma hora e meia de folga. 🎯 Pra saber onde você está em cada matéria, o <a href=\"" +
+    APP_URL +
+    "/dashboard\" style=\"color:#c8a04a;font-weight:600;\">diagnóstico</a> leva 10 minutos e é de graça. Boa semana. 🍀",
+  examDays: 89,
+  examLabel: "até a 1ª fase do 48º",
+}
+
 // ATENÇÃO: o cron de segunda recria o rascunho da CURRENT_EDICAO sem checar se ela
 // já foi enviada. Esquecer de mover este ponteiro gera, no Resend, um rascunho
 // idêntico ao da semana passada. Aconteceu em 03/ago/2026 com a #8, em
-// 21/set/2026 com a #15, em 28/set/2026 com a #16 e em 05/out/2026 com a #17.
-export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_18
+// 21/set/2026 com a #15, em 28/set/2026 com a #16, em 05/out/2026 com a #17 e em
+// 12/out/2026 com a #18.
+export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_19

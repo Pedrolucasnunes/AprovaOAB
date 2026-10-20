@@ -1332,9 +1332,101 @@ export const EDICAO_19: NewsletterEdicao = {
   examLabel: "até a 1ª fase do 48º",
 }
 
+// Semana depois da 2ª fase do 47º (18/10) e antes do 2º turno (25/10). A edição é
+// de Filosofia do Direito.
+//
+// SEM TRAVESSÃO no conteúdo (decisão do Pedro de 23/set/2026).
+//
+// Termômetro medido em 19/out/2026 (scratchpad/filosofia20b.cjs), sem taxa de
+// acerto: Filosofia tem n=30 na plataforma, de UMA pessoa. Filosofia tem exatamente
+// 2 questões em cada uma das 28 provas do acervo (56). Contado o autor que é o
+// ASSUNTO da questão (nome no enunciado; nome que só aparece em alternativa não
+// conta). Bobbio 9 (18, 20, 22, 25, 29, 32, 33, 35, 36; cinco citam a "Teoria do
+// Ordenamento Jurídico" pelo nome; a do 18º cobra os critérios hierárquico,
+// cronológico e da especialidade), Kant 5, Reale 4, Aristóteles 4, Rousseau 4,
+// Dworkin 3, Locke 3. As questões sem autor detectado foram lidas à mão: Larenz no
+// 18º, O Federalista no 33º, interpretação no 44º e no 45º, jusnaturalismo x
+// positivismo no 47º. O 46º, que falta no acervo, foi conferido no caderno oficial
+// (tipo 3, s.oab.org.br/arquivos/2026/05/c58cbc52-...pdf): a questão 9 pergunta a
+// técnica que o STF usou pra suprir a falta de lei (greve dos servidores), sem
+// autor; a 10 é de Tercio Sampaio Ferraz Junior. Sem Bobbio. Controle positivo do
+// detector: no caderno do 47º ele acha Rousseau. Conclusão: nenhum Bobbio do 37º ao
+// 47º (11 provas), e do 44º ao 47º uma das duas questões de cada prova sem autor.
+//
+// Questão: 10 do caderno tipo 1 do 47º (prova de 6/9/2026), casada pelo texto com
+// o caderno oficial; gabarito definitivo C (s.oab.org.br/arquivos/2026/09/
+// 572dc8e2-...pdf); não foi anulada. Rousseau citado do original de 1762 no
+// Wikisource (Livro II, cap. III, IV e VI; Livro IV, cap. II), em tradução livre
+// nossa, e o texto avisa isso. Notícia: examedeordem.oab.org.br/Noticias/Noticia/
+// 64694 (18/10).
+export const EDICAO_20: NewsletterEdicao = {
+  numero: 20,
+  subject: "☕ Café com OAB #20: Bobbio sumiu da prova de Filosofia",
+  preheader:
+    "Contei os autores das 56 questões de Filosofia do acervo. O mais cobrado não cai há 11 provas. E a questão de hoje é sobre vontade geral e maioria.",
+  intro: [
+    "Domingo foi a 2ª fase do 47º, e o padrão de respostas preliminar saiu no mesmo dia. Pra quem fez a prova, o calendário até o resultado está na notícia. 📌",
+    "No termômetro, a matéria mais estável da prova: <strong>Filosofia do Direito</strong>, que vale 2 questões fixas em todas as provas. Contei <strong>quais autores a FGV cobra</strong> nas 56 questões do acervo, e o mais cobrado de todos tem uma particularidade: <strong>parou de cair</strong>. 📚",
+    "E a questão da semana é de Rousseau, sobre a diferença entre <strong>vontade geral e vontade da maioria</strong>. A 5 dias do 2º turno, o assunto não podia ser mais oportuno. 🗳️",
+  ],
+  termometro:
+    "🟡 <strong>Quem a FGV cobra em Filosofia.</strong> Filosofia do Direito é a matéria mais estável da prova: <strong>exatamente 2 questões em cada uma das 28 provas do acervo</strong>, 56 no total. Li cada uma e anotei o autor que é o assunto da questão, sem contar nome que só aparece em alternativa errada. 📚 O campeão é <strong>Norberto Bobbio</strong>, assunto de <strong>9 das 56</strong>, cinco delas citando pelo nome o mesmo livro, a “Teoria do Ordenamento Jurídico” (antinomias, lacunas, a unidade do ordenamento). Depois vêm <strong>Kant</strong> (5), <strong>Reale, Aristóteles e Rousseau</strong> (4 cada), <strong>Dworkin e Locke</strong> (3 cada). 📉 Só que as nove de Bobbio estão todas entre o 18º e o 36º Exame, uma a cada duas provas, e <strong>do 37º ao 47º ele não aparece em nenhuma</strong>: são 11 provas seguidas. O 46º, que falta no nosso acervo, eu conferi direto no caderno oficial. Quem aparece agora: Kant (37º, 40º e 43º), Kelsen (40º e 41º), Reale (39º e 43º), Aristóteles (39º e 42º), Rousseau (45º e 47º) e Tercio Sampaio Ferraz Junior (46º). 🆕 E o que mais mudou não tem nome: <strong>nas quatro provas mais recentes, do 44º ao 47º, uma das duas questões de Filosofia não citava autor nenhum</strong>. Duas pediram o tipo de interpretação da lei (44º e 45º), uma perguntou que técnica o STF usou pra suprir a falta de lei na greve dos servidores (46º), e a última opôs jusnaturalismo e positivismo (47º).",
+  questao: {
+    titulo: "🎯 A questão da semana: vontade geral não é maioria",
+    fonte: "FGV · Exame de Ordem XLVII/2026 · a prova de 6 de setembro · dificuldade média",
+    enunciado:
+      "Leia o trecho a seguir. “A vontade geral é mais que simplesmente a vontade de todos (somatória dos interesses particulares), pois aquela visa à realização do interesse comum e público, e esta visa aos interesses particulares. Mais que isso, deve-se esclarecer que a vontade geral não está lastreada na ideia de unanimidade; ela não é geral por ser unânime, por não haver discordância, mas porque nela estarão contadas todas as ideias, todas as contribuições.” (ROUSSEAU, Jean-Jacques. O Contrato Social. Rio de Janeiro: Nova Fronteira, 2011) Com base na Filosofia do Direito de Jean-Jacques Rousseau, assinale a afirmativa correta.",
+    alternativas: [
+      {
+        letra: "A",
+        texto:
+          "A vontade geral, embora distinta da soma das vontades individuais, pode legitimar leis de conteúdo particularizado, desde que estas promovam utilidade social imediata.",
+      },
+      {
+        letra: "B",
+        texto:
+          "A vontade geral, enquanto expressão do consenso majoritário, legitima a prevalência de interesses predominantes na sociedade, ainda que estes não correspondam ao bem comum.",
+      },
+      {
+        letra: "C",
+        texto:
+          "A vontade geral, por visar ao interesse comum, impõe a generalidade e a abstração das leis, sendo incompatível com a produção normativa voltada aos destinatários determinados ou interesses setoriais.",
+      },
+      {
+        letra: "D",
+        texto:
+          "A vontade geral coincide com a vontade da maioria, desde que formalmente expressa por meio do procedimento legislativo, sendo irrelevante a distinção entre interesse comum e interesses particulares.",
+      },
+    ],
+    gabarito: "C",
+    comentario:
+      "A resposta está no <strong>Livro II do Contrato Social</strong>, de 1762. No capítulo III, Rousseau escreve que “<em>há muitas vezes grande diferença entre a vontade de todos e a vontade geral; esta só olha o interesse comum, a outra olha o interesse privado e não passa de uma soma de vontades particulares</em>”. No capítulo IV, tira a consequência: a vontade geral, pra ser de fato geral, “<em>deve partir de todos para se aplicar a todos</em>”, e perde a sua retidão quando se volta a um objeto individual e determinado. E no capítulo VI, que é sobre a lei: “<em>o objeto das leis é sempre geral</em>”, porque “<em>a lei considera os súditos em conjunto e as ações como abstratas, nunca um homem como indivíduo nem uma ação particular</em>”. 🔍 É a letra C, quase palavra por palavra: por visar ao interesse comum, a vontade geral impõe a generalidade e a abstração da lei, e não combina com norma feita sob medida pra destinatário determinado. Resposta: <strong>C</strong>. (As citações de Rousseau aqui são tradução livre do original francês de 1762.)",
+  },
+  pegadinha:
+    "As três erradas puxam a vontade geral pra perto do que ela não é. 🎭 A <strong>letra A</strong> aceita lei de “<em>conteúdo particularizado</em>”, desde que útil, e o capítulo VI diz o contrário: a lei pode estabelecer que haverá privilégios, “<em>mas não pode dá-los nominalmente a ninguém</em>”. As <strong>letras B e D</strong> fazem a confusão mais comum: trocar vontade geral por <strong>maioria</strong>. A B fala em “<em>consenso majoritário</em>” que pode até não corresponder ao bem comum; a D diz que a vontade geral “<em>coincide com a vontade da maioria</em>” e que a diferença entre interesse comum e particular é irrelevante. Pra Rousseau, essa diferença é justamente o que define a vontade geral (capítulo III). 🧠 <strong>Fixa assim:</strong> vontade de todos é soma de interesses particulares; vontade geral é o interesse comum; e a lei que nasce dela é geral e abstrata, nunca feita pra alguém com nome.",
+  noticia: {
+    titulo: "📰 Tá rolando: a 2ª fase do 47º e o calendário até o resultado",
+    texto:
+      "📝 <strong>A 2ª fase do 47º foi no domingo (18/10)</strong>, e no mesmo dia o Conselho Federal da OAB publicou os <strong>cadernos de prova e os padrões de respostas preliminares</strong> das sete áreas: Administrativo, Civil, Constitucional, Trabalho, Empresarial, Penal e Tributário. 🗓️ O calendário daqui pra frente, segundo a OAB: <strong>padrão de respostas definitivo em 12/11</strong>; <strong>recurso de 13 a 15/11</strong>, “<em>conforme previsto no edital de abertura</em>”; e <strong>resultado final em 3/12</strong>. 🔁 Se não der na 2ª fase, a aprovação na 1ª fase do 47º pode ser reaproveitada no 48º, e o edital complementar com as regras sai em <strong>12/11</strong>, o mesmo dia do padrão definitivo. 💰 No 48º, o boleto vence em <strong>4/12</strong>, e sem pagamento a inscrição não vale. 🗳️ E domingo, <strong>25/10</strong>, tem 2º turno onde houver. Todas as datas do 48º estão em <a href=\"" +
+      APP_URL +
+      "/editais/48-exame-oab\" style=\"color:#c8a04a;font-weight:600;\">aprovaoab.app.br/editais/48-exame-oab</a>.",
+  },
+  curiosidade: {
+    titulo: "💡 Você sabia?",
+    texto:
+      "Rousseau tem uma resposta provocadora pra quem perde uma votação. 🗳️ No <strong>Livro IV, capítulo II</strong> do Contrato Social, ele diz que, fora do pacto que funda a sociedade, “<em>a voz do maior número obriga sempre todos os outros</em>”. E explica por quê: numa votação de lei, o que se pergunta a cada um não é se aprova ou rejeita a proposta, mas se ela está de acordo com a vontade geral. Por isso, “<em>quando a opinião contrária à minha prevalece, isso não prova outra coisa senão que eu me enganara</em>” sobre o que era a vontade geral. ⚖️ Mas ele mesmo põe uma condição logo em seguida, e é ela que separa Rousseau de um elogio cego à maioria: isso supõe que “<em>todas as características da vontade geral</em>” ainda estejam na maioria, e “<em>quando deixam de estar, qualquer partido que se tome, não há mais liberdade</em>”. É a mesma linha da questão de hoje: a maioria é o jeito de descobrir a vontade geral, não a definição dela. 😉 (Tradução livre do original de 1762.)",
+  },
+  dica:
+    "São <strong>82 dias</strong> até 10 de janeiro. 🧭 Filosofia são 2 questões fixas, e o termômetro sugere estudar pelo que está caindo agora, e não pela lista histórica. <strong>Kant, Kelsen, Reale, Aristóteles e Rousseau</strong> são o assunto de 11 das 22 questões desde o 37º; junte <strong>interpretação e integração da lei</strong> (os tipos de interpretação, a analogia, as lacunas) e <strong>jusnaturalismo contra positivismo</strong>, e você cobre a maior parte do que a FGV fez nas últimas provas. Bobbio não precisa sair do caderno: o nome sumiu, mas o tema dele não, e os três critérios que ele ensina pra resolver conflito entre normas, o <strong>hierárquico, o cronológico e o da especialidade</strong>, a FGV já cobrou com todas as letras (no 18º Exame) e servem pra ler lei em qualquer matéria. 📌 No 48º, o boleto vence em 4/12. 🎯 Pra saber onde você está nas outras matérias, o <a href=\"" +
+    APP_URL +
+    "/dashboard\" style=\"color:#c8a04a;font-weight:600;\">diagnóstico</a> leva 10 minutos e é de graça. Boa semana. 🍀",
+  examDays: 82,
+  examLabel: "até a 1ª fase do 48º",
+}
+
 // ATENÇÃO: o cron de segunda recria o rascunho da CURRENT_EDICAO sem checar se ela
 // já foi enviada. Esquecer de mover este ponteiro gera, no Resend, um rascunho
 // idêntico ao da semana passada. Aconteceu em 03/ago/2026 com a #8, em
-// 21/set/2026 com a #15, em 28/set/2026 com a #16, em 05/out/2026 com a #17 e em
-// 12/out/2026 com a #18.
-export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_19
+// 21/set/2026 com a #15, em 28/set/2026 com a #16, em 05/out/2026 com a #17, em
+// 12/out/2026 com a #18 e em 19/out/2026 com a #19.
+export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_20

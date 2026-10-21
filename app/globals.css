@@ -1285,3 +1285,118 @@ body[data-modo-prova] [data-chrome='dashboard'] {
     animation: none;
   }
 }
+
+/* ── Profundidade 3D nas outras seções (PREVIEW) ─────────────────────────
+   A mesma linguagem da seção do painel, aplicada ao herói, ao Como funciona,
+   aos Benefícios e aos Planos: planos que entram inclinados em perspectiva e
+   endireitam conforme a rolagem.
+
+   Mesmas regras da seção do painel:
+   1. A REGRA BASE É O QUADRO FINAL (`transform: none`). Sem animation-timeline,
+      sem JS ou com movimento reduzido, tudo aparece reto, no lugar. Nada aqui
+      mexe em opacidade, então nenhum conteúdo depende disto pra aparecer.
+   2. O 3D vai em elementos FILHOS do `Reveal`, nunca no próprio `Reveal`: ele
+      já anima `transform`, e duas animações no mesmo elemento brigam (a
+      última declaração de `animation` substitui a outra inteira).
+   3. A perspectiva é a função `perspective()` DENTRO do transform de cada
+      elemento — não uma propriedade no pai. Cada cartão é um objeto 3D
+      sozinho, então nenhum ancestral precisa de `preserve-3d`, e a opacidade
+      animada do `Reveal` em volta não achata nada.
+   4. Os dois extremos dos keyframes têm a MESMA lista de funções, na mesma
+      ordem. Lista diferente cai em interpolação de matriz, que faz o cartão
+      dar uma "torcida" estranha no meio do caminho. */
+
+.p3d-entra {
+  /* Mobile e padrão: só uma inclinação suave pra trás. Leque lateral num
+     layout empilhado não faz sentido — as direções entram no desktop. */
+  --p3d-rx: 12deg;
+  --p3d-ry: 0deg;
+  --p3d-z: -90px;
+  transform: none;
+}
+
+@media (min-width: 1024px) {
+  /* Leque em direção ao centro: quem está à esquerda chega virado pra
+     direita, e vice-versa. Embaixo, tomba pra trás. */
+  .p3d-esq {
+    --p3d-rx: 6deg;
+    --p3d-ry: 18deg;
+  }
+  .p3d-dir {
+    --p3d-rx: 6deg;
+    --p3d-ry: -18deg;
+  }
+  .p3d-baixo-esq {
+    --p3d-rx: 18deg;
+    --p3d-ry: 8deg;
+  }
+  .p3d-baixo-dir {
+    --p3d-rx: 18deg;
+    --p3d-ry: -8deg;
+  }
+  /* Miniatura de tela: gira na sua direção, como um celular sendo virado. */
+  .p3d-tela {
+    --p3d-rx: 6deg;
+    --p3d-ry: -26deg;
+    --p3d-z: -160px;
+  }
+  /* Vem de mais fundo: usado no Pro, pra ele "subir" depois do Grátis. */
+  .p3d-fundo {
+    --p3d-z: -220px;
+  }
+}
+
+@keyframes p3d-entra {
+  from {
+    transform: perspective(1100px) translate3d(0, 0, var(--p3d-z))
+      rotateX(var(--p3d-rx)) rotateY(var(--p3d-ry));
+  }
+  to {
+    transform: perspective(1100px) translate3d(0, 0, 0) rotateX(0deg)
+      rotateY(0deg);
+  }
+}
+
+/* Herói: efeito de SAÍDA. Na carga da página o notebook está exatamente como
+   hoje (progresso 0 = sem transform), então o LCP não é tocado. Ele tomba pra
+   trás e recua conforme você rola pra longe.
+
+   `scroll(root)` e não `view()`: a <section> do herói tem `overflow-hidden`,
+   que a transforma num contêiner de rolagem. Um `view()` dentro dela mediria a
+   visibilidade DENTRO do herói — que não rola —, a timeline ficaria inativa e
+   o efeito simplesmente não aconteceria, em silêncio. */
+@keyframes p3d-sai-heroi {
+  from {
+    transform: perspective(1400px) translate3d(0, 0, 0) rotateX(0deg)
+      scale(1);
+  }
+  to {
+    transform: perspective(1400px) translate3d(0, 5vh, -180px) rotateX(16deg)
+      scale(0.94);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* ATENÇÃO À ORDEM: o atalho `animation` RESETA `animation-timeline` pra
+       `auto`, então a timeline vem depois. Invertido, os cartões animariam
+       pelo relógio do documento, uma vez só, na carga. */
+    .p3d-entra {
+      animation: p3d-entra linear both;
+      animation-timeline: view();
+      /* Começa quando o cartão ENTRA pela borda de baixo e termina quando 38%
+         dele está coberto pela tela: o cartão está reto antes de chegar ao
+         meio da tela, que é onde se lê. */
+      animation-range: entry 0% cover 38%;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) and (min-width: 1024px) {
+    .p3d-sai-heroi {
+      transform-origin: 50% 0%;
+      animation: p3d-sai-heroi linear both;
+      animation-timeline: scroll(root block);
+      animation-range: 0px 90vh;
+    }
+  }
+}

@@ -430,3 +430,858 @@ body[data-modo-prova] [data-chrome='dashboard'] {
     transform: none;
   }
 }
+
+/* ── Seção do painel: ele se monta, acende, é percorrido e se revela ──────
+   Par em CSS do components/site/painel-tour.tsx.
+
+   O ARCO TEM SETE TEMPOS, e a câmera percorre as regiões no meio dele:
+     0–10%   as cartas voam pro lugar (rápido: é o primeiro scroll)
+     0–24%   a câmera se aproxima e o painel acende; números ainda em ZERO
+     26–44%  os dados populam: números rolam, barras crescem, a linha desenha
+     30–50%  câmera FECHA na região 1 · item 1 aceso
+     56–72%  câmera PANORAMIZA pra região 2 · item 2 aceso
+     78–90%  câmera PANORAMIZA pra região 3 · item 3 aceso
+     90–100% câmera AFASTA e entrega o painel inteiro, frontal e aceso
+
+   A ORDEM DAS CAMADAS garante conteúdo completo em qualquer cenário, mesma
+   disciplina do `.reveal`:
+
+   1. A REGRA BASE JÁ É O QUADRO FINAL: painel frontal, montado, aceso, todos
+      os números no valor real. Quem não tem `animation-timeline`, está sem JS
+      ou pediu movimento reduzido vê a seção pronta. O escuro, o desmontado e
+      os zeros existem SÓ dentro dos keyframes — nada os serve por padrão.
+   2. O bloco @supports liga o arco.
+   3. `prefers-reduced-motion` volta pro quadro final.
+
+   A `perspective` fica no __palco, NUNCA num ancestral da página: ancestral
+   com perspective vira bloco contenedor de `position: fixed`, e o Header
+   (`header.tsx`, fixed z-50) e o FAB do WhatsApp sairiam do lugar. */
+
+/* Registrada pra poder INTERPOLAR: sem @property o contador saltaria em vez
+   de subir. `inherits: true` é obrigatório — a animação roda no <p> e quem
+   desenha o número é o ::after dele. */
+@property --n {
+  syntax: "<integer>";
+  inherits: true;
+  initial-value: 0;
+}
+
+.painel-tour {
+  /* 320vh e nao 360: quem da um flick quer sair do outro lado. Curso mais
+     curto = menos tempo preso, e os sete tempos continuam legiveis porque as
+     transicoes passaram a ser suavizadas em vez de rampas lineares. */
+  --painel-curso: 320vh;
+
+  /* A REGUA DA SECAO. Onde o texto termina: recuo do `container-page`
+     (centralizado, max 76rem) + padding de 2rem + coluna de 28rem. A cortina
+     e a camera derivam DESTE valor. Antes, a cortina era px fixo e a camera
+     era `vw`, enquanto o texto segue o container: as tres coisas so
+     coincidiam perto de 1440px, e em tela larga o painel passava por cima
+     das letras. */
+  --borda-texto: calc(max(0px, (100vw - 76rem) / 2) + 2rem + 28rem);
+  /* Centro da area livre a direita do texto: e pra la que a camera traz cada
+     regiao. Era `70vw`, que so coincidia com isso em 1440px. */
+  --foco-x: calc((var(--borda-texto) + 100vw) / 2);
+
+  /* Câmera. O estado final é também a regra base. */
+  /* Final: maior e sangrando nos dois lados, como a referencia. */
+  /* Reduzido de 0.92 pra 0.88 porque o casco da maquina (chrome + respiro)
+     levou a altura de 1014 pra 1104px. `--cam-y: 76` deixa a barra de chrome
+     livre do Header fixo do site, que cobre os primeiros ~64px. */
+  --cam-x: calc(var(--borda-texto) + 1rem);
+  --cam-y: 76px;
+  --cam-s: 0.88;
+
+  /* Partida: longe, baixo e apagado. */
+  --cam-x0: calc(var(--borda-texto) + 9rem);
+  --cam-y0: 196px;
+  --cam-s0: 0.62;
+
+  /* Aproximação intermediária. */
+  --cam-xm: calc(var(--borda-texto) + 3rem);
+  --cam-ym: 146px;
+  --cam-sm: 0.82;
+
+  /* As três regiões, em zoom. Derivadas da geometria da maquete (950px de
+     largura): herói centrado em (281, 208), risco em (281, 613), ação em
+     (765, 627) — tudo × `--reg-s`, levado pra 70vw × 450px da tela. */
+  /* 1.06 e nao 1.12: a excursao 0.82 -> 1.12 -> 0.92 era um pulo de 47% num
+     trecho curto, e num scroll rapido isso vira solavanco. Com 1.06 o zoom
+     ainda le e o caminho fica manso. */
+  --reg-s: 1.06;
+  /* MEDIDOS no navegador (offsetLeft/offsetTop dentro do plano, que o
+     transform nao afeta), nao calculados a mao: o casco deslocou todo mundo
+     e aritmetica de cabeca aqui erra em silencio. */
+  /* Reconvergidos quando os platos ganharam a orbita lateral (-7/-12/-18deg):
+     medidos na tela, corrigidos e medidos de novo ate o erro ficar < 2px. A
+     regiao 3, na ponta direita e com o giro mais forte, tinha saido 49px do
+     foco — e o lado do painel que mais anda quando ele gira. */
+  --r1-x: calc(var(--foco-x) - 319px);
+  --r1-y: 162px;
+  --r2-x: calc(var(--foco-x) - 314px);
+  --r2-y: -298px;
+  --r3-x: calc(var(--foco-x) - 789px);
+  --r3-y: -315px;
+
+  position: relative;
+  height: var(--painel-curso);
+}
+
+.painel-tour__viewport {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.painel-tour__palco {
+  position: absolute;
+  inset: 0;
+  perspective: 1700px;
+  perspective-origin: 62% 46%;
+  pointer-events: none;
+}
+
+/* Vinheta ESTATICA, só pra tirar o contraste das quinas. O escurecimento do
+   começo NÃO mora aqui: ele é opacidade do próprio plano. Quando era uma
+   camada sobre o palco inteiro, ela apagava junto a grade de fundo — e na
+   referência a grade está visível desde o primeiro quadro, com o painel ainda
+   apagado. Escuro é propriedade do PAINEL; a grade é propriedade do ESPAÇO. */
+.painel-tour__palco::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.16;
+  background: radial-gradient(
+    ellipse 62vw 58vh at var(--foco-x) 48vh,
+    transparent 0%,
+    color-mix(in srgb, var(--night) 72%, transparent) 62%,
+    var(--night) 100%
+  );
+}
+
+.painel-tour__plano {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+  /* `translate`, `rotate` e `scale` são propriedades próprias; `transform`
+     carrega só a rotação 3D. Compõem nesta ordem. */
+  transform: none;
+  translate: var(--cam-x) var(--cam-y);
+  scale: var(--cam-s);
+  transform-style: preserve-3d;
+}
+
+/* ── Casco da máquina ─────────────────────────────────────────────────────
+   A sombra grande é o que cria a flutuação, e ela só funciona porque existe
+   uma BORDA definida pra projetar: cartões soltos não flutuam, telas flutuam.
+   O realce interno no topo é o brilho de quina que todo painel físico tem —
+   sem ele a borda vira um retângulo desenhado, não um objeto. */
+.painel-tour__maquina {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #2B3B50;
+  border-radius: 18px;
+  /* Gradiente sutil em vez de cor chapada: a maquina tinha o MESMO fundo da
+     secao, entao so a borda de 1px a separava e ela nao flutuava, so existia.
+     Uma superficie com queda de luz le como tela acesa. */
+  background-image: linear-gradient(to bottom, #131C2E 0%, #0C1320 100%);
+  /* SEM overflow:hidden, de proposito. Por especificacao, overflow diferente
+     de visible forca `transform-style: flat` — as cartas perderiam a
+     profundidade e a montagem voltaria a ser um desenho 2D inclinado. A quina
+     arredondada do fundo nao depende disso (o background ja recorta no raio);
+     a barra de chrome ganha o proprio raio abaixo. */
+  transform-style: preserve-3d;
+  box-shadow:
+    /* brilho de quina: sem ele a borda e um retangulo desenhado, nao um objeto */
+    inset 0 1px 0 0 rgb(255 255 255 / 0.1),
+    /* oclusao de contato, curta e justa na borda */
+    0 4px 10px -2px rgb(0 0 0 / 0.75),
+    /* a sombra longa, que e o que cria a altura */
+    0 56px 130px -24px rgb(0 0 0 / 1);
+}
+
+/* A LATERAL DO APARELHO. E ela que transforma "plano girado" em "computador
+   visto de lado": sem espessura, um retangulo girado so parece achatado.
+   Presa na borda direita e dobrada 90deg pra tras; fica de perfil (invisivel)
+   no quadro frontal e aparece sozinha quando o lado direito vem pra frente —
+   que e o que todos os platos da camera fazem. Insets de 18px = o raio da
+   quina, pra lateral nao vazar pelos cantos arredondados. */
+.painel-tour__maquina::before {
+  content: "";
+  position: absolute;
+  top: 18px;
+  bottom: 18px;
+  left: 100%;
+  width: 26px;
+  transform-origin: left center;
+  transform: rotateY(90deg);
+  background: linear-gradient(to right, #1F2A3D 0%, #0A0F19 100%);
+  box-shadow: inset 1px 0 0 rgb(255 255 255 / 0.08);
+  pointer-events: none;
+}
+
+.painel-tour__chrome {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-shrink: 0;
+  height: 42px;
+  padding-inline: 1.125rem;
+  border-bottom: 1px solid var(--night-border);
+  border-radius: 17px 17px 0 0;
+  background-color: color-mix(in srgb, var(--night-card) 70%, transparent);
+}
+
+.painel-tour__pontos {
+  display: flex;
+  gap: 0.4375rem;
+}
+
+.painel-tour__pontos i {
+  width: 9px;
+  height: 9px;
+  border-radius: 9999px;
+  background-color: #334155;
+}
+
+.painel-tour__url {
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  background-color: color-mix(in srgb, var(--night-border) 70%, transparent);
+  font-family: var(--font-dm-mono), ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--night-muted);
+}
+
+.painel-tour__tela {
+  padding: 1rem;
+  transform-style: preserve-3d;
+}
+
+/* A CADEIA 3D. Todo container entre o plano e as cartas precisa repassar o
+   espaco 3D; basta UM elo achatado no meio pra todas as cartas abaixo dele
+   virarem um plano so. Os achatadores, pela especificacao: overflow != visible,
+   opacity < 1, filter, clip-path, mask, isolation. Nenhum deles pode entrar
+   aqui — e por isso que o escurecimento do comeco mora nas CARTAS, nao no
+   plano. */
+.painel-tour__3d {
+  transform-style: preserve-3d;
+}
+
+/* Cada carta parte de um lugar próprio. No repouso, todas já montadas. */
+.painel-tour__carta {
+  transform: none;
+  opacity: 1;
+}
+
+/* Contador genérico: no repouso mostra o alvo; a animação o traz de zero. */
+.painel-tour__n {
+  --n: var(--n-alvo);
+}
+
+.painel-tour__n::after {
+  counter-reset: pn var(--n);
+  content: counter(pn) attr(data-sufixo);
+}
+
+.painel-tour__numero {
+  color: var(--warning);
+}
+
+.painel-tour__barra {
+  width: 224px;
+  transform-origin: left center;
+  background-color: var(--warning);
+}
+
+.painel-tour__risco-barra {
+  transform-origin: left center;
+}
+
+.painel-tour__linha {
+  stroke-dasharray: 320;
+  stroke-dashoffset: 0;
+}
+
+.painel-tour__cortina {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  /* Apertada de propósito: ela protege a coluna de texto, não escurece o
+     painel. Fade longo apagava o flanco esquerdo do dashboard. */
+  /* A borda direita do texto NAO e um numero fixo: `container-page` e
+     centralizado com `max-width: 76rem`, entao ela anda conforme a janela
+     cresce. Com largura fixa a cortina ficava para tras e o painel passava
+     POR CIMA das letras — e so em telas largas, que e o pior tipo de bug:
+     invisivel na largura em que se desenvolve.
+
+     Derivada da mesma geometria do container, ela acompanha em qualquer
+     largura: recuo do container + padding + largura da coluna. */
+  width: calc(var(--borda-texto) + 8rem);
+  background: linear-gradient(
+    to right,
+    var(--night) 0,
+    var(--night) var(--borda-texto),
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+.painel-tour__grade {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.painel-tour__coluna {
+  max-width: 28rem;
+}
+
+.painel-tour__lista {
+  display: flex;
+  flex-direction: column;
+  margin-top: 2.5rem;
+  border-top: 1px solid var(--night-border);
+}
+
+.painel-tour__item {
+  padding: 1rem 1.125rem 1.125rem 1.0625rem;
+  border-bottom: 1px solid var(--night-border);
+  /* A borda já existe transparente: acender o item não desloca uma vírgula. */
+  border-left: 3px solid transparent;
+  color: var(--night-foreground);
+}
+
+.painel-tour__corpo {
+  margin-top: 0.4375rem;
+  font-size: 0.8125rem;
+  line-height: 1.3125rem;
+  color: var(--night-muted);
+}
+
+/* ── Flutuação ──────────────────────────────────────────────────────────── */
+@keyframes painel-flutua-y {
+  0%,
+  100% {
+    translate: 0 0 0;
+  }
+  50% {
+    translate: 0 -7px 0;
+  }
+}
+
+@keyframes painel-flutua-giro {
+  0%,
+  100% {
+    transform: rotateX(0.8deg) rotateY(-1.3deg);
+  }
+  50% {
+    transform: rotateX(-0.7deg) rotateY(1.1deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) and (min-width: 1024px) {
+  .painel-tour__maquina {
+    animation:
+      painel-flutua-y 6.5s ease-in-out infinite,
+      painel-flutua-giro 9s ease-in-out infinite;
+  }
+}
+
+/* ── Keyframes ──────────────────────────────────────────────────────────── */
+
+@keyframes painel-monta {
+  from {
+    transform: translate3d(var(--dx), var(--dy), var(--dz)) rotateX(var(--rx))
+      rotateY(var(--ry)) rotate(var(--rot));
+    animation-timing-function: cubic-bezier(0.16, 0.84, 0.3, 1);
+  }
+  to {
+    transform: none;
+  }
+}
+
+/* O escurecimento do comeco, por carta. Ele morava no plano, mas opacity < 1
+   num elemento com preserve-3d ACHATA tudo abaixo dele — a profundidade some
+   justamente no trecho em que o plano esta mais girado e ela mais aparece.
+   Nas cartas (folhas da arvore) a opacidade nao achata nada. */
+@keyframes painel-acende-carta {
+  0% {
+    opacity: 0.16;
+    animation-timing-function: cubic-bezier(0.37, 0, 0.28, 1);
+  }
+  20% {
+    opacity: 0.62;
+    animation-timing-function: cubic-bezier(0.37, 0, 0.28, 1);
+  }
+  34%,
+  100% {
+    opacity: 1;
+  }
+}
+
+/* A câmera: aproxima, fecha em cada região, e afasta no fim. Os pares de
+   porcentagem (32%/48%) são os PLATÔS — é neles que a câmera descansa sobre a
+   região enquanto a pessoa lê o item. Sem platô, o movimento nunca para e não
+   dá tempo de ler. */
+@keyframes painel-camera {
+  0% {
+    translate: var(--cam-x0) var(--cam-y0);
+    scale: var(--cam-s0);
+    transform: rotateY(-22deg) rotateX(14deg);
+    animation-timing-function: cubic-bezier(0.37, 0, 0.28, 1);
+  }
+  20% {
+    translate: var(--cam-xm) var(--cam-ym);
+    scale: var(--cam-sm);
+    transform: rotateY(-10deg) rotateX(5deg);
+    animation-timing-function: cubic-bezier(0.37, 0, 0.28, 1);
+  }
+  34% {
+    translate: var(--r1-x) var(--r1-y);
+    scale: var(--reg-s);
+    transform: rotateY(-7deg) rotateX(3deg);
+    animation-timing-function: linear;
+  }
+  42% {
+    translate: var(--r1-x) var(--r1-y);
+    scale: var(--reg-s);
+    transform: rotateY(-7deg) rotateX(3deg);
+    animation-timing-function: cubic-bezier(0.37, 0, 0.28, 1);
+  }
+  54% {
+    translate: var(--r2-x) var(--r2-y);
+    scale: var(--reg-s);
+    transform: rotateY(-12deg) rotateX(2deg);
+    animation-timing-function: linear;
+  }
+  62% {
+    translate: var(--r2-x) var(--r2-y);
+    scale: var(--reg-s);
+    transform: rotateY(-12deg) rotateX(2deg);
+    animation-timing-function: cubic-bezier(0.37, 0, 0.28, 1);
+  }
+  74% {
+    translate: var(--r3-x) var(--r3-y);
+    scale: var(--reg-s);
+    /* O "de lado" da referencia. Sempre rotateY NEGATIVO, em todos os platos:
+       o lado esquerdo do painel recua (e se afasta do texto) e o direito vem
+       na direcao de quem olha — que e o lado em que a face lateral aparece. */
+    transform: rotateY(-18deg) rotateX(4deg);
+    animation-timing-function: linear;
+  }
+  82% {
+    translate: var(--r3-x) var(--r3-y);
+    scale: var(--reg-s);
+    transform: rotateY(-18deg) rotateX(4deg);
+    /* Saida do ultimo plato com desaceleracao longa: e o movimento que entrega
+       o painel inteiro, e ele precisa POUSAR, nao parar. */
+    animation-timing-function: cubic-bezier(0.32, 0, 0.16, 1);
+  }
+  100% {
+    translate: var(--cam-x) var(--cam-y);
+    scale: var(--cam-s);
+    transform: rotateY(0deg) rotateX(0deg);
+  }
+}
+
+
+/* Todos os números saem de zero juntos, como na referência: nos três
+   primeiros tempos o painel inteiro mostra placeholder. */
+@keyframes painel-rola {
+  0%,
+  24% {
+    --n: 0;
+  }
+  40%,
+  100% {
+    --n: var(--n-alvo);
+  }
+}
+
+/* A cor do número do herói TROCA AO CRUZAR OS 40 — a régua de `lib/metrics.ts`
+   (crítica < 40, média 40–70). A cor não é enfeite: ela conta a mesma história
+   que o número. 42,7% é onde a contagem passa de 40 dentro da janela 26–44. */
+@keyframes painel-cor {
+  0%,
+  38.9% {
+    color: var(--destructive);
+  }
+  40%,
+  100% {
+    color: var(--warning);
+  }
+}
+
+/* A barra do herói acompanha o número pelo mesmo relógio. `scale` em vez de
+   `width` porque largura reflui e escala não. */
+@keyframes painel-enche {
+  0%,
+  24% {
+    scale: 0 1;
+    background-color: var(--destructive);
+  }
+  38.9% {
+    background-color: var(--destructive);
+  }
+  40%,
+  100% {
+    scale: 1 1;
+    background-color: var(--warning);
+  }
+}
+
+/* De 0 a cheia. QUANDO isso acontece não está aqui: está no animation-range
+   de cada barra (bloco @supports), que é por linha. */
+@keyframes painel-barras {
+  from {
+    scale: 0 1;
+  }
+  to {
+    scale: 1 1;
+  }
+}
+
+@keyframes painel-linha {
+  0%,
+  18% {
+    stroke-dashoffset: 320;
+  }
+  36%,
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Os três itens, sincronizados com os platôs da câmera. A descrição NUNCA
+   some: ela está sempre no DOM e sempre visível — move-se o destaque. */
+@keyframes painel-item-1 {
+  0%,
+  28% {
+    color: var(--night-muted);
+    background-color: transparent;
+    border-left-color: transparent;
+  }
+  32%,
+  44% {
+    color: var(--night-foreground);
+    background-color: color-mix(in srgb, var(--primary) 7%, transparent);
+    border-left-color: var(--primary);
+  }
+  50%,
+  100% {
+    color: var(--night-muted);
+    background-color: transparent;
+    border-left-color: transparent;
+  }
+}
+
+@keyframes painel-item-2 {
+  0%,
+  48% {
+    color: var(--night-muted);
+    background-color: transparent;
+    border-left-color: transparent;
+  }
+  52%,
+  64% {
+    color: var(--night-foreground);
+    background-color: color-mix(in srgb, var(--primary) 7%, transparent);
+    border-left-color: var(--primary);
+  }
+  70%,
+  100% {
+    color: var(--night-muted);
+    background-color: transparent;
+    border-left-color: transparent;
+  }
+}
+
+@keyframes painel-item-3 {
+  0%,
+  68% {
+    color: var(--night-muted);
+    background-color: transparent;
+    border-left-color: transparent;
+  }
+  72%,
+  100% {
+    color: var(--night-foreground);
+    background-color: color-mix(in srgb, var(--primary) 7%, transparent);
+    border-left-color: var(--primary);
+  }
+}
+
+/* O anel reforça QUAL cartão o item descreve. Com a câmera voltando a mostrar
+   o painel inteiro no fim, ele é o que sustenta a ligação no quadro final —
+   é o papel do selo amarelo na referência. */
+@keyframes painel-regiao-1 {
+  0%,
+  28% {
+    translate: 0 0 0;
+    box-shadow: none;
+  }
+  32%,
+  44% {
+    translate: 0 0 40px;
+    box-shadow:
+      0 0 0 1px var(--primary),
+      0 0 44px -10px color-mix(in srgb, var(--primary) 70%, transparent),
+      0 34px 60px -24px rgb(0 0 0 / 0.85);
+  }
+  50%,
+  100% {
+    translate: 0 0 0;
+    box-shadow: none;
+  }
+}
+
+@keyframes painel-regiao-2 {
+  0%,
+  48% {
+    translate: 0 0 0;
+    box-shadow: none;
+  }
+  52%,
+  64% {
+    translate: 0 0 40px;
+    box-shadow:
+      0 0 0 1px var(--primary),
+      0 0 44px -10px color-mix(in srgb, var(--primary) 70%, transparent),
+      0 34px 60px -24px rgb(0 0 0 / 0.85);
+  }
+  70%,
+  100% {
+    translate: 0 0 0;
+    box-shadow: none;
+  }
+}
+
+@keyframes painel-regiao-3 {
+  0%,
+  68% {
+    translate: 0 0 0;
+    box-shadow: none;
+  }
+  72%,
+  100% {
+    translate: 0 0 40px;
+    box-shadow:
+      0 0 0 1px var(--primary),
+      0 0 44px -10px color-mix(in srgb, var(--primary) 70%, transparent),
+      0 34px 60px -24px rgb(0 0 0 / 0.85);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  .painel-tour {
+    view-timeline-name: --painel-tour;
+    view-timeline-axis: block;
+  }
+
+  /* `contain` é a faixa em que a trilha COBRE a tela inteira — exatamente o
+     trecho em que o filho fica preso. As duas coisas ficam em sincronia POR
+     CONSTRUÇÃO: mexer em `--painel-curso` move as duas juntas. Um
+     `animation-range` escrito à mão sairia de sincronia em silêncio. */
+  .painel-tour__plano,
+  .painel-tour__n,
+  .painel-tour__numero,
+  .painel-tour__barra,
+  .painel-tour__risco-barra,
+  .painel-tour__linha,
+  .painel-tour__item {
+    animation-timeline: --painel-tour;
+    animation-range: contain 0% contain 100%;
+    animation-timing-function: linear;
+    animation-fill-mode: both;
+  }
+
+  .painel-tour__plano {
+    animation-name: painel-camera;
+  }
+  .painel-tour__n {
+    animation-name: painel-rola;
+  }
+  .painel-tour__numero {
+    /* Acumula com `painel-rola` (vem da classe __n): uma anima o valor, a
+       outra a cor. */
+    animation-name: painel-rola, painel-cor;
+  }
+  .painel-tour__barra {
+    animation-name: painel-enche;
+  }
+  /* As barras enchem DURANTE a passagem pela região 2, não antes. Elas
+     enchiam em 26–42%, com a câmera ainda na região 1: quem chegava nas
+     disciplinas já encontrava tudo cheio, e a animação acontecia fora da tela.
+     Agora começam em 50% (a câmera está chegando) e cada linha entra um pouco
+     depois da de cima (`--i` vem do componente) — a última termina em 62%,
+     exatamente o fim do platô da região 2. Tudo dentro do trecho em que o
+     cartão está na tela, então o enchimento segue a rolagem. */
+  .painel-tour__risco-barra {
+    animation-name: painel-barras;
+    animation-range:
+      contain calc(50% + var(--i, 0) * 1.2%)
+      contain calc(56% + var(--i, 0) * 1.5%);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.2, 1);
+  }
+  .painel-tour__linha {
+    animation-name: painel-linha;
+  }
+  .painel-tour__item[data-passo="1"] {
+    animation-name: painel-item-1;
+  }
+  .painel-tour__item[data-passo="2"] {
+    animation-name: painel-item-2;
+  }
+  .painel-tour__item[data-passo="3"] {
+    animation-name: painel-item-3;
+  }
+
+  /* A montagem termina cedo e cada carta tem o seu ponto de chegada: é o
+     "rápido no primeiro scroll". O acendimento vai até 34%, junto da câmera.
+     ATENÇÃO À ORDEM: o atalho `animation` RESETA `animation-timeline` pra
+     `auto`, então `animation-timeline` tem que vir DEPOIS dele — invertido, as
+     cartas animariam pelo relógio do documento e não pela rolagem. */
+  .painel-tour__carta {
+    animation:
+      painel-monta both,
+      painel-acende-carta linear both;
+    animation-timeline: --painel-tour, --painel-tour;
+    animation-range:
+      contain 0% contain var(--fim, 12%),
+      contain 0% contain 100%;
+  }
+
+  .painel-tour__chrome {
+    animation: painel-acende-carta linear both;
+    animation-timeline: --painel-tour;
+    animation-range: contain 0% contain 100%;
+  }
+
+  .painel-tour__carta[data-regiao="1"] {
+    animation:
+      painel-monta both,
+      painel-acende-carta linear both,
+      painel-regiao-1 linear both;
+    animation-timeline: --painel-tour, --painel-tour, --painel-tour;
+    animation-range:
+      contain 0% contain var(--fim, 12%),
+      contain 0% contain 100%,
+      contain 0% contain 100%;
+  }
+
+  .painel-tour__carta[data-regiao="2"] {
+    animation:
+      painel-monta both,
+      painel-acende-carta linear both,
+      painel-regiao-2 linear both;
+    animation-timeline: --painel-tour, --painel-tour, --painel-tour;
+    animation-range:
+      contain 0% contain var(--fim, 12%),
+      contain 0% contain 100%,
+      contain 0% contain 100%;
+  }
+
+  .painel-tour__carta[data-regiao="3"] {
+    animation:
+      painel-monta both,
+      painel-acende-carta linear both,
+      painel-regiao-3 linear both;
+    animation-timeline: --painel-tour, --painel-tour, --painel-tour;
+    animation-range:
+      contain 0% contain var(--fim, 12%),
+      contain 0% contain 100%,
+      contain 0% contain 100%;
+  }
+}
+
+/* Mobile: NÃO fixa. Um tour de câmera sobre uma maquete de 950px numa tela de
+   390px seria ilegível — a seção vira texto + um recorte estático do painel,
+   na ordem natural de leitura. */
+@media (max-width: 1023px) {
+  .painel-tour {
+    height: auto;
+  }
+
+  .painel-tour__viewport {
+    position: static;
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    padding-block: 6rem;
+  }
+
+  .painel-tour__grade {
+    order: 1;
+    height: auto;
+  }
+
+  .painel-tour__palco {
+    position: relative;
+    order: 2;
+    height: 320px;
+    margin-top: 2.5rem;
+    perspective: none;
+  }
+
+  .painel-tour__palco::after {
+    opacity: 1;
+    animation: none;
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      transparent 52%,
+      var(--night) 100%
+    );
+  }
+
+  .painel-tour__plano {
+    transform: none;
+    translate: 1.25rem 0;
+    scale: 0.42;
+    animation: none;
+  }
+
+  /* `[data-regiao]` PRECISA estar aqui. Sem ele, `.painel-tour__carta`
+     (0,1,0) perde pra `.painel-tour__carta[data-regiao="2"]` (0,2,0) do bloco
+     @supports, e o anel de realce continua aceso. A regra existe, parece
+     certa e não ganha — que é o pior tipo de bug de CSS. */
+  .painel-tour__carta,
+  .painel-tour__carta[data-regiao],
+  .painel-tour__chrome,
+  .painel-tour__item,
+  .painel-tour__n,
+  .painel-tour__numero,
+  .painel-tour__barra,
+  .painel-tour__risco-barra,
+  .painel-tour__linha {
+    animation: none;
+  }
+
+  .painel-tour__cortina {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Mesmo motivo do bloco mobile: sem `[data-regiao]` explícito esta regra
+     perde a especificidade e o realce segue animando. */
+  .painel-tour__plano,
+  .painel-tour__palco::after,
+  .painel-tour__carta,
+  .painel-tour__carta[data-regiao],
+  .painel-tour__chrome,
+  .painel-tour__item,
+  .painel-tour__n,
+  .painel-tour__numero,
+  .painel-tour__barra,
+  .painel-tour__risco-barra,
+  .painel-tour__linha {
+    animation: none;
+  }
+}

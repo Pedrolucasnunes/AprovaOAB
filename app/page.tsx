@@ -5,6 +5,7 @@ import { Header } from "@/components/site/header"
 import { Hero } from "@/components/site/hero"
 import { ProblemSolution } from "@/components/site/problem-solution"
 import { HowItWorks } from "@/components/site/how-it-works"
+import { PainelTour } from "@/components/site/painel-tour"
 import { Benefits } from "@/components/site/benefits"
 import { Depoimentos } from "@/components/site/depoimentos"
 import { FreeQuestions } from "@/components/site/free-questions"
@@ -14,6 +15,7 @@ import { Faq } from "@/components/site/faq"
 import { FinalCta } from "@/components/site/final-cta"
 import { Footer } from "@/components/site/footer"
 import { WhatsAppFab } from "@/components/landing/whatsapp-fab"
+import { RolagemSuave } from "@/components/site/rolagem-suave"
 
 export const metadata: Metadata = {
   title: "AprovaOAB: estude só o que você precisa pra passar na 1ª fase",
@@ -49,6 +51,9 @@ export default function HomePage() {
         <Hero />
         <ProblemSolution />
         <HowItWorks />
+        {/* Seção fixada: o scroll conduz a câmera sobre a maquete do painel.
+            Toda a mecânica é CSS — ver painel-tour.tsx e globals.css. */}
+        <PainelTour />
         <Benefits />
         {/* Não renderiza nada enquanto lib/depoimentos.ts tiver menos que
             MIN_DEPOIMENTOS — colar os depoimentos lá faz a seção aparecer
@@ -62,6 +67,8 @@ export default function HomePage() {
       </main>
       <Footer />
       <WhatsAppFab />
+      {/* Inércia só na landing; o app logado segue com rolagem nativa. */}
+      <RolagemSuave />
     </div>
   )
 }

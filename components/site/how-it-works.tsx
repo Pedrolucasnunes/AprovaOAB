@@ -200,7 +200,7 @@ export function HowItWorks() {
                     {step.body}
                   </p>
                 </div>
-                <div className="rounded-xl border border-border bg-background p-4 shadow-sm">
+                <div className="p3d-entra p3d-tela rounded-xl border border-border bg-background p-4 shadow-sm">
                   {step.visual}
                 </div>
               </Reveal>

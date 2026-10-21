@@ -158,7 +158,14 @@ export function Pricing() {
         <div className="mx-auto mt-16 grid max-w-3xl items-stretch gap-6 lg:grid-cols-2 lg:gap-8">
           {PLANS.map((plan, i) => (
             <Reveal key={plan.name} delay={i * 0.07} className="h-full">
-              <PlanCard plan={plan} />
+              <div
+                className={cn(
+                  "p3d-entra h-full",
+                  i === 0 ? "p3d-esq" : "p3d-dir p3d-fundo"
+                )}
+              >
+                <PlanCard plan={plan} />
+              </div>
             </Reveal>
           ))}
         </div>

@@ -131,7 +131,7 @@ export function Benefits() {
         <div className="mt-14 grid gap-4 md:grid-cols-6">
           {/* Treino inteligente — célula grande */}
           <Reveal className="md:col-span-4 md:row-span-2">
-            <div className="flex h-full flex-col rounded-xl border border-border bg-card p-7 transition-[border-color,box-shadow] duration-200 hover:border-primary/40 hover:shadow-md">
+            <div className="p3d-entra p3d-esq flex h-full flex-col rounded-xl border border-border bg-card p-7 transition-[border-color,box-shadow] duration-200 hover:border-primary/40 hover:shadow-md">
               <CellIcon icon={Brain} />
               <h3 className="mt-5 text-xl font-semibold text-foreground">
                 Treino inteligente: ~70% nos seus pontos fracos
@@ -149,7 +149,7 @@ export function Benefits() {
 
           {/* Padrão FGV — célula escura */}
           <Reveal delay={0.06} className="md:col-span-2">
-            <div className="flex h-full flex-col rounded-xl border border-night-border bg-night p-6">
+            <div className="p3d-entra p3d-dir flex h-full flex-col rounded-xl border border-night-border bg-night p-6">
               <CellIcon icon={FileText} dark />
               <h3 className="mt-4 text-base font-semibold text-night-foreground">
                 Padrão FGV de verdade
@@ -166,7 +166,7 @@ export function Benefits() {
 
           {/* Desempenho */}
           <Reveal delay={0.1} className="md:col-span-2">
-            <div className="flex h-full flex-col rounded-xl border border-border bg-card p-6 transition-[border-color,box-shadow] duration-200 hover:border-primary/40 hover:shadow-md">
+            <div className="p3d-entra p3d-dir flex h-full flex-col rounded-xl border border-border bg-card p-6 transition-[border-color,box-shadow] duration-200 hover:border-primary/40 hover:shadow-md">
               <CellIcon icon={BarChart3} />
               <h3 className="mt-4 text-base font-semibold text-foreground">
                 Desempenho que você enxerga
@@ -183,7 +183,7 @@ export function Benefits() {
 
           {/* Agenda */}
           <Reveal delay={0.05} className="md:col-span-3">
-            <div className="flex h-full flex-col rounded-xl border border-border bg-card p-6 transition-[border-color,box-shadow] duration-200 hover:border-primary/40 hover:shadow-md">
+            <div className="p3d-entra p3d-baixo-esq flex h-full flex-col rounded-xl border border-border bg-card p-6 transition-[border-color,box-shadow] duration-200 hover:border-primary/40 hover:shadow-md">
               <div className="flex items-start gap-4">
                 <CellIcon icon={CalendarDays} />
                 <div>
@@ -201,7 +201,7 @@ export function Benefits() {
 
           {/* Comece sem risco */}
           <Reveal delay={0.1} className="md:col-span-3">
-            <div className="flex h-full flex-col rounded-xl border border-primary/30 bg-primary/5 p-6 transition-[border-color,box-shadow] duration-200 hover:border-primary/50 hover:shadow-md">
+            <div className="p3d-entra p3d-baixo-dir flex h-full flex-col rounded-xl border border-primary/30 bg-primary/5 p-6 transition-[border-color,box-shadow] duration-200 hover:border-primary/50 hover:shadow-md">
               <div className="flex items-start gap-4">
                 <CellIcon icon={ShieldCheck} />
                 <div>

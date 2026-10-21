@@ -115,7 +115,7 @@ export function Hero() {
           </motion.div>
 
           {/* Cluster de dispositivos */}
-          <div className="lg:col-span-7">
+          <div className="p3d-sai-heroi lg:col-span-7">
             <DeviceCluster />
           </div>
         </div>

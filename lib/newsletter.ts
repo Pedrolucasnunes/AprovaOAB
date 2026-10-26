@@ -1424,9 +1424,109 @@ export const EDICAO_20: NewsletterEdicao = {
   examLabel: "até a 1ª fase do 48º",
 }
 
+// Semana depois do 2º turno (25/10/2026). A edição é sobre o que a lei diz que vem
+// agora e sobre a eleição em Direito Constitucional.
+//
+// SEM TRAVESSÃO no conteúdo (decisão do Pedro de 23/set/2026).
+//
+// TSE: as páginas do TSE respondem com desafio anti-robô e NÃO foram abertas (a
+// tentativa de passar pelo desafio foi barrada, e com razão). O que entrou veio da
+// busca: a reeleição pelo TÍTULO da notícia do TSE ("Presidente do TSE anuncia
+// reeleição de Lula e faz balanço do 2º turno das Eleições 2026"); 51,79% dos
+// válidos, abstenção de cerca de 19% (21,08% no 1º turno) e 2.265 processos no
+// TSE batem em duas buscas independentes. Uma "liminar do STF estendendo a votação
+// até as 19h", que apareceu numa busca só, ficou de fora. Diplomação até 18/12:
+// Resolução TSE 23.760/2026, pela busca (a página do calendário mostra 18 e 19/12).
+//
+// Constituição: o Planalto derrubou a conexão o dia inteiro; os textos vieram da
+// publicação original de cada ato na Câmara (legin): CF de 1988 (arts. 14, §§ 5º,
+// 6º, 7º e 10; 57, § 4º; 60, § 4º, II; 82, redação original), EC 16/1997 (§ 5º
+// atual), EC 32/2001 (art. 62, § 1º, I, "a") e EC 111/2021 (arts. 28, 82, 4º e 5º).
+//
+// Termômetro medido em 26/out/2026 (scratchpad/politicos21b.cjs): regra estreita
+// (ineleg, elegibilidade, reeleição, direitos políticos, alistamento, art. 14 a 16,
+// plebiscito, voto...) nas 208 questões de Constitucional; 13 candidatas lidas à
+// mão, 5 falsos positivos (ação popular, classificação de constituições,
+// nacionalidade, crime contra pessoa com deficiência). Ficam 8: 18º eleição
+// indireta; 24º analfabetos inelegíveis; 25º voto facultativo por PEC (pode); 26º
+// português naturalizado; 29º Mesa do Senado, recondução vedada; 31º parentes e
+// reeleição (a questão); 40º voto aberto por PEC (não pode); 47º medida provisória
+// e inelegibilidade (não pode). 47º conferido no gabarito definitivo (questão 14 do
+// tipo 1, C); 25º, 29º e 40º pelo gabarito do banco, coerente com o texto
+// constitucional citado.
+//
+// Questão: 16 do caderno tipo 1 do 31º (prova de 9/2/2020; caderno no site da FGV,
+// oab.fgv.br/arq/634/...Tipo 1.pdf, porque os cadernos de 2020 em s.oab.org.br
+// dão erro 502), gabarito definitivo C (s.oab.org.br/arquivos/2020/02/d25ed53f-
+// ...pdf), sem anulação. Ninguém respondeu na plataforma: o título não fala de taxa.
+export const EDICAO_21: NewsletterEdicao = {
+  numero: 21,
+  subject: "☕ Café com OAB #21: a posse de 2027 não é em 1º de janeiro",
+  preheader:
+    "O que a lei diz que acontece depois da eleição, onde ela cai na prova além de Eleitoral, e a reeleição que a Constituição de 1988 proibia.",
+  intro: [
+    "As eleições acabaram no domingo, com o 2º turno. 🗳️ Esta edição é sobre o que vem agora, <strong>pela lei</strong>, e sobre como a eleição cai na prova, que vai além das 2 questões de Direito Eleitoral.",
+    "No termômetro, fui procurar a eleição em <strong>Direito Constitucional</strong>, e ela aparece de um jeito que se repete: a FGV pergunta <strong>quem pode mudar a regra do jogo</strong>. 📋",
+    "E a questão da semana é sobre reeleição: um prefeito no primeiro mandato, uma filha vereadora e outra querendo ser deputada estadual. Quem pode concorrer? ⚖️",
+  ],
+  termometro:
+    "🟡 <strong>A eleição também cai em Constitucional.</strong> Eleitoral vale 2 questões fixas por prova desde o 38º, e a #19 mostrou o que a FGV cobra lá. Mas a eleição aparece também em Direito Constitucional, e fui contar: nas 208 questões de Constitucional do acervo, ao longo de 28 provas, <strong>8 são sobre voto, elegibilidade e reeleição</strong>. Li as oito. 🧩 <strong>Três perguntam a mesma coisa: quem pode mudar a regra do jogo, e como.</strong> No 25º, uma emenda pra tornar o voto facultativo: pode, porque a obrigatoriedade não está entre as cláusulas pétreas. No 40º, uma emenda pra tornar o voto aberto: não pode, porque o art. 60, § 4º, protege “<em>o voto direto, secreto, universal e periódico</em>”. E no 47º, uma medida provisória criando inelegibilidade: não pode, porque a Constituição proíbe medida provisória sobre “<em>direitos políticos, partidos políticos e direito eleitoral</em>” (art. 62, § 1º, I, “a”). 🔁 <strong>Duas são sobre reeleição</strong>, e nas duas a resposta mora num detalhe. No 29º, o presidente do Senado não pode ser reconduzido ao mesmo cargo da Mesa na eleição imediatamente seguinte. No 31º, a filha do prefeito pode tentar a reeleição de vereadora no município do pai: é a questão desta semana. As outras três tratam de eleição indireta quando presidente e vice deixam o cargo nos dois últimos anos do mandato (18º), da eficácia da regra que torna os analfabetos inelegíveis (24º) e da candidatura de um português naturalizado (26º).",
+  questao: {
+    titulo: "🎯 A questão da semana: a família do prefeito",
+    fonte: "FGV · Exame de Ordem XXXI/2020 · a prova de 9 de fevereiro · dificuldade alta",
+    enunciado:
+      "José Maria, no ano de 2016, foi eleito para exercer o seu primeiro mandato como Prefeito da Cidade Delta, situada no Estado Alfa. Nesse mesmo ano, a filha mais jovem de José Maria, Janaína (22 anos), elegeu-se vereadora e já se organiza para um segundo mandato como vereadora. Rosária (26 anos), a outra filha de José Maria, animada com o sucesso da irmã mais nova e com a popularidade do pai, que pretende concorrer à reeleição, faz planos para ingressar na política, disputando uma das cadeiras da Assembleia Legislativa do Estado Alfa. Diante desse quadro, a família contrata um advogado para orientá-la. Após analisar a situação, seguindo o sistema jurídico-constitucional brasileiro, o advogado afirma que",
+    alternativas: [
+      {
+        letra: "A",
+        texto:
+          "as filhas não poderão concorrer aos cargos almejados, a menos que José Maria desista de concorrer à reeleição para o cargo de chefe do Poder Executivo do Município Delta.",
+      },
+      {
+        letra: "B",
+        texto:
+          "Rosária pode se candidatar ao cargo de deputada estadual, mas Janaína não poderá se candidatar ao cargo de vereadora em Delta, pois seu pai ocupa o cargo de chefe do Poder Executivo do referido município.",
+      },
+      {
+        letra: "C",
+        texto:
+          "as candidaturas de Janaína, para reeleição ao cargo de vereadora, e de Rosária, para o cargo de deputada estadual, não encontram obstáculo no fato de José Maria ser prefeito de Delta.",
+      },
+      {
+        letra: "D",
+        texto:
+          "Janaína pode se candidatar ao cargo de vereadora, mas sua irmã Rosária não poderá se candidatar ao cargo de deputada estadual, tendo em vista o fato de seu pai exercer a chefia do Poder Executivo do município.",
+      },
+    ],
+    gabarito: "C",
+    comentario:
+      "Dois parágrafos do <strong>art. 14 da Constituição</strong> resolvem a questão. O <strong>§ 7º</strong> é o da inelegibilidade dos parentes: “<em>São inelegíveis, no território de jurisdição do titular, o cônjuge e os parentes consangüíneos ou afins, até o segundo grau ou por adoção, do Presidente da República, de Governador de Estado ou Território, do Distrito Federal, de Prefeito ou de quem os haja substituído dentro dos seis meses anteriores ao pleito, salvo se já titular de mandato eletivo e candidato à reeleição</em>”. Filha é parente de primeiro grau, então o parágrafo alcança as duas, mas com dois limites. O primeiro está no começo: “<em>no território de jurisdição do titular</em>”. A jurisdição de um prefeito é o município, e a eleição de deputada estadual é do estado inteiro: Rosária está livre. O segundo está no fim: “<em>salvo se já titular de mandato eletivo e candidato à reeleição</em>”. Janaína já é vereadora e quer a reeleição: também está livre. E o pai, no primeiro mandato, pode tentar a reeleição pelo <strong>§ 5º</strong>, que permite “<em>um único período subseqüente</em>”. 🔍 Ninguém atrapalha ninguém. Resposta: <strong>C</strong>.",
+  },
+  pegadinha:
+    "As três erradas leem o § 7º pela metade. 🎭 A <strong>letra A</strong> inventa uma saída que a Constituição não pede: que o pai desista da reeleição. O impedimento dos parentes, onde existe, vem do cargo que o titular ocupa, não da candidatura dele, e aqui nenhuma das duas filhas está impedida. A <strong>letra B</strong> barra Janaína e esquece o fim do parágrafo: a ressalva “<em>salvo se já titular de mandato eletivo e candidato à reeleição</em>” existe exatamente pra situação dela. A <strong>letra D</strong> barra Rosária e esquece o começo: a inelegibilidade vale “<em>no território de jurisdição do titular</em>”, e a Assembleia Legislativa é eleita pelo estado, não pelo município. 🧠 <strong>Fixa assim:</strong> cônjuge e parentes até o segundo grau do chefe do Executivo são inelegíveis só dentro do território dele, e nem lá se já tiverem mandato e forem candidatos à reeleição.",
+  noticia: {
+    titulo: "📰 Tá rolando: o fim da eleição e o que vem agora, pela lei",
+    texto:
+      "🗳️ <strong>O 2º turno foi no domingo (25/10)</strong>, e o TSE anunciou a reeleição de Lula para a Presidência, com 51,79% dos votos válidos. No balanço do tribunal, a abstenção ficou em cerca de 19%, abaixo da do 1º turno, e a eleição chegou a 2.265 processos submetidos ao TSE. 🗓️ <strong>O que vem agora, pela lei:</strong> a <strong>diplomação</strong> dos eleitos, que pelo calendário do TSE vai até <strong>18 de dezembro</strong>; e a <strong>posse</strong>, que deixa de ser em 1º de janeiro. A Emenda Constitucional 111, de 2021, mudou as datas a partir desta eleição: o mandato presidencial “<em>terá início em 5 de janeiro do ano seguinte ao de sua eleição</em>” (art. 82), e os governadores tomam posse em 6 de janeiro (art. 28). ⚖️ E a diplomação abre um prazo que cai na prova: o mandato pode ser impugnado “<em>no prazo de quinze dias contados da diplomação</em>” (art. 14, § 10). 📌 <strong>No Exame de Ordem:</strong> padrão de respostas definitivo da 2ª fase do 47º e edital do reaproveitamento no 48º em <strong>12/11</strong>; recurso de 13 a 15/11; resultado final em <strong>3/12</strong>. No 48º, o boleto vence em <strong>4/12</strong>. Todas as datas estão em <a href=\"" +
+      APP_URL +
+      "/editais/48-exame-oab\" style=\"color:#c8a04a;font-weight:600;\">aprovaoab.app.br/editais/48-exame-oab</a>.",
+  },
+  curiosidade: {
+    titulo: "💡 Você sabia?",
+    texto:
+      "<strong>A Constituição de 1988 proibia a reeleição, e em dois lugares.</strong> 📜 O § 5º original do art. 14 tornava “<em>inelegíveis para os mesmos cargos, no período subseqüente, o Presidente da República, os Governadores de Estado e do Distrito Federal, os Prefeitos</em>”. E o art. 82, o mesmo que hoje marca a posse em 5 de janeiro, dava ao presidente um mandato “<em>de cinco anos, vedada a reeleição para o período subseqüente</em>”, com início “<em>em 1º de janeiro do ano seguinte ao da sua eleição</em>”. 🔁 A virada veio com a <strong>Emenda Constitucional 16, de 4 de junho de 1997</strong>: presidente, governadores e prefeitos “<em>poderão ser reeleitos para um único período subseqüente</em>”. E um detalhe vale ponto: a emenda não mexeu no § 6º, que manda renunciar seis meses antes da eleição “<em>para concorrerem a outros cargos</em>”. Como a regra fala em outros cargos, quem disputa a reeleição concorre sem deixar o cargo. O limite continua no texto: um único período subseqüente. 😉",
+  },
+  dica:
+    "São <strong>75 dias</strong> até 10 de janeiro. 🧭 Direitos políticos cabem numa folha, e essa folha vale ponto em Constitucional e em Eleitoral. Monte com o texto da Constituição aberto: <strong>art. 14, § 5º</strong> (uma reeleição seguida); <strong>§ 6º</strong> (renúncia seis meses antes, só pra outros cargos); <strong>§ 7º</strong> (parentes do chefe do Executivo, só no território dele, com a ressalva da reeleição); <strong>§ 10</strong> (impugnação do mandato em 15 dias da diplomação); <strong>art. 60, § 4º, II</strong> (voto direto, secreto, universal e periódico como cláusula pétrea, com a obrigatoriedade fora da lista); e <strong>art. 62, § 1º, I, “a”</strong> (nada de medida provisória sobre direitos políticos e direito eleitoral). São seis dispositivos, e eles respondem a quatro das oito questões do termômetro. 📌 No 48º, o boleto vence em 4/12. 🎯 Pra saber onde você está nas outras matérias, o <a href=\"" +
+    APP_URL +
+    "/dashboard\" style=\"color:#c8a04a;font-weight:600;\">diagnóstico</a> leva 10 minutos e é de graça. Boa semana. 🍀",
+  examDays: 75,
+  examLabel: "até a 1ª fase do 48º",
+}
+
 // ATENÇÃO: o cron de segunda recria o rascunho da CURRENT_EDICAO sem checar se ela
 // já foi enviada. Esquecer de mover este ponteiro gera, no Resend, um rascunho
 // idêntico ao da semana passada. Aconteceu em 03/ago/2026 com a #8, em
 // 21/set/2026 com a #15, em 28/set/2026 com a #16, em 05/out/2026 com a #17, em
-// 12/out/2026 com a #18 e em 19/out/2026 com a #19.
-export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_20
+// 12/out/2026 com a #18, em 19/out/2026 com a #19 e em 26/out/2026 com a #20.
+export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_21

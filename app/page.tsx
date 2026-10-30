@@ -16,6 +16,7 @@ import { FinalCta } from "@/components/site/final-cta"
 import { Footer } from "@/components/site/footer"
 import { WhatsAppFab } from "@/components/landing/whatsapp-fab"
 import { RolagemSuave } from "@/components/site/rolagem-suave"
+import { VoltarAoInicio } from "@/components/site/voltar-ao-inicio"
 
 export const metadata: Metadata = {
   title: "AprovaOAB: estude só o que você precisa pra passar na 1ª fase",
@@ -66,7 +67,14 @@ export default function HomePage() {
         <FinalCta />
       </main>
       <Footer />
+      {/* A página acaba aqui: o que estiver sob os dois botões fixos não dá pra
+          rolar pra fora. Sem esta folga eles cobriam 16px da última linha do
+          rodapé (no celular, o "sem vínculo com a OAB ou com a FGV") em toda
+          largura até 1280px. Fica aqui, e não no Footer, porque o Footer é
+          compartilhado com as páginas de SEO, que não têm esses botões. */}
+      <div aria-hidden className="h-8 bg-night" />
       <WhatsAppFab />
+      <VoltarAoInicio />
       {/* Inércia só na landing; o app logado segue com rolagem nativa. */}
       <RolagemSuave />
     </div>

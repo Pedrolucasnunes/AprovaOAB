@@ -1400,3 +1400,34 @@ body[data-modo-prova] [data-chrome='dashboard'] {
     }
   }
 }
+
+/* ── Voltar ao início: o arco da seta fixa ──────────────────────────────
+   Par em CSS do components/site/voltar-ao-inicio.tsx. O arco acompanha a rolagem
+   da página inteira e fecha quando ela acaba.
+
+   A regra base é NÃO desenhar: onde não houver `animation-timeline`, um arco
+   parado não diria nada, e sobra o contorno da seta. */
+.voltar-inicio__arco {
+  display: none;
+}
+
+@keyframes voltar-inicio-arco {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .voltar-inicio__arco {
+      display: block;
+      stroke-dasharray: 1;
+      /* A timeline vem DEPOIS do atalho `animation`, que a reseta. */
+      animation: voltar-inicio-arco linear both;
+      animation-timeline: scroll(root block);
+    }
+  }
+}

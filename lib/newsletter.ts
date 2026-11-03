@@ -1524,9 +1524,108 @@ export const EDICAO_21: NewsletterEdicao = {
   examLabel: "até a 1ª fase do 48º",
 }
 
+// Semana do resultado da isenção da taxa do 48º (preliminar até 4/11, contestação
+// em 5/11, itens 2.6.7 e 2.6.7.2 do edital). Termômetro em ECA.
+//
+// SEM TRAVESSÃO no conteúdo (decisão do Pedro de 23/set/2026).
+//
+// Termômetro medido em 02/nov/2026 (scratchpad/n22/eca22.cjs e eca-fora.cjs): as 53
+// questões que o banco marca como ECA, lidas à mão (uma é do Estatuto do Idoso e
+// fica fora), mais as de outras matérias com termo forte de ECA. O banco tem 1, 0, 1
+// e 1 questões de ECA do 38º ao 41º, sinal de questão de ECA classificada em outra
+// matéria: a do 39º sobre o art. 49 (a mãe biológica que quer o filho de volta) está
+// em "Direito Civil" e entra na contagem. As de Penal que usam crime do ECA cobram
+// outra regra (22º, crime único no 241-B; 44º, erro de tipo no 244-B) e não entram.
+// "Mesma regra" = mesmo dispositivo e mesma resposta; mesmo tema com regra diferente
+// (adoção internacional no 20º e no 24º, recursos no 33º e no 44º) não conta. O 46º,
+// que falta no acervo, foi lido no caderno oficial tipo 3 (s.oab.org.br/arquivos/
+// 2026/05/c58cbc52-...pdf): questão 43 (picanha; não cabe internação, D) e 44
+// (trabalho noturno, C), conferidas no gabarito definitivo do site da FGV
+// (oab.fgv.br/arq/649/103500_oab261_gabarito_definitivo.pdf), sem anulação.
+//
+// Leis de 2026: as cinco que o ECA compilado do Planalto anota (nenhuma outra
+// ocorrência de 2026 no texto), com data, DOU e vigência lidas no texto original de
+// cada uma: 15.413 (DOU 22/5, vigência na publicação), 15.426 (DOU 8/6, idem),
+// 15.450 (DOU 1º/7, vacância de 180 dias: vigora em 28/12/2026), 15.487 (DOU 7/8,
+// vigência na publicação) e 15.512 (DOU 23/9, vigência na publicação). Corte do 48º:
+// item 3.6.14.4, edital de 21/9/2026. A pena anterior do 241-B (1 a 4 anos) foi lida
+// na Lei 11.829/2008, que criou o artigo: o compilado do Planalto não guarda o texto
+// riscado desse dispositivo.
+//
+// Questão: 43 do caderno tipo 1 do 43º (prova de 27/4/2025; s.oab.org.br/arquivos/
+// 2025/04/145104f9-...pdf), texto igual ao do banco, gabarito definitivo B
+// (s.oab.org.br/arquivos/2025/05/2d003602-...pdf), sem anulação (as anuladas do tipo
+// 1 são a 1 e a 74). Na plataforma: 6 respostas de 5 pessoas, 1 acerto (treino sem
+// as respostas abaixo de 3 s, mais simulado; diagnóstico fora).
+export const EDICAO_22: NewsletterEdicao = {
+  numero: 22,
+  subject: "☕ Café com OAB #22: a regra de ECA que a FGV cobrou três vezes",
+  preheader:
+    "Li as questões de ECA de 29 provas, e nove regras caíram mais de uma vez. Mais o crime do ECA que mudou em agosto e já vale pro 48º.",
+  intro: [
+    "Esta semana tem prazo pra quem pediu isenção da taxa do 48º: o resultado preliminar sai até quarta (4/11), e a contestação é na quinta (5/11). 📌 E, na notícia, as mudanças do ECA em 2026 que valem pra prova.",
+    "No termômetro, <strong>ECA</strong>. Li as questões de ECA de 29 provas e encontrei uma FGV que <strong>volta à mesma regra</strong>: contei nove que caíram mais de uma vez, e uma delas, três. 🔁",
+    "E a questão da semana é uma dessas: uma tia que humilha a sobrinha na porta da escola. Quem pode punir? Na plataforma, só 1 das 6 respostas acertou. ⚖️",
+  ],
+  termometro:
+    "🟡 <strong>Em ECA, a FGV volta à mesma regra.</strong> Li as questões de ECA das 28 provas do acervo e as duas do 46º, que conferi no caderno oficial. Contei como repetição só a mesma regra com a mesma resposta, e não o mesmo tema. 🔁 <strong>Nove regras caíram mais de uma vez, e uma delas três:</strong> “<em>A morte dos adotantes não restabelece o poder familiar dos pais naturais</em>” (art. 49), no 18º, no 36º e no 39º. No 39º a FGV foi um passo além: a mãe biológica quer o filho de volta, e a saída é se candidatar à adoção, como qualquer outra pessoa. 📋 As outras oito caíram duas vezes cada: o acolhimento de urgência com aviso ao juiz em 24 horas (art. 93; 22º e 34º); as medidas do Conselho Tutelar contra quem educa com castigo ou humilhação (art. 18-B; 23º e 43º); o afastamento do agressor da moradia comum (art. 130; 25º e 27º); armazenar material de violência sexual contra criança, que é crime (art. 241-B; 26º e 33º); a corrupção de menores, que é crime formal (art. 244-B e Súmula 500 do STJ; 19º e 22º); o direito de conhecer a origem biológica (art. 48; 29º e 35º); as atividades externas na semiliberdade, sem autorização judicial (art. 120; 31º e 40º); e o trabalho noturno, proibido ao adolescente (art. 67, I; 27º e 46º). 🍖 E a FGV repete até a cena: no 46º e no 47º, um adolescente furta picanha num supermercado. No 46º, a pergunta era se cabia internação (não cabia: sem violência nem grave ameaça e sem reiteração); no 47º, o que fazer quando ele não consegue pagar a reparação do dano.",
+  questao: {
+    titulo: "🎯 A questão da semana: quem pune a tia?",
+    fonte: "FGV · Exame de Ordem XLIII/2025 · a prova de 27 de abril · na plataforma, 1 das 6 respostas acertou",
+    enunciado:
+      "Herminda, de 50 anos, é tia materna de Júlia, de 16 anos. Após verificar que Júlia teve notas baixas no colégio, Herminda decidiu ir à porta da escola e, com o intuito de correção, ridicularizou e humilhou a adolescente na frente de seus colegas, dizendo que Júlia era desleixada, que nunca conseguiria acesso à universidade, sendo uma vergonha para a família. Os pais de Júlia tomaram conhecimento do fato e ficaram revoltados. Decidiram, então, procurar você, como advogado(a), para que indicasse a orientação jurídica adequada para sancionar o ato praticado por Herminda. Nesse caso, de acordo com o ECA, assinale a afirmativa que apresenta, corretamente, sua orientação.",
+    alternativas: [
+      {
+        letra: "A",
+        texto:
+          "Herminda pode ser encaminhada a cursos ou programas de orientação, sendo que a aplicação dessa medida só pode ser feita pela autoridade judiciária.",
+      },
+      {
+        letra: "B",
+        texto:
+          "Herminda, em virtude de tal ato, pode receber sanções, como a advertência, a ser aplicada pelo Conselho Tutelar, sem prejuízo de outras providências legais.",
+      },
+      {
+        letra: "C",
+        texto:
+          "Herminda pode sofrer sanções, entre elas, a advertência. Para a aplicação da medida, é preciso representação do Ministério Público e decisão da autoridade judiciária.",
+      },
+      {
+        letra: "D",
+        texto:
+          "Herminda não tinha o direito de humilhar e ridicularizar Júlia, mesmo para fins corretivos, o que caberia aos pais por serem detentores do poder familiar, mas o ECA não prevê qualquer possibilidade de sanção à tia materna.",
+      },
+    ],
+    gabarito: "B",
+    comentario:
+      "Dois artigos do ECA resolvem a questão, e os dois entraram em 2014. O <strong>art. 18-A</strong> garante à criança e ao adolescente o direito de ser educados “<em>sem o uso de castigo físico ou de tratamento cruel ou degradante</em>”, e a lista de quem deve respeitar isso começa nos pais e segue “<em>pelos integrantes da família ampliada</em>”: a tia está nela. O parágrafo único chama de tratamento cruel ou degradante a conduta que “<em>humilhe</em>”, “<em>ameace gravemente</em>” ou “<em>ridicularize</em>”, e o enunciado usa os verbos da lei: Herminda ridicularizou e humilhou Júlia. O <strong>art. 18-B</strong> traz as medidas, do encaminhamento a programa de proteção à família até a <strong>advertência</strong> (inciso V), e diz quem aplica: “<em>As medidas previstas neste artigo serão aplicadas pelo Conselho Tutelar, sem prejuízo de outras providências legais</em>”. 🔍 A letra B repete o parágrafo único quase palavra por palavra. Resposta: <strong>B</strong>.",
+  },
+  pegadinha:
+    "As três erradas erram de dois jeitos. 🎭 A <strong>letra A</strong> acerta a medida, porque o encaminhamento a cursos ou programas de orientação está no inciso III do art. 18-B, e erra quem aplica: diz que a aplicação “<em>só pode ser feita pela autoridade judiciária</em>”. A <strong>letra C</strong> acerta a advertência e inventa um processo, com “<em>representação do Ministério Público e decisão da autoridade judiciária</em>”. As duas levam ao juiz uma decisão que a lei deu ao Conselho Tutelar, que o próprio ECA define como órgão “<em>não jurisdicional</em>” (art. 131). A <strong>letra D</strong> erra a lista: diz que o ECA “<em>não prevê qualquer possibilidade de sanção à tia materna</em>”, e a família ampliada está escrita no art. 18-B, logo depois dos pais. 🧠 <strong>Fixa assim:</strong> castigo físico ou humilhação como forma de educar leva às medidas do art. 18-B; quem aplica é o Conselho Tutelar, sem juiz; e a lista vai dos pais a qualquer pessoa encarregada de cuidar, passando pela família ampliada. E quem discordar pode levar o caso ao juiz: as decisões do Conselho “<em>somente poderão ser revistas pela autoridade judiciária a pedido de quem tenha legítimo interesse</em>” (art. 137).",
+  noticia: {
+    titulo: "📰 Tá rolando: o ECA mudou cinco vezes em 2026, e três mudanças valem pro 48º",
+    texto:
+      "⚖️ <strong>Cinco leis de 2026 já mexeram no ECA</strong>, e o edital do 48º diz quais delas podem cair: “<em>Legislação com entrada em vigor após a data de publicação deste Edital, bem como alterações em dispositivos legais e normativos a ele posteriores não serão objeto de avaliação nas provas</em>” (item 3.6.14.4). O edital é de 21 de setembro. ✅ <strong>Entram:</strong> a Lei 15.413 (saúde mental no SUS, o novo art. 11-A), a Lei 15.426 (os Conselhos dos Direitos da Criança e do Adolescente) e a <strong>Lei 15.487</strong>, de 6 de agosto, que endureceu os crimes sexuais contra criança e adolescente e vale desde o dia 7. Ela mexeu num crime que a FGV já cobrou duas vezes, o do art. 241-B: a pena de quem armazena esse material passou de 1 a 4 anos para <strong>3 a 6 anos de reclusão</strong>, e o novo § 4º pune com a mesma pena quem “<em>acessar ou visualizar</em>” esse conteúdo pra satisfazer a própria lascívia ou a de outra pessoa. ❌ <strong>Ficam de fora:</strong> a Lei 15.450 (prevenção do uso inadequado de psicofármacos), que só entra em vigor 180 dias depois de publicada, no fim de dezembro, e a Lei 15.512 (o direito à natureza, que entrou no art. 4º), publicada em 23 de setembro, dois dias depois do edital. 📌 <strong>No calendário:</strong> edital do reaproveitamento da 1ª fase do 47º em 12/11, e boleto do 48º até 4/12. Todas as datas estão em <a href=\"" +
+      APP_URL +
+      "/editais/48-exame-oab\" style=\"color:#c8a04a;font-weight:600;\">aprovaoab.app.br/editais/48-exame-oab</a>.",
+  },
+  curiosidade: {
+    titulo: "💡 Você sabia?",
+    texto:
+      "O Conselho Tutelar, que aplica a advertência da questão de hoje, também é eleito, e o calendário dele vem logo depois da eleição que acabou de passar. 🗳️ São cinco membros em cada conselho, “<em>escolhidos pela população local para mandato de 4 (quatro) anos</em>” (art. 132), e a escolha é em data unificada no país inteiro, “<em>no primeiro domingo do mês de outubro do ano subsequente ao da eleição presidencial</em>” (art. 139, § 1º). Como a presidencial foi em 2026, a próxima é em <strong>3 de outubro de 2027</strong>, e a posse, “<em>no dia 10 de janeiro do ano subsequente ao processo de escolha</em>” (§ 2º): 10 de janeiro, o mesmo dia e mês da 1ª fase do 48º. ⚖️ Pra concorrer, o ECA pede idoneidade moral, mais de 21 anos e residência no município (art. 133). E tem regra contra compra de voto, como a eleição comum: o candidato não pode oferecer ao eleitor vantagem de nenhuma natureza, “<em>inclusive brindes de pequeno valor</em>” (§ 3º). 😉",
+  },
+  dica:
+    "São <strong>68 dias</strong> até 10 de janeiro. 🧭 O termômetro vira lista de estudo: nove artigos do ECA que a FGV já cobrou mais de uma vez, e que respondem a 19 questões de provas passadas. <strong>Art. 49</strong> (a morte dos adotantes não devolve o poder familiar aos pais biológicos); <strong>art. 93</strong> (acolhimento de urgência, aviso ao juiz em 24 horas); <strong>art. 18-B</strong> (as medidas contra castigo e humilhação, aplicadas pelo Conselho Tutelar); <strong>art. 130</strong> (afastamento do agressor, com alimentos provisórios); <strong>art. 241-B</strong> (armazenar é crime, agora com pena de 3 a 6 anos); <strong>art. 244-B</strong> (corrupção de menores é crime formal); <strong>art. 48</strong> (origem biológica: acesso irrestrito aos 18 anos e, antes disso, com orientação jurídica e psicológica); <strong>art. 120</strong> (semiliberdade com atividade externa sem autorização judicial); e <strong>art. 67, I</strong> (nada de trabalho entre 22h e 5h antes dos 18). Repare quantas vezes a resposta certa dispensa a ordem do juiz: no 18-B, no 93 e no 120. 📌 No 48º, o boleto vence em 4/12. 🎯 Pra saber onde você está nas outras matérias, o <a href=\"" +
+    APP_URL +
+    "/dashboard\" style=\"color:#c8a04a;font-weight:600;\">diagnóstico</a> leva 10 minutos e é de graça. Boa semana. 🍀",
+  examDays: 68,
+  examLabel: "até a 1ª fase do 48º",
+}
+
 // ATENÇÃO: o cron de segunda recria o rascunho da CURRENT_EDICAO sem checar se ela
 // já foi enviada. Esquecer de mover este ponteiro gera, no Resend, um rascunho
 // idêntico ao da semana passada. Aconteceu em 03/ago/2026 com a #8, em
 // 21/set/2026 com a #15, em 28/set/2026 com a #16, em 05/out/2026 com a #17, em
-// 12/out/2026 com a #18, em 19/out/2026 com a #19 e em 26/out/2026 com a #20.
-export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_21
+// 12/out/2026 com a #18, em 19/out/2026 com a #19, em 26/out/2026 com a #20 e em
+// 02/nov/2026 com a #21.
+export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_22

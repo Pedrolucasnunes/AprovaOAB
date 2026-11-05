@@ -15,7 +15,7 @@ const schema = z.object({
 })
 
 export async function POST(req: NextRequest) {
-  const { user, supabase, error } = await requireUser()
+  const { user, error } = await requireUser()
   if (error) return error
 
   const body = await req.json().catch(() => null)
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
       .limit(1)
       .maybeSingle()
 
-    const { data: q } = await supabase
+    const { data: q } = await supabaseAdmin
       .from("questions")
       .select("resposta_correta, explicacao")
       .eq("id", question_id)
@@ -81,7 +81,11 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const { data: question, error: qError } = await supabase
+  // `explicacao` não é legível pelo papel `authenticated` (ver
+  // app/api/simulados/resposta/route.ts), então as duas leituras desta rota vão
+  // pelo supabaseAdmin. A questão é a da posição atual da sessão do próprio
+  // usuário, conferida logo acima.
+  const { data: question, error: qError } = await supabaseAdmin
     .from("questions")
     .select("resposta_correta, explicacao")
     .eq("id", question_id)

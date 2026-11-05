@@ -12,6 +12,7 @@
 // finalizados em set/2026 têm pelo menos um).
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { fetchByIds } from "@/lib/supabase-paginate"
+import { supabaseAdmin } from "@/lib/supabase-admin"
 import { acertosParaNotaDeCorte, type ItemGabarito } from "@/lib/simulado-resultado"
 
 export interface ResultadoSimulado {
@@ -130,8 +131,11 @@ export async function carregarResultadoSimulado(
       alternativa_d: string | null
       subject_id: string | null
     }>(
+      // supabaseAdmin porque `explicacao` não é legível pelo papel
+      // `authenticated`. Os ids saem dos attempts DESTE usuário (filtrados por
+      // user_id acima), então a leitura não alcança questão de outra prova.
       (ids) =>
-        supabase
+        supabaseAdmin
           .from("questions")
           .select(
             "id, enunciado, resposta_correta, explicacao, alternativa_a, alternativa_b, alternativa_c, alternativa_d, subject_id",

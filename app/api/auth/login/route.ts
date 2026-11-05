@@ -25,7 +25,12 @@ export async function POST(req: NextRequest) {
       { status: 429 },
     )
   }
-  const emailLimit = await rateLimit(req, "auth-login-email", 5, 900, hashEmail(email))
+  // Por e-mail e GLOBAL, sem o IP na chave: limitado por (IP, e-mail), cada IP
+  // novo trazia mais tentativas contra a mesma conta. O preço aceito é que quem
+  // martela o e-mail de outra pessoa trava o login dela por 15 minutos.
+  const emailLimit = await rateLimit(req, "auth-login-email-global", 10, 900, hashEmail(email), {
+    global: true,
+  })
   if (!emailLimit.success) {
     return NextResponse.json(
       { error: "Muitas tentativas para este e-mail. Aguarde alguns minutos." },

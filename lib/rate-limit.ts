@@ -49,6 +49,10 @@ export async function rateLimit(
   requests: number,
   windowSeconds: number,
   keyExtra?: string,
+  // `global`: a chave extra vale sozinha, sem o IP. Com o IP junto, o limite é
+  // por (IP, chave), e quem troca de IP ganha uma cota nova a cada troca; é o
+  // `global` que limita UMA conta contra tentativa vinda de muitos IPs.
+  opts?: { global?: boolean },
 ): Promise<{ success: boolean; remaining: number }> {
   const limiter = getLimiter(prefix, requests, windowSeconds)
   if (!limiter) {
@@ -63,7 +67,7 @@ export async function rateLimit(
   }
 
   const ip = getClientIp(req)
-  const key = keyExtra ? `${ip}:${keyExtra}` : ip
+  const key = keyExtra ? (opts?.global ? keyExtra : `${ip}:${keyExtra}`) : ip
   try {
     const result = await limiter.limit(key)
     return { success: result.success, remaining: result.remaining }

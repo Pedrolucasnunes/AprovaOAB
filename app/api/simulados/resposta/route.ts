@@ -5,6 +5,7 @@ import { getLimitesConfig } from "@/lib/config"
 import { estadoDaParede } from "@/lib/limite-diario"
 import { EVENTOS, track } from "@/lib/events"
 import { logError } from "@/lib/logger"
+import { supabaseAdmin } from "@/lib/supabase-admin"
 
 const DURACAO_SIMULADO_MS = 5 * 60 * 60 * 1000 // 5 horas
 
@@ -58,7 +59,11 @@ export async function POST(req: NextRequest) {
   // checados é a mesma de antes (gabarito → ownership → estado do simulado).
   // Pelo mesmo motivo, `explicacao` entra NESTE select em vez de virar consulta
   // própria: é a mesma linha que já é lida pra comparar o gabarito.
-  const gabarito = supabase
+  //
+  // Vai pelo supabaseAdmin porque `explicacao` é server-only: o papel
+  // `authenticated` não tem SELECT nessa coluna. A resolução só sai daqui depois
+  // da resposta, só no ramo de treino e dentro do teto diário do free.
+  const gabarito = supabaseAdmin
     .from("questions")
     .select("resposta_correta, explicacao")
     .eq("id", questionId)

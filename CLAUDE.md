@@ -126,6 +126,8 @@ O link é uma URL assinada por HMAC-SHA256 (`lib/email-optout.ts`, `EMAIL_UNSUBS
 
 **Quem não tem conta no Auth não recebe e-mail de marketing:** sem `user_id` não há token assinado, e o envio prefere pular a mandar mensagem sem saída (`app/api/admin/newsletter/enviar/route.ts`).
 
+**Nem quem nunca confirmou o e-mail.** `syncContactsToAudience` (`lib/services/newsletter.ts`) pula conta sem `email_confirmed_at`: endereço não confirmado pode ser de outra pessoa, e reclamação de spam queima a reputação que também entrega o código do cadastro e os avisos de cobrança. O sync só acrescenta contatos, então quem entrou na audiência antes dessa regra continua lá.
+
 ### Regras de negócio por plano
 
 | Funcionalidade | Free | Pro |

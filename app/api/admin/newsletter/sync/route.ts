@@ -5,7 +5,8 @@ import { logError } from "@/lib/logger"
 
 // Sincroniza os usuários cadastrados (Supabase Auth) com a audiência do Resend.
 // Idempotente: rodar de novo só adiciona quem é novo. Descadastros feitos pelo
-// usuário NÃO são revertidos (não reescrevemos contatos já existentes).
+// usuário NÃO são revertidos (não reescrevemos contatos já existentes). Conta
+// que não confirmou o e-mail fica de fora (ver `syncContactsToAudience`).
 //
 // Requer: RESEND_FULL_API_KEY (chave Full access, separada da de envio) e
 // RESEND_AUDIENCE_ID no ambiente.
@@ -21,8 +22,8 @@ async function handle() {
   if (!audienceId) return NextResponse.json({ error: "RESEND_AUDIENCE_ID não configurada" }, { status: 500 })
 
   try {
-    const { total, criados, jaExistiam, erros } = await syncContactsToAudience(apiKey, audienceId)
-    return NextResponse.json({ ok: true, total, criados, jaExistiam, erros })
+    const { total, criados, jaExistiam, naoConfirmados, erros } = await syncContactsToAudience(apiKey, audienceId)
+    return NextResponse.json({ ok: true, total, criados, jaExistiam, naoConfirmados, erros })
   } catch (err) {
     logError(err, { area: "newsletter", phase: "sync-contacts" })
     return NextResponse.json({ error: "Falha ao sincronizar contatos" }, { status: 500 })

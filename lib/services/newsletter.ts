@@ -10,7 +10,14 @@ import { logError } from "@/lib/logger"
 
 const FROM = "Café com OAB <oi@aprovaoab.app.br>"
 
-export type SyncResult = { total: number; criados: number; jaExistiam: number; erros: number }
+export type SyncResult = {
+  total: number
+  criados: number
+  jaExistiam: number
+  /** Contas que ficaram de fora por nunca terem confirmado o e-mail. */
+  naoConfirmados: number
+  erros: number
+}
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
@@ -23,6 +30,13 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 //
 // Correção: listar quem já está na audiência e só criar quem falta — com pausa
 // entre as criações e retry com backoff, pra ninguém ficar de fora sem registro.
+//
+// Só entra quem CONFIRMOU o e-mail. Conta não confirmada é endereço que ninguém
+// provou ser seu: pode ser erro de digitação, de outra pessoa ou de robô. Mandar
+// marketing pra ela vira reclamação de spam, e a reputação do domínio é a mesma
+// que entrega o código do cadastro e os avisos de cobrança. Quem confirma depois
+// entra no sync seguinte. Contato que já estava na audiência antes desta regra
+// continua lá: o sync só acrescenta, nunca remove.
 export async function syncContactsToAudience(
   apiKey: string,
   audienceId: string,
@@ -38,6 +52,7 @@ export async function syncContactsToAudience(
   let total = 0
   let criados = 0
   let jaExistiam = 0
+  let naoConfirmados = 0
   let erros = 0
 
   const perPage = 1000
@@ -49,6 +64,10 @@ export async function syncContactsToAudience(
 
     for (const u of users) {
       if (!u.email) continue
+      if (!u.email_confirmed_at) {
+        naoConfirmados++
+        continue
+      }
       total++
       if (existentes.has(u.email.toLowerCase())) {
         jaExistiam++
@@ -88,7 +107,7 @@ export async function syncContactsToAudience(
     if (users.length < perPage) break
   }
 
-  return { total, criados, jaExistiam, erros }
+  return { total, criados, jaExistiam, naoConfirmados, erros }
 }
 
 // Cria o broadcast da edição como RASCUNHO e devolve o id. Lança em caso de falha.

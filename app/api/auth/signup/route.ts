@@ -5,6 +5,8 @@ import { z } from "zod"
 import { rateLimit } from "@/lib/rate-limit"
 import { marcarTurma } from "@/lib/turmas-server"
 import { TURMA_COOKIE } from "@/lib/turmas"
+import { mensagemDeSenha } from "@/lib/auth-erros"
+import { logWarning } from "@/lib/logger"
 
 const schema = z.object({
   email: z.string().email().max(254),
@@ -63,7 +65,37 @@ export async function POST(req: NextRequest) {
         { status: 409 },
       )
     }
-    return NextResponse.json({ error: error.message }, { status: 400 })
+
+    // Nada de texto cru do Supabase: ele vem em inglês, e a tela mostra o que
+    // esta rota devolver. Os casos que a pessoa consegue resolver ganham frase
+    // própria; o resto vai pro log e sai genérico.
+    const senha = mensagemDeSenha(error)
+    if (senha) return NextResponse.json({ error: senha }, { status: 400 })
+
+    if (error.code === "signup_disabled") {
+      return NextResponse.json(
+        { error: "O cadastro está pausado no momento. Tente de novo mais tarde." },
+        { status: 503 },
+      )
+    }
+    if (error.code === "over_email_send_rate_limit" || error.code === "over_request_rate_limit") {
+      return NextResponse.json(
+        { error: "Muitas tentativas agora. Aguarde alguns minutos e tente de novo." },
+        { status: 429 },
+      )
+    }
+    if (error.code === "email_address_invalid") {
+      return NextResponse.json(
+        { error: "Esse endereço de e-mail não é aceito. Confira se está certo." },
+        { status: 400 },
+      )
+    }
+
+    logWarning("Cadastro recusado pelo Supabase", { area: "auth", code: error.code, erro: error.message })
+    return NextResponse.json(
+      { error: "Não foi possível criar a conta agora. Tente de novo em alguns instantes." },
+      { status: 400 },
+    )
   }
 
   // Proteção contra enumeração de e-mails: quando a conta já existe e está

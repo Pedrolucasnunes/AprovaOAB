@@ -74,6 +74,8 @@ O campo `plano` é atualizado **exclusivamente pelo webhook do Stripe** (`/api/s
 
 **Escrita em `public.users` é server-only: só pela service role (webhook do Stripe, rotas admin e demais rotas de servidor), igual a `turmas` e `user_events`.** Não há policy de `INSERT`/`UPDATE`/`DELETE` para `authenticated` nem `anon`, e o grant de escrita a esses papéis foi revogado (`supabase/migrations/20261001_users_write_server_only.sql`). O cliente só faz `SELECT` da própria linha (perfil, trial, simulados) — isso continua liberado; a edição de nome/senha do perfil vai por `supabase.auth.updateUser`, que escreve em `auth.users`, não nesta tabela.
 
+**`questions.explicacao` é server-only: `anon` e `authenticated` não têm `SELECT` nessa coluna** (grant por coluna, `supabase/migrations/20261104_questions_explicacao_server_only.sql`). Toda leitura da resolução vai pelo `supabaseAdmin`, numa rota que decide quando a pessoa pode vê-la (em `/api/simulados/resposta`, só depois da resposta, só no treino e dentro do teto do free). Duas consequências: `select('*')` em `questions` por um cliente que não seja o admin falha com 42501, então liste as colunas; e coluna nova em `questions` nasce invisível para o cliente até entrar no `GRANT` da migration.
+
 ### Datas do banco — CUIDADO com timezone
 
 As colunas `timestamp` do schema público (`question_attempts`, `simulados`, `users`…) são **sem time zone**, gravando hora UTC — o PostgREST devolve strings **sem offset** (ex.: `"2026-06-18T22:22:34.677157"`). Um `new Date()` cru interpreta isso como hora *local* (no navegador em Brasília: mostra a hora UTC como se fosse local, 3h adiantada; no Vercel o servidor é UTC). **Sempre parsear com `parseDbDate` e formatar/bucketar com os helpers de `lib/datas.ts`** (`formatarDataHoraBrasil`, `ymdBrasil`, `horaBrasil`, `inicioDoDiaBrasil`, `tempoRelativo`). As datas da Auth API (`last_sign_in_at` etc.) já vêm com `Z` e passam intactas pelo `parseDbDate`.
@@ -125,6 +127,8 @@ O link é uma URL assinada por HMAC-SHA256 (`lib/email-optout.ts`, `EMAIL_UNSUBS
 **`GET /api/email/descadastrar` NÃO descadastra — só o `POST`.** Filtro de segurança corporativo (Defender, Proofpoint) faz GET em todo link da mensagem antes de a pessoa abrir; se o GET aplicasse o opt-out, o antivírus do destinatário o removeria sozinho, e o sintoma ("meus e-mails não chegam em empresa grande") não aponta pra esta rota. O POST é também o que a RFC 8058 exige, e é por isso que o envio manda **os dois** headers — `List-Unsubscribe` e `List-Unsubscribe-Post` —, que juntos ligam o botão nativo do Gmail.
 
 **Quem não tem conta no Auth não recebe e-mail de marketing:** sem `user_id` não há token assinado, e o envio prefere pular a mandar mensagem sem saída (`app/api/admin/newsletter/enviar/route.ts`).
+
+**Nem quem nunca confirmou o e-mail.** `syncContactsToAudience` (`lib/services/newsletter.ts`) pula conta sem `email_confirmed_at`: endereço não confirmado pode ser de outra pessoa, e reclamação de spam queima a reputação que também entrega o código do cadastro e os avisos de cobrança. O sync só acrescenta contatos, então quem entrou na audiência antes dessa regra continua lá.
 
 ### Regras de negócio por plano
 
@@ -226,9 +230,16 @@ Sincroniza com Google Calendar se o usuário tiver conectado — operação best
 ### Fluxo de autenticação e onboarding
 
 ```
-Cadastro: email/senha → OTP 6 dígitos no email → verifyOtp → onboarding modal
+Cadastro: email/senha → código no email → verifyOtp → onboarding modal
 Google:   signInWithOAuth → /auth/callback → verifica onboarding_completed → dashboard
+Senha:    /recuperar-senha → e-mail → /auth/confirm (token_hash) → /recuperar-senha/nova-senha
 ```
+
+**O tamanho do código é configuração do painel ("Email OTP Length"), não do site.** `components/auth/campo-codigo.tsx` é o único campo de código (cadastro, login de conta pendente e o modal de reenvio) e tem 8 casas com mínimo de 6: aceita os dois tamanhos, porque código já enviado continua valendo depois de o painel mudar. Mexer no tamanho é sempre na ordem deploy → painel.
+
+**Os modelos de e-mail do Auth também moram no painel**, com cópia em `supabase/templates/` (o `LEIAME.md` de lá diz qual é qual). O de troca de senha leva ao `/auth/confirm` no nosso domínio, em vez do `supabase.co`: link para domínio diferente do remetente é sinal clássico de golpe. Nenhum modelo usa `{{ .Data.* }}`, porque o nome do cadastro é texto livre e o e-mail vai para qualquer endereço digitado.
+
+**Recusa de senha do Supabase passa por `mensagemDeSenha` (`lib/auth-erros.ts`)** no cadastro, na nova senha e no perfil. O GoTrue responde em inglês, e a nova senha dizia "o link pode ter expirado" para qualquer recusa. Com "senhas vazadas" ligado, a recusa por vazamento é o caso comum.
 
 Onboarding (3 passos: welcome → data da prova → CTA do diagnóstico):
 - **Os passos de nível, dificuldades e tempo diário foram removidos (jul/2026).** Coletavam dados sem nenhum leitor: `nivel` e `tempo_diario` nunca tiveram um consumidor, e `dificuldades` só servia ao diagnóstico antigo (escolhia 3 das 5 questões) — o Módulo 1 é blueprint fixo de 8 matérias vindo do `app_config`. Este wizard era o maior buraco de ativação medido: 33 de 57 usuários pararam nele
@@ -293,6 +304,7 @@ Onde cada um emite:
 | `treino_iniciado` | `/api/treino` (2 saídas de sucesso) | `quantidade` vs `servidas`, `risco`, `geral`, **`origem`** |
 | `limite_diario_atingido` | `/api/treino` (2×) e `/api/simulados/resposta` | **`motivo`**: `teto` ou `treino_maior_que_restante`; `estado`, `dias_no_teto` |
 | `parede_cta_clicado` | as telas, via `POST /api/eventos` | `estado`, `origem`, `destino`, `dias_no_teto` |
+| `admin_acesso_negado` | `proxy.ts`, gravado direto sem `track()` | `path` |
 
 `parede_cta_clicado` é o **único** evento que nasce no cliente — o clique acontece antes de qualquer requisição. Por isso existe `lib/events-client.ts` (client-safe, sem `supabaseAdmin`) e a rota `/api/eventos`, que aceita **só** os nomes de `EVENTOS_DO_CLIENTE`: endpoint de escrita com nome livre deixaria qualquer usuário logado inventar métrica no painel. `lib/analytics.ts` (dataLayer do GTM) não serve pra isso — manda pro GA4, e a análise do produto sai do `/admin/metricas`, que lê `user_events`.
 
@@ -342,6 +354,7 @@ A régua não é reescrita: `minTempoRespostaMs` sai do `app_config`, e o script
 - `role = "admin"` → acesso ao painel `/admin` (questões, usuários, feedback)
 - `role = "blocked"` → `requireUser()` retorna 403 antes de qualquer lógica de negócio
 - Role é alterado via `PUT /api/admin/usuarios/[id]`
+- **Logado sem `role = "admin"` em `/admin` recebe 403**, servido pelo próprio `proxy.ts` como HTML pronto (`lib/acesso-negado.ts`), e cada tentativa vira um `admin_acesso_negado` em `user_events`. HTML pronto porque o status de um rewrite do proxy não é garantido fora do `next dev`. Sem sessão continua indo pro login. **O portão das páginas é o proxy, não o layout:** o `requireAdminPage` do `app/admin/layout.tsx` é segunda camada, e layout não roda de novo em navegação pelo cliente
 
 ### Estrutura de páginas
 

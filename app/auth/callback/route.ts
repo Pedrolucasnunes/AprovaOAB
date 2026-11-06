@@ -17,6 +17,11 @@ export async function GET(req: NextRequest) {
   const erroDoLink = searchParams.get("error_code") ?? searchParams.get("error")
   if (!code && erroDoLink) {
     const expirado = /expired/i.test(erroDoLink)
+    // Link de troca de senha tem a própria tela pra pedir outro; mandar pro
+    // login dizia "esse link de ativação venceu" pra quem nem estava ativando.
+    if (type === "recovery") {
+      return NextResponse.redirect(`${origin}/recuperar-senha?link=${expirado ? "expirado" : "invalido"}`)
+    }
     return NextResponse.redirect(`${origin}/login${expirado ? "?ativacao=expirada" : ""}`)
   }
 

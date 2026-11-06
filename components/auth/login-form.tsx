@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,6 +11,7 @@ import { supabase } from "@/lib/supabase"
 import { BotaoGoogle } from "@/components/auth/botao-google"
 import { Separador } from "@/components/auth/separador"
 import { ReenviarAtivacaoModal } from "@/components/auth/reenviar-ativacao-modal"
+import { CampoCodigo, codigoPronto, codigoVazio } from "@/components/auth/campo-codigo"
 
 /**
  * O formulário de entrada. Saiu de `app/login/page.tsx` para que a página
@@ -18,9 +19,9 @@ import { ReenviarAtivacaoModal } from "@/components/auth/reenviar-ativacao-modal
  * precisa ser calculada.
  *
  * A lógica veio inteira e sem reescrita: o desvio do fragmento `otp_expired`,
- * o throttle do reenvio, o repasse do intervalo de 60s do GoTrue e os
- * atalhos de teclado do código de 6 dígitos têm motivo documentado logo abaixo
- * e nenhum deles muda por causa do layout novo.
+ * o throttle do reenvio e o repasse do intervalo de 60s do GoTrue têm motivo
+ * documentado logo abaixo e nenhum deles muda por causa do layout novo. O campo
+ * do código mora em `campo-codigo.tsx`, compartilhado com o cadastro e o modal.
  */
 export function LoginForm() {
   const router = useRouter()
@@ -33,12 +34,11 @@ export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null)
-  const [otp, setOtp] = useState(["", "", "", "", "", ""])
+  const [otp, setOtp] = useState(codigoVazio)
   const [otpError, setOtpError] = useState<string | null>(null)
   const [otpLoading, setOtpLoading] = useState(false)
   const [resendLoading, setResendLoading] = useState(false)
   const [resendSuccess, setResendSuccess] = useState(false)
-  const inputsRef = useRef<(HTMLInputElement | null)[]>([])
 
   // O GoTrue devolve o erro do link vencido ora na query, ora no fragmento
   // (`#error_code=otp_expired`), e fragmento não chega ao servidor — por isso
@@ -58,35 +58,11 @@ export function LoginForm() {
     })
   }
 
-  const handleOtpChange = (index: number, value: string) => {
-    if (!/^\d*$/.test(value)) return
-    const next = [...otp]
-    next[index] = value.slice(-1)
-    setOtp(next)
-    if (value && index < 5) inputsRef.current[index + 1]?.focus()
-  }
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      inputsRef.current[index - 1]?.focus()
-    }
-  }
-
-  const handleOtpPaste = (e: React.ClipboardEvent) => {
-    const text = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6)
-    if (!text) return
-    e.preventDefault()
-    const next = [...otp]
-    text.split("").forEach((char, i) => { next[i] = char })
-    setOtp(next)
-    inputsRef.current[Math.min(text.length, 5)]?.focus()
-  }
-
   const handleVerifyOtp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const token = otp.join("")
-    if (token.length < 6) {
-      setOtpError("Digite os 6 dígitos do código.")
+    if (!codigoPronto(otp)) {
+      setOtpError("Digite o código completo.")
       return
     }
     setOtpLoading(true)
@@ -112,7 +88,7 @@ export function LoginForm() {
     if (!unverifiedEmail) return
     setResendLoading(true)
     setResendSuccess(false)
-    setOtp(["", "", "", "", "", ""])
+    setOtp(codigoVazio())
     setOtpError(null)
 
     try {
@@ -211,7 +187,7 @@ export function LoginForm() {
               Conta não verificada
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Digite o código de 6 dígitos enviado para{" "}
+              Digite o código enviado para{" "}
               <span className="font-medium text-foreground">{unverifiedEmail}</span>.
             </p>
           </div>
@@ -220,22 +196,7 @@ export function LoginForm() {
         <form onSubmit={handleVerifyOtp} className="space-y-4">
           <div className="space-y-2">
             <Label className="block text-center">Código de verificação</Label>
-            <div className="flex justify-center gap-2" onPaste={handleOtpPaste}>
-              {otp.map((digit, i) => (
-                <input
-                  key={i}
-                  ref={(el) => { inputsRef.current[i] = el }}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  aria-label={`Dígito ${i + 1} de 6`}
-                  onChange={(e) => handleOtpChange(i, e.target.value)}
-                  onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                  className="h-12 w-10 rounded-md border border-input bg-input text-center text-lg font-semibold focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-              ))}
-            </div>
+            <CampoCodigo valor={otp} onChange={setOtp} />
           </div>
 
           {otpError && <p className="text-sm text-destructive">{otpError}</p>}
@@ -260,7 +221,7 @@ export function LoginForm() {
           </button>
           <button
             type="button"
-            onClick={() => { setUnverifiedEmail(null); setResendSuccess(false); setOtp(["", "", "", "", "", ""]) }}
+            onClick={() => { setUnverifiedEmail(null); setResendSuccess(false); setOtp(codigoVazio()) }}
             className="cursor-pointer text-muted-foreground hover:text-foreground"
           >
             Voltar ao login

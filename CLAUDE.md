@@ -226,9 +226,16 @@ Sincroniza com Google Calendar se o usuário tiver conectado — operação best
 ### Fluxo de autenticação e onboarding
 
 ```
-Cadastro: email/senha → OTP 6 dígitos no email → verifyOtp → onboarding modal
+Cadastro: email/senha → código no email → verifyOtp → onboarding modal
 Google:   signInWithOAuth → /auth/callback → verifica onboarding_completed → dashboard
+Senha:    /recuperar-senha → e-mail → /auth/confirm (token_hash) → /recuperar-senha/nova-senha
 ```
+
+**O tamanho do código é configuração do painel ("Email OTP Length"), não do site.** `components/auth/campo-codigo.tsx` é o único campo de código (cadastro, login de conta pendente e o modal de reenvio) e tem 8 casas com mínimo de 6: aceita os dois tamanhos, porque código já enviado continua valendo depois de o painel mudar. Mexer no tamanho é sempre na ordem deploy → painel.
+
+**Os modelos de e-mail do Auth também moram no painel**, com cópia em `supabase/templates/` (o `LEIAME.md` de lá diz qual é qual). O de troca de senha leva ao `/auth/confirm` no nosso domínio, em vez do `supabase.co`: link para domínio diferente do remetente é sinal clássico de golpe. Nenhum modelo usa `{{ .Data.* }}`, porque o nome do cadastro é texto livre e o e-mail vai para qualquer endereço digitado.
+
+**Recusa de senha do Supabase passa por `mensagemDeSenha` (`lib/auth-erros.ts`)** no cadastro, na nova senha e no perfil. O GoTrue responde em inglês, e a nova senha dizia "o link pode ter expirado" para qualquer recusa. Com "senhas vazadas" ligado, a recusa por vazamento é o caso comum.
 
 Onboarding (3 passos: welcome → data da prova → CTA do diagnóstico):
 - **Os passos de nível, dificuldades e tempo diário foram removidos (jul/2026).** Coletavam dados sem nenhum leitor: `nivel` e `tempo_diario` nunca tiveram um consumidor, e `dificuldades` só servia ao diagnóstico antigo (escolhia 3 das 5 questões) — o Módulo 1 é blueprint fixo de 8 matérias vindo do `app_config`. Este wizard era o maior buraco de ativação medido: 33 de 57 usuários pararam nele

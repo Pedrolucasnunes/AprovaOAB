@@ -18,6 +18,7 @@ import Link from "next/link"
 import { PRECO_PRO } from "@/lib/planos"
 import { getTrialState, isTrialEnabledClient, type TrialUser } from "@/lib/trial"
 import { fotoDoPerfil, iniciaisDoNome } from "@/lib/avatar"
+import { mensagemDeSenha } from "@/lib/auth-erros"
 
 export default function PerfilPage() {
   const [isEditing, setIsEditing] = useState(false)
@@ -124,8 +125,11 @@ export default function PerfilPage() {
       const updates: any = { data: { nome, full_name: nome } }
 
       if (novaSenha) {
-        if (novaSenha.length < 8) {
-          toast.error("A nova senha deve ter pelo menos 8 caracteres.")
+        // As mesmas três regras do cadastro e da tela de nova senha. Aqui só
+        // havia o tamanho, então "abcdefgh" passava na tela e era recusada pelo
+        // Supabase com o erro em inglês.
+        if (novaSenha.length < 8 || !/[A-Z]/.test(novaSenha) || !/[0-9]/.test(novaSenha)) {
+          toast.error("A nova senha precisa ter pelo menos 8 caracteres, uma letra maiúscula e um número.")
           setSalvando(false)
           return
         }
@@ -140,7 +144,7 @@ export default function PerfilPage() {
       const { error } = await supabase.auth.updateUser(updates)
 
       if (error) {
-        toast.error(error.message)
+        toast.error(mensagemDeSenha(error) ?? "Não foi possível salvar as alterações. Tente de novo.")
       } else {
         toast.success("Perfil atualizado com sucesso!")
         setIsEditing(false)

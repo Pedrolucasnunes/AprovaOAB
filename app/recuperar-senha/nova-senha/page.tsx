@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Eye, EyeOff, Check } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import { mensagemDeSenha } from "@/lib/auth-erros"
 
 export default function NovaSenhaPage() {
   const router = useRouter()
@@ -47,7 +48,9 @@ export default function NovaSenhaPage() {
     setIsLoading(false)
 
     if (updateError) {
-      setError("Não foi possível redefinir a senha. O link pode ter expirado.")
+      // Recusa da senha não é link vencido: mandar pedir outro link faria a
+      // pessoa voltar aqui e ter a mesma senha recusada de novo.
+      setError(mensagemDeSenha(updateError) ?? "Não foi possível redefinir a senha. O link pode ter expirado.")
       return
     }
 

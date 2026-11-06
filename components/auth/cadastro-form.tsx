@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useRef, useState } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,12 +10,13 @@ import { supabase } from "@/lib/supabase"
 import { trackEvent } from "@/lib/analytics"
 import { BotaoGoogle } from "@/components/auth/botao-google"
 import { Separador } from "@/components/auth/separador"
+import { CampoCodigo, codigoPronto, codigoVazio } from "@/components/auth/campo-codigo"
 
 type Step = "form" | "verify" | "success"
 
 /**
- * A criação de conta, nos três passos que ela já tinha: formulário, código de
- * 6 dígitos e confirmação. Saiu de `app/cadastro/page.tsx` pelo mesmo motivo
+ * A criação de conta, nos três passos que ela já tinha: formulário, código
+ * enviado por e-mail e confirmação. Saiu de `app/cadastro/page.tsx` pelo mesmo motivo
  * do login — a página virou Server Component para o painel do calendário
  * poder calcular a contagem no servidor.
  *
@@ -30,10 +31,9 @@ export function CadastroForm({ emailInicial = "" }: { emailInicial?: string } = 
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [emailCadastro, setEmailCadastro] = useState("")
-  const [otp, setOtp] = useState(["", "", "", "", "", ""])
+  const [otp, setOtp] = useState(codigoVazio)
   const [resendLoading, setResendLoading] = useState(false)
   const [resendSuccess, setResendSuccess] = useState(false)
-  const inputsRef = useRef<(HTMLInputElement | null)[]>([])
 
   const handleGoogleLogin = async () => {
     trackEvent("cadastro_google_click")
@@ -89,38 +89,12 @@ export function CadastroForm({ emailInicial = "" }: { emailInicial?: string } = 
     setStep("verify")
   }
 
-  const handleOtpChange = (index: number, value: string) => {
-    if (!/^\d*$/.test(value)) return
-    const next = [...otp]
-    next[index] = value.slice(-1)
-    setOtp(next)
-    if (value && index < 5) {
-      inputsRef.current[index + 1]?.focus()
-    }
-  }
-
-  const handleOtpKeyDown = (index: number, e: { key: string }) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      inputsRef.current[index - 1]?.focus()
-    }
-  }
-
-  const handleOtpPaste = (e: { clipboardData: DataTransfer; preventDefault(): void }) => {
-    const text = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6)
-    if (!text) return
-    e.preventDefault()
-    const next = [...otp]
-    text.split("").forEach((char, i) => { next[i] = char })
-    setOtp(next)
-    inputsRef.current[Math.min(text.length, 5)]?.focus()
-  }
-
   const handleVerifyOtp = async (e: { preventDefault(): void }) => {
     e.preventDefault()
     setError(null)
     const token = otp.join("")
-    if (token.length < 6) {
-      setError("Digite os 6 dígitos do código enviado.")
+    if (!codigoPronto(otp)) {
+      setError("Digite o código completo enviado para o seu e-mail.")
       return
     }
 
@@ -160,7 +134,7 @@ export function CadastroForm({ emailInicial = "" }: { emailInicial?: string } = 
     setError(null)
     setResendSuccess(false)
     setResendLoading(true)
-    setOtp(["", "", "", "", "", ""])
+    setOtp(codigoVazio())
 
     try {
       const throttleRes = await fetch("/api/auth/throttle", {
@@ -234,7 +208,7 @@ export function CadastroForm({ emailInicial = "" }: { emailInicial?: string } = 
               Verifique seu e-mail
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Enviamos um código de 6 dígitos para{" "}
+              Enviamos um código para{" "}
               <span className="font-medium text-foreground">{emailCadastro}</span>.
             </p>
           </div>
@@ -243,22 +217,7 @@ export function CadastroForm({ emailInicial = "" }: { emailInicial?: string } = 
         <form onSubmit={handleVerifyOtp} className="space-y-5">
           <div className="space-y-2">
             <Label className="block text-center">Código de verificação</Label>
-            <div className="flex justify-center gap-2" onPaste={handleOtpPaste}>
-              {otp.map((digit, i) => (
-                <input
-                  key={i}
-                  ref={(el) => { inputsRef.current[i] = el }}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  aria-label={`Dígito ${i + 1} de 6`}
-                  onChange={(e) => handleOtpChange(i, e.target.value)}
-                  onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                  className="h-12 w-10 rounded-md border border-input bg-input text-center text-lg font-semibold focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-              ))}
-            </div>
+            <CampoCodigo valor={otp} onChange={setOtp} />
           </div>
 
           {error && <p className="text-center text-sm text-destructive">{error}</p>}

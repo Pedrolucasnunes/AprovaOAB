@@ -14,6 +14,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { supabase } from "@/lib/supabase"
+import { CampoCodigo, codigoPronto, codigoVazio } from "@/components/auth/campo-codigo"
 
 /** Segundos de espera entre dois envios. É o `max_frequency` do GoTrue. */
 const ESPERA_SEGUNDOS = 60
@@ -60,7 +61,7 @@ export function ReenviarAtivacaoModal({
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [espera, setEspera] = useState(0)
-  const [otp, setOtp] = useState(["", "", "", "", "", ""])
+  const [otp, setOtp] = useState(codigoVazio)
   const [verificando, setVerificando] = useState(false)
   const inputsRef = useRef<(HTMLInputElement | null)[]>([])
 
@@ -85,7 +86,7 @@ export function ReenviarAtivacaoModal({
     // Fechar zera o passo, mas preserva o e-mail digitado e a espera em curso:
     // reabrir não pode virar um jeito de burlar o intervalo entre envios.
     setPasso("email")
-    setOtp(["", "", "", "", "", ""])
+    setOtp(codigoVazio())
     setErro(null)
   }
 
@@ -115,36 +116,14 @@ export function ReenviarAtivacaoModal({
 
     setEspera(ESPERA_SEGUNDOS)
     setPasso("codigo")
-    setOtp(["", "", "", "", "", ""])
-  }
-
-  function onOtpChange(i: number, valor: string) {
-    if (!/^\d*$/.test(valor)) return
-    const next = [...otp]
-    next[i] = valor.slice(-1)
-    setOtp(next)
-    if (valor && i < 5) inputsRef.current[i + 1]?.focus()
-  }
-
-  function onOtpKeyDown(i: number, e: React.KeyboardEvent) {
-    if (e.key === "Backspace" && !otp[i] && i > 0) inputsRef.current[i - 1]?.focus()
-  }
-
-  function onOtpPaste(e: React.ClipboardEvent) {
-    const texto = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6)
-    if (!texto) return
-    e.preventDefault()
-    const next = [...otp]
-    texto.split("").forEach((c, i) => { next[i] = c })
-    setOtp(next)
-    inputsRef.current[Math.min(texto.length, 5)]?.focus()
+    setOtp(codigoVazio())
   }
 
   async function verificar(e: React.FormEvent) {
     e.preventDefault()
     const token = otp.join("")
-    if (token.length < 6) {
-      setErro("Digite os 6 dígitos do código.")
+    if (!codigoPronto(otp)) {
+      setErro("Digite o código completo.")
       return
     }
     setErro(null)
@@ -159,7 +138,7 @@ export function ReenviarAtivacaoModal({
 
     if (error) {
       setErro("Código inválido ou expirado. Peça um novo código abaixo.")
-      setOtp(["", "", "", "", "", ""])
+      setOtp(codigoVazio())
       inputsRef.current[0]?.focus()
       return
     }
@@ -189,7 +168,7 @@ export function ReenviarAtivacaoModal({
             </DialogTitle>
             <DialogDescription className="text-center">
               {passo === "email" ? (
-                "Informe o e-mail que você usou no cadastro. Enviamos um novo código de 6 dígitos."
+                "Informe o e-mail que você usou no cadastro. Enviamos um novo código."
               ) : (
                 <>
                   Se <span className="font-medium text-foreground">{email}</span> tiver uma conta
@@ -234,21 +213,7 @@ export function ReenviarAtivacaoModal({
             <form onSubmit={verificar} className="space-y-4">
               <div className="space-y-2">
                 <Label className="block text-center">Código de verificação</Label>
-                <div className="flex justify-center gap-2" onPaste={onOtpPaste}>
-                  {otp.map((digito, i) => (
-                    <input
-                      key={i}
-                      ref={(el) => { inputsRef.current[i] = el }}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={digito}
-                      onChange={(ev) => onOtpChange(i, ev.target.value)}
-                      onKeyDown={(ev) => onOtpKeyDown(i, ev)}
-                      className="h-12 w-10 rounded-md border border-input bg-input text-center text-lg font-semibold focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  ))}
-                </div>
+                <CampoCodigo valor={otp} onChange={setOtp} inputsRef={inputsRef} />
               </div>
 
               {erro && <p className="text-center text-sm text-destructive">{erro}</p>}

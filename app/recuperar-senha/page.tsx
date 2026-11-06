@@ -1,13 +1,32 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useSearchParams } from "next/navigation"
+import { Suspense, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft, Mail, Check } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+
+/**
+ * Quem chega de um link de troca de senha que não vale mais (`/auth/confirm` ou
+ * `/auth/callback` mandam `?link=expirado` ou `?link=invalido`). Sem isso a
+ * pessoa via o formulário limpo, sem saber por que voltou para cá.
+ *
+ * Componente à parte, dentro de Suspense, porque `useSearchParams` sem fronteira
+ * tira a página do pré-render.
+ */
+function AvisoDoLink() {
+  const link = useSearchParams().get("link")
+  if (link !== "expirado" && link !== "invalido") return null
+  return (
+    <p className="mb-4 text-sm text-muted-foreground">
+      Esse link de troca de senha não vale mais. Peça um novo abaixo.
+    </p>
+  )
+}
 
 export default function RecuperarSenhaPage() {
   const [isLoading, setIsLoading] = useState(false)
@@ -107,6 +126,9 @@ export default function RecuperarSenhaPage() {
           </CardHeader>
 
           <CardContent>
+            <Suspense fallback={null}>
+              <AvisoDoLink />
+            </Suspense>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">E-mail</Label>

@@ -27,6 +27,9 @@ export const EVENTOS = {
   DIAGNOSTICO_LEMBRETE_ENVIADO: "diagnostico_lembrete_enviado",
   TREINO_INICIADO: "treino_iniciado",
   LIMITE_DIARIO_ATINGIDO: "limite_diario_atingido",
+  // Emitido pelo `proxy.ts`, que grava direto em `user_events` sem passar por
+  // `track()` (o proxy não importa este módulo). Se mudar aqui, muda lá.
+  ADMIN_ACESSO_NEGADO: "admin_acesso_negado",
   // Vem de `events-client.ts` porque é o único que nasce no navegador — a tela
   // e a whitelist da rota têm que apontar pra mesma string.
   PAREDE_CTA_CLICADO,

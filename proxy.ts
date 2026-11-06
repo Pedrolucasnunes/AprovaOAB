@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
 import { TURMA_COOKIE, TURMA_COOKIE_MAX_AGE, slugValido } from "@/lib/turmas"
 import { SESSAO_COOKIE, SESSAO_COOKIE_MAX_AGE } from "@/lib/sessao"
+import { PAGINA_ACESSO_NEGADO } from "@/lib/acesso-negado"
 
 export async function proxy(req: NextRequest) {
   const res = NextResponse.next()
@@ -121,10 +122,37 @@ export async function proxy(req: NextRequest) {
       return responder(NextResponse.redirect(new URL("/conta-bloqueada", req.url)))
     }
 
-    // Acesso ao admin: exige role admin
+    // Acesso ao admin: exige role admin.
+    //
+    // Logado sem permissão recebe 403 com página própria. Era um redirect mudo
+    // pro dashboard, que não protegia menos, mas deixava a tentativa misturada
+    // aos redirects normais do site. Sem sessão continua indo pro login (acima),
+    // que é por onde o próprio admin entra.
     if (pathname.startsWith("/admin")) {
       if (role !== "admin") {
-        return responder(NextResponse.redirect(new URL("/dashboard", req.url)))
+        // Cada tentativa vira uma linha em `user_events`, gravada direto pela
+        // service role já criada acima: o proxy não importa `lib/events.ts`,
+        // que puxa o supabaseAdmin e o Sentry. A string é a mesma de
+        // EVENTOS.ADMIN_ACESSO_NEGADO. Prefetch não conta como tentativa.
+        const prefetch =
+          req.headers.has("next-router-prefetch") ||
+          /prefetch/i.test(req.headers.get("sec-purpose") ?? req.headers.get("purpose") ?? "")
+        if (!prefetch) {
+          try {
+            const { error } = await adminClient
+              .from("user_events")
+              .insert({ user_id: user.id, event: "admin_acesso_negado", props: { path: pathname } })
+            if (error) console.warn("[proxy] falha gravando admin_acesso_negado:", error.message)
+          } catch {
+            // Telemetria nunca derruba a resposta.
+          }
+        }
+        return responder(
+          new NextResponse(PAGINA_ACESSO_NEGADO, {
+            status: 403,
+            headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
+          }),
+        )
       }
     }
   }

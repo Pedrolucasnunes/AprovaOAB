@@ -300,6 +300,7 @@ Onde cada um emite:
 | `treino_iniciado` | `/api/treino` (2 saídas de sucesso) | `quantidade` vs `servidas`, `risco`, `geral`, **`origem`** |
 | `limite_diario_atingido` | `/api/treino` (2×) e `/api/simulados/resposta` | **`motivo`**: `teto` ou `treino_maior_que_restante`; `estado`, `dias_no_teto` |
 | `parede_cta_clicado` | as telas, via `POST /api/eventos` | `estado`, `origem`, `destino`, `dias_no_teto` |
+| `admin_acesso_negado` | `proxy.ts`, gravado direto sem `track()` | `path` |
 
 `parede_cta_clicado` é o **único** evento que nasce no cliente — o clique acontece antes de qualquer requisição. Por isso existe `lib/events-client.ts` (client-safe, sem `supabaseAdmin`) e a rota `/api/eventos`, que aceita **só** os nomes de `EVENTOS_DO_CLIENTE`: endpoint de escrita com nome livre deixaria qualquer usuário logado inventar métrica no painel. `lib/analytics.ts` (dataLayer do GTM) não serve pra isso — manda pro GA4, e a análise do produto sai do `/admin/metricas`, que lê `user_events`.
 
@@ -349,6 +350,7 @@ A régua não é reescrita: `minTempoRespostaMs` sai do `app_config`, e o script
 - `role = "admin"` → acesso ao painel `/admin` (questões, usuários, feedback)
 - `role = "blocked"` → `requireUser()` retorna 403 antes de qualquer lógica de negócio
 - Role é alterado via `PUT /api/admin/usuarios/[id]`
+- **Logado sem `role = "admin"` em `/admin` recebe 403**, servido pelo próprio `proxy.ts` como HTML pronto (`lib/acesso-negado.ts`), e cada tentativa vira um `admin_acesso_negado` em `user_events`. HTML pronto porque o status de um rewrite do proxy não é garantido fora do `next dev`. Sem sessão continua indo pro login. **O portão das páginas é o proxy, não o layout:** o `requireAdminPage` do `app/admin/layout.tsx` é segunda camada, e layout não roda de novo em navegação pelo cliente
 
 ### Estrutura de páginas
 

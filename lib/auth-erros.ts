@@ -27,3 +27,17 @@ export function mensagemDeSenha(erro: ErroDoAuth): string | null {
       return null
   }
 }
+
+/**
+ * A verificação humana (Turnstile) não passou: o pedido chegou sem comprovante,
+ * com um vencido ou com um já usado. O Supabase confere isso ANTES de olhar
+ * e-mail e senha, então dizer que foi a verificação não revela se a conta existe.
+ * Sem esta mensagem, o login mostraria "E-mail ou senha incorretos" para quem
+ * digitou tudo certo.
+ */
+export const MENSAGEM_VERIFICACAO =
+  "Não conseguimos concluir a verificação de segurança. Recarregue a página e tente de novo."
+
+export function falhouVerificacao(erro: ErroDoAuth): boolean {
+  return erro?.code === "captcha_failed"
+}

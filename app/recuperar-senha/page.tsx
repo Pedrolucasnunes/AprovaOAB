@@ -2,13 +2,15 @@
 
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { Suspense, useState } from "react"
+import { Suspense, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft, Mail, Check } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import { VerificacaoHumana, type VerificacaoHumanaHandle } from "@/components/auth/verificacao-humana"
+import { MENSAGEM_VERIFICACAO, falhouVerificacao } from "@/lib/auth-erros"
 
 /**
  * Quem chega de um link de troca de senha que não vale mais (`/auth/confirm` ou
@@ -33,6 +35,7 @@ export default function RecuperarSenhaPage() {
   const [sent, setSent] = useState(false)
   const [email, setEmail] = useState("")
   const [error, setError] = useState<string | null>(null)
+  const verificacaoRef = useRef<VerificacaoHumanaHandle>(null)
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -56,14 +59,21 @@ export default function RecuperarSenhaPage() {
       // Falha de rede no throttle — segue o fluxo (Supabase tem rate limit próprio)
     }
 
+    const captchaToken = (await verificacaoRef.current?.obterToken()) ?? undefined
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+      captchaToken,
     })
+    verificacaoRef.current?.renovar()
 
     setIsLoading(false)
 
     if (resetError) {
-      setError("Não foi possível enviar o e-mail. Tente novamente.")
+      setError(
+        falhouVerificacao(resetError)
+          ? MENSAGEM_VERIFICACAO
+          : "Não foi possível enviar o e-mail. Tente novamente.",
+      )
       return
     }
 
@@ -146,9 +156,12 @@ export default function RecuperarSenhaPage() {
 
               {error && <p className="text-sm text-destructive">{error}</p>}
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Enviando..." : "Enviar link de recuperação"}
-              </Button>
+              <div>
+                <VerificacaoHumana ref={verificacaoRef} acao="senha" />
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Enviando..." : "Enviar link de recuperação"}
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>

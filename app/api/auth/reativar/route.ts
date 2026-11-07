@@ -2,8 +2,13 @@ import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { rateLimit, hashEmail } from "@/lib/rate-limit"
 import { logWarning } from "@/lib/logger"
+import { MENSAGEM_VERIFICACAO } from "@/lib/auth-erros"
 
-const schema = z.object({ email: z.string().email().max(254) })
+const schema = z.object({
+  email: z.string().email().max(254),
+  // Comprovante do Turnstile, repassado ao Supabase, que é quem confere.
+  captchaToken: z.string().max(4096).optional(),
+})
 
 /**
  * Reenvia o código de ativação para quem criou a conta e nunca confirmou o
@@ -37,7 +42,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Informe um e-mail válido." }, { status: 400 })
   }
-  const { email } = parsed.data
+  const { email, captchaToken } = parsed.data
 
   const ipLimit = await rateLimit(req, "auth-reativar-ip", 10, 900)
   if (!ipLimit.success) {
@@ -61,8 +66,22 @@ export async function POST(req: NextRequest) {
         apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ type: "signup", email }),
+      body: JSON.stringify({
+        type: "signup",
+        email,
+        gotrue_meta_security: { captcha_token: captchaToken },
+      }),
     })
+
+    // A verificação humana é a única recusa que a tela PRECISA ver: o GoTrue a
+    // confere antes de procurar a conta, então ela não diz se o e-mail existe,
+    // e engoli-la aqui faria a pessoa esperar um código que nunca sai.
+    if (res.status === 400) {
+      const corpo = await res.json().catch(() => null)
+      if (corpo?.error_code === "captcha_failed") {
+        return NextResponse.json({ error: MENSAGEM_VERIFICACAO }, { status: 400 })
+      }
+    }
 
     // 429 é o `max_frequency` do GoTrue e é esperado quando a pessoa clica duas
     // vezes seguidas — não é falha nossa e não muda a resposta (ver o item 2 do

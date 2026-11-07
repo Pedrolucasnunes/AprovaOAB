@@ -5,7 +5,7 @@ import { z } from "zod"
 import { rateLimit } from "@/lib/rate-limit"
 import { marcarTurma } from "@/lib/turmas-server"
 import { TURMA_COOKIE } from "@/lib/turmas"
-import { mensagemDeSenha } from "@/lib/auth-erros"
+import { MENSAGEM_VERIFICACAO, falhouVerificacao, mensagemDeSenha } from "@/lib/auth-erros"
 import { logWarning } from "@/lib/logger"
 
 const schema = z.object({
@@ -17,6 +17,8 @@ const schema = z.object({
     .regex(/[A-Z]/, "A senha deve conter uma letra maiúscula.")
     .regex(/[0-9]/, "A senha deve conter um número."),
   name: z.string().trim().min(1, "Informe seu nome.").max(120),
+  // Comprovante do Turnstile, repassado ao Supabase, que é quem confere.
+  captchaToken: z.string().max(4096).optional(),
 })
 
 export async function POST(req: NextRequest) {
@@ -34,7 +36,7 @@ export async function POST(req: NextRequest) {
     const first = parsed.error.issues[0]?.message ?? "Dados inválidos."
     return NextResponse.json({ error: first }, { status: 400 })
   }
-  const { email, password, name } = parsed.data
+  const { email, password, name, captchaToken } = parsed.data
 
   const cookieStore = await cookies()
   const supabase = createServerClient(
@@ -55,10 +57,14 @@ export async function POST(req: NextRequest) {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { full_name: name } },
+    options: { data: { full_name: name }, captchaToken },
   })
 
   if (error) {
+    if (falhouVerificacao(error)) {
+      return NextResponse.json({ error: MENSAGEM_VERIFICACAO }, { status: 400 })
+    }
+
     if (error.message.toLowerCase().includes("already registered")) {
       return NextResponse.json(
         { error: "Este e-mail já está cadastrado. Faça login." },

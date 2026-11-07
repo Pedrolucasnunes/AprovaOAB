@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,6 +11,8 @@ import { trackEvent } from "@/lib/analytics"
 import { BotaoGoogle } from "@/components/auth/botao-google"
 import { Separador } from "@/components/auth/separador"
 import { CampoCodigo, codigoPronto, codigoVazio } from "@/components/auth/campo-codigo"
+import { VerificacaoHumana, type VerificacaoHumanaHandle } from "@/components/auth/verificacao-humana"
+import { MENSAGEM_VERIFICACAO, falhouVerificacao } from "@/lib/auth-erros"
 
 type Step = "form" | "verify" | "success"
 
@@ -34,6 +36,8 @@ export function CadastroForm({ emailInicial = "" }: { emailInicial?: string } = 
   const [otp, setOtp] = useState(codigoVazio)
   const [resendLoading, setResendLoading] = useState(false)
   const [resendSuccess, setResendSuccess] = useState(false)
+  // Um widget por passo (o do cadastro e o do reenvio nunca estão na tela juntos).
+  const verificacaoRef = useRef<VerificacaoHumanaHandle>(null)
 
   const handleGoogleLogin = async () => {
     trackEvent("cadastro_google_click")
@@ -69,11 +73,13 @@ export function CadastroForm({ emailInicial = "" }: { emailInicial?: string } = 
 
     await supabase.auth.signOut()
 
+    const captchaToken = (await verificacaoRef.current?.obterToken()) ?? undefined
     const res = await fetch("/api/auth/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password: senha, name: nome }),
+      body: JSON.stringify({ email, password: senha, name: nome, captchaToken }),
     })
+    verificacaoRef.current?.renovar()
 
     const json = await res.json()
     setIsLoading(false)
@@ -153,10 +159,13 @@ export function CadastroForm({ emailInicial = "" }: { emailInicial?: string } = 
       // Falha de rede no throttle — segue o fluxo (Supabase tem rate limit próprio)
     }
 
+    const captchaToken = (await verificacaoRef.current?.obterToken()) ?? undefined
     const { error: resendError } = await supabase.auth.resend({
       type: "signup",
       email: emailCadastro,
+      options: { captchaToken },
     })
+    verificacaoRef.current?.renovar()
     setResendLoading(false)
 
     // O sucesso precisa aparecer tanto quanto o erro: sem confirmação visível,
@@ -166,9 +175,11 @@ export function CadastroForm({ emailInicial = "" }: { emailInicial?: string } = 
     if (resendError) {
       const espera = /after (\d+) seconds?/i.exec(resendError.message)?.[1]
       setError(
-        espera
-          ? `Aguarde ${espera}s antes de pedir outro código.`
-          : "Não foi possível reenviar o código. Tente novamente.",
+        falhouVerificacao(resendError)
+          ? MENSAGEM_VERIFICACAO
+          : espera
+            ? `Aguarde ${espera}s antes de pedir outro código.`
+            : "Não foi possível reenviar o código. Tente novamente.",
       )
       return
     }
@@ -233,17 +244,20 @@ export function CadastroForm({ emailInicial = "" }: { emailInicial?: string } = 
           </Button>
         </form>
 
-        <p className="text-center text-sm text-muted-foreground">
-          Não recebeu o código?{" "}
-          <button
-            type="button"
-            onClick={handleResend}
-            disabled={resendLoading}
-            className="cursor-pointer font-medium text-primary hover:underline disabled:cursor-default disabled:text-muted-foreground disabled:no-underline"
-          >
-            {resendLoading ? "Enviando..." : "Reenviar"}
-          </button>
-        </p>
+        <div>
+          <VerificacaoHumana ref={verificacaoRef} acao="reenvio" />
+          <p className="text-center text-sm text-muted-foreground">
+            Não recebeu o código?{" "}
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={resendLoading}
+              className="cursor-pointer font-medium text-primary hover:underline disabled:cursor-default disabled:text-muted-foreground disabled:no-underline"
+            >
+              {resendLoading ? "Enviando..." : "Reenviar"}
+            </button>
+          </p>
+        </div>
 
         <p className="text-center text-sm">
           <button
@@ -345,13 +359,16 @@ export function CadastroForm({ emailInicial = "" }: { emailInicial?: string } = 
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={isLoading || (password.length > 0 && !senhaValida)}
-        >
-          {isLoading ? "Criando conta..." : "Criar conta"}
-        </Button>
+        <div>
+          <VerificacaoHumana ref={verificacaoRef} acao="cadastro" />
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={isLoading || (password.length > 0 && !senhaValida)}
+          >
+            {isLoading ? "Criando conta..." : "Criar conta"}
+          </Button>
+        </div>
       </form>
 
       <p className="text-xs leading-relaxed text-muted-foreground">

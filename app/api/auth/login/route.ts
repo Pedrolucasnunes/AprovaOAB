@@ -4,10 +4,13 @@ import { cookies } from "next/headers"
 import { z } from "zod"
 import { rateLimit, hashEmail } from "@/lib/rate-limit"
 import { supabaseAdmin } from "@/lib/supabase-admin"
+import { MENSAGEM_VERIFICACAO, falhouVerificacao } from "@/lib/auth-erros"
 
 const schema = z.object({
   email: z.string().email().max(254),
   password: z.string().min(1).max(200),
+  // Comprovante do Turnstile, repassado ao Supabase, que é quem confere.
+  captchaToken: z.string().max(4096).optional(),
 })
 
 export async function POST(req: NextRequest) {
@@ -16,7 +19,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Dados inválidos." }, { status: 400 })
   }
-  const { email, password } = parsed.data
+  const { email, password, captchaToken } = parsed.data
 
   const ipLimit = await rateLimit(req, "auth-login-ip", 10, 900)
   if (!ipLimit.success) {
@@ -54,9 +57,17 @@ export async function POST(req: NextRequest) {
     },
   )
 
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+    options: { captchaToken },
+  })
 
   if (error) {
+    if (falhouVerificacao(error)) {
+      return NextResponse.json({ error: MENSAGEM_VERIFICACAO }, { status: 400 })
+    }
+
     if (error.message.toLowerCase().includes("not confirmed")) {
       return NextResponse.json({ requiresVerification: true, email })
     }

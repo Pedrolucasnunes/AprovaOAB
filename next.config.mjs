@@ -29,12 +29,12 @@ const nextConfig = {
   async headers() {
     const csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' https://js.stripe.com https://accounts.google.com https://va.vercel-scripts.com https://www.googletagmanager.com https://*.clarity.ms",
+      "script-src 'self' 'unsafe-inline' https://js.stripe.com https://accounts.google.com https://va.vercel-scripts.com https://www.googletagmanager.com https://*.clarity.ms https://challenges.cloudflare.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' data: blob: https:",
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://accounts.google.com https://oauth2.googleapis.com https://vitals.vercel-insights.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.clarity.ms https://c.bing.com",
-      "frame-src https://js.stripe.com https://hooks.stripe.com https://accounts.google.com https://www.googletagmanager.com",
+      "frame-src https://js.stripe.com https://hooks.stripe.com https://accounts.google.com https://www.googletagmanager.com https://challenges.cloudflare.com",
       "frame-ancestors 'none'",
       "form-action 'self' https://checkout.stripe.com",
       "base-uri 'self'",

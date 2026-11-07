@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog"
 import { supabase } from "@/lib/supabase"
 import { CampoCodigo, codigoPronto, codigoVazio } from "@/components/auth/campo-codigo"
+import { VerificacaoHumana, type VerificacaoHumanaHandle } from "@/components/auth/verificacao-humana"
 
 /** Segundos de espera entre dois envios. É o `max_frequency` do GoTrue. */
 const ESPERA_SEGUNDOS = 60
@@ -64,6 +65,8 @@ export function ReenviarAtivacaoModal({
   const [otp, setOtp] = useState(codigoVazio)
   const [verificando, setVerificando] = useState(false)
   const inputsRef = useRef<(HTMLInputElement | null)[]>([])
+  // Um widget por passo: o envio sai do passo do e-mail e o reenvio, do código.
+  const verificacaoRef = useRef<VerificacaoHumanaHandle>(null)
 
   // Contagem da espera entre envios.
   useEffect(() => {
@@ -96,11 +99,13 @@ export function ReenviarAtivacaoModal({
     setErro(null)
     setEnviando(true)
 
+    const captchaToken = (await verificacaoRef.current?.obterToken()) ?? undefined
     const res = await fetch("/api/auth/reativar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, captchaToken }),
     }).catch(() => null)
+    verificacaoRef.current?.renovar()
 
     setEnviando(false)
 
@@ -196,18 +201,21 @@ export function ReenviarAtivacaoModal({
 
               {erro && <p className="text-sm text-destructive">{erro}</p>}
 
-              <Button type="submit" className="w-full" disabled={enviando || espera > 0}>
-                {enviando ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Enviando...
-                  </>
-                ) : espera > 0 ? (
-                  `Aguarde ${espera}s para enviar de novo`
-                ) : (
-                  "Enviar"
-                )}
-              </Button>
+              <div>
+                <VerificacaoHumana ref={verificacaoRef} acao="reenvio" />
+                <Button type="submit" className="w-full" disabled={enviando || espera > 0}>
+                  {enviando ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Enviando...
+                    </>
+                  ) : espera > 0 ? (
+                    `Aguarde ${espera}s para enviar de novo`
+                  ) : (
+                    "Enviar"
+                  )}
+                </Button>
+              </div>
             </form>
           ) : (
             <form onSubmit={verificar} className="space-y-4">
@@ -222,22 +230,25 @@ export function ReenviarAtivacaoModal({
                 {verificando ? "Verificando..." : "Ativar conta"}
               </Button>
 
-              <div className="flex items-center justify-between text-sm">
-                <button
-                  type="button"
-                  onClick={() => enviar()}
-                  disabled={espera > 0 || enviando}
-                  className="cursor-pointer text-primary hover:underline disabled:cursor-default disabled:text-muted-foreground disabled:no-underline"
-                >
-                  {espera > 0 ? `Reenviar em ${espera}s` : "Reenviar código"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setPasso("email"); setErro(null) }}
-                  className="cursor-pointer text-muted-foreground hover:text-foreground"
-                >
-                  Trocar e-mail
-                </button>
+              <div>
+                <VerificacaoHumana ref={verificacaoRef} acao="reenvio" />
+                <div className="flex items-center justify-between text-sm">
+                  <button
+                    type="button"
+                    onClick={() => enviar()}
+                    disabled={espera > 0 || enviando}
+                    className="cursor-pointer text-primary hover:underline disabled:cursor-default disabled:text-muted-foreground disabled:no-underline"
+                  >
+                    {espera > 0 ? `Reenviar em ${espera}s` : "Reenviar código"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setPasso("email"); setErro(null) }}
+                    className="cursor-pointer text-muted-foreground hover:text-foreground"
+                  >
+                    Trocar e-mail
+                  </button>
+                </div>
               </div>
             </form>
           )}

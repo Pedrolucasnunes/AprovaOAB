@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,6 +12,8 @@ import { BotaoGoogle } from "@/components/auth/botao-google"
 import { Separador } from "@/components/auth/separador"
 import { ReenviarAtivacaoModal } from "@/components/auth/reenviar-ativacao-modal"
 import { CampoCodigo, codigoPronto, codigoVazio } from "@/components/auth/campo-codigo"
+import { VerificacaoHumana, type VerificacaoHumanaHandle } from "@/components/auth/verificacao-humana"
+import { MENSAGEM_VERIFICACAO, falhouVerificacao } from "@/lib/auth-erros"
 
 /**
  * O formulário de entrada. Saiu de `app/login/page.tsx` para que a página
@@ -39,6 +41,8 @@ export function LoginForm() {
   const [otpLoading, setOtpLoading] = useState(false)
   const [resendLoading, setResendLoading] = useState(false)
   const [resendSuccess, setResendSuccess] = useState(false)
+  // Um widget por passo (o do login e o do reenvio nunca estão na tela juntos).
+  const verificacaoRef = useRef<VerificacaoHumanaHandle>(null)
 
   // O GoTrue devolve o erro do link vencido ora na query, ora no fragmento
   // (`#error_code=otp_expired`), e fragmento não chega ao servidor — por isso
@@ -108,10 +112,13 @@ export function LoginForm() {
       // Falha de rede no throttle — segue o fluxo (Supabase tem rate limit próprio)
     }
 
+    const captchaToken = (await verificacaoRef.current?.obterToken()) ?? undefined
     const { error: resendError } = await supabase.auth.resend({
       type: "signup",
       email: unverifiedEmail,
+      options: { captchaToken },
     })
+    verificacaoRef.current?.renovar()
     setResendLoading(false)
 
     // O erro precisa aparecer. Antes era descartado aqui, e o caso mais comum
@@ -121,9 +128,11 @@ export function LoginForm() {
     if (resendError) {
       const espera = /after (\d+) seconds?/i.exec(resendError.message)?.[1]
       setOtpError(
-        espera
-          ? `Aguarde ${espera}s antes de pedir outro código.`
-          : "Não foi possível reenviar agora. Tente de novo em alguns instantes.",
+        falhouVerificacao(resendError)
+          ? MENSAGEM_VERIFICACAO
+          : espera
+            ? `Aguarde ${espera}s antes de pedir outro código.`
+            : "Não foi possível reenviar agora. Tente de novo em alguns instantes.",
       )
       return
     }
@@ -137,14 +146,17 @@ export function LoginForm() {
     setUnverifiedEmail(null)
     setResendSuccess(false)
 
+    // Lido ANTES de qualquer await: depois dele o `currentTarget` do evento é nulo.
     const formData = new FormData(e.currentTarget)
     const password = formData.get("password") as string
+    const captchaToken = (await verificacaoRef.current?.obterToken()) ?? undefined
 
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, captchaToken }),
     })
+    verificacaoRef.current?.renovar()
 
     const json = await res.json()
 
@@ -210,22 +222,25 @@ export function LoginForm() {
           </Button>
         </form>
 
-        <div className="flex items-center justify-between text-sm">
-          <button
-            type="button"
-            onClick={handleResend}
-            disabled={resendLoading}
-            className="cursor-pointer text-primary hover:underline disabled:opacity-50"
-          >
-            {resendLoading ? "Enviando..." : "Reenviar código"}
-          </button>
-          <button
-            type="button"
-            onClick={() => { setUnverifiedEmail(null); setResendSuccess(false); setOtp(codigoVazio()) }}
-            className="cursor-pointer text-muted-foreground hover:text-foreground"
-          >
-            Voltar ao login
-          </button>
+        <div>
+          <VerificacaoHumana ref={verificacaoRef} acao="reenvio" />
+          <div className="flex items-center justify-between text-sm">
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={resendLoading}
+              className="cursor-pointer text-primary hover:underline disabled:opacity-50"
+            >
+              {resendLoading ? "Enviando..." : "Reenviar código"}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setUnverifiedEmail(null); setResendSuccess(false); setOtp(codigoVazio()) }}
+              className="cursor-pointer text-muted-foreground hover:text-foreground"
+            >
+              Voltar ao login
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -305,9 +320,12 @@ export function LoginForm() {
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Entrando..." : "Entrar"}
-        </Button>
+        <div>
+          <VerificacaoHumana ref={verificacaoRef} acao="login" />
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? "Entrando..." : "Entrar"}
+          </Button>
+        </div>
       </form>
 
       <div className="space-y-1 border-t border-border pt-5 text-sm text-muted-foreground">

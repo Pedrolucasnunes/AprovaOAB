@@ -74,6 +74,8 @@ O campo `plano` é atualizado **exclusivamente pelo webhook do Stripe** (`/api/s
 
 **Escrita em `public.users` é server-only: só pela service role (webhook do Stripe, rotas admin e demais rotas de servidor), igual a `turmas` e `user_events`.** Não há policy de `INSERT`/`UPDATE`/`DELETE` para `authenticated` nem `anon`, e o grant de escrita a esses papéis foi revogado (`supabase/migrations/20261001_users_write_server_only.sql`). O cliente só faz `SELECT` da própria linha (perfil, trial, simulados) — isso continua liberado; a edição de nome/senha do perfil vai por `supabase.auth.updateUser`, que escreve em `auth.users`, não nesta tabela.
 
+**Apagar uma conta no Auth não apaga a linha dela em `public.users`.** Não existe FK entre `public.users.id` e `auth.users.id`, nem trigger de `DELETE`: os dois gatilhos de `auth.users` são de `INSERT` e de `UPDATE`. A linha fica órfã para sempre, sem erro. Órfã entra no denominador das métricas e na contagem do `/api/admin/stats`. O placar dos dois lados é `supabase/diagnostics/orfaos_public_users.sql` (só leitura, uma consulta só, porque o SQL Editor mostra apenas o resultado da última instrução). Quem apaga conta de teste apaga também a linha em `public.users`.
+
 **`questions.explicacao` é server-only: `anon` e `authenticated` não têm `SELECT` nessa coluna** (grant por coluna, `supabase/migrations/20261104_questions_explicacao_server_only.sql`). Toda leitura da resolução vai pelo `supabaseAdmin`, numa rota que decide quando a pessoa pode vê-la (em `/api/simulados/resposta`, só depois da resposta, só no treino e dentro do teto do free). Duas consequências: `select('*')` em `questions` por um cliente que não seja o admin falha com 42501, então liste as colunas; e coluna nova em `questions` nasce invisível para o cliente até entrar no `GRANT` da migration.
 
 ### Datas do banco — CUIDADO com timezone
@@ -360,6 +362,7 @@ A régua não é reescrita: `minTempoRespostaMs` sai do `app_config`, e o script
 - `role = "admin"` → acesso ao painel `/admin` (questões, usuários, feedback)
 - `role = "blocked"` → `requireUser()` retorna 403 antes de qualquer lógica de negócio
 - Role é alterado via `PUT /api/admin/usuarios/[id]`
+- **Importar questões só faz `INSERT`.** `POST /api/admin/questoes/importar` nunca atualiza: reimportar um CSV, por exemplo com as explicações preenchidas, duplica as questões e responde `201` como se tivesse dado certo. Para mudar questão que já existe, exporte pelo admin (o export traz o `id` na primeira coluna), edite chaveado pelo `id` e aplique por `PUT /api/admin/questoes/[id]`. É o caso das 80 questões do 47º Exame (XLVII), que continuam sem explicação.
 - **Logado sem `role = "admin"` em `/admin` recebe 403**, servido pelo próprio `proxy.ts` como HTML pronto (`lib/acesso-negado.ts`), e cada tentativa vira um `admin_acesso_negado` em `user_events`. HTML pronto porque o status de um rewrite do proxy não é garantido fora do `next dev`. Sem sessão continua indo pro login. **O portão das páginas é o proxy, não o layout:** o `requireAdminPage` do `app/admin/layout.tsx` é segunda camada, e layout não roda de novo em navegação pelo cliente
 
 ### Estrutura de páginas

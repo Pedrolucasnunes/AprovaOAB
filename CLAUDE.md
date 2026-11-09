@@ -362,6 +362,7 @@ A régua não é reescrita: `minTempoRespostaMs` sai do `app_config`, e o script
 - `role = "admin"` → acesso ao painel `/admin` (questões, usuários, feedback)
 - `role = "blocked"` → `requireUser()` retorna 403 antes de qualquer lógica de negócio
 - Role é alterado via `PUT /api/admin/usuarios/[id]`
+- **Importar questões só faz `INSERT`.** `POST /api/admin/questoes/importar` nunca atualiza: reimportar um CSV, por exemplo com as explicações preenchidas, duplica as questões e responde `201` como se tivesse dado certo. Para mudar questão que já existe, exporte pelo admin (o export traz o `id` na primeira coluna), edite chaveado pelo `id` e aplique por `PUT /api/admin/questoes/[id]`. É o caso das 80 questões do 47º Exame (XLVII), que continuam sem explicação.
 - **Logado sem `role = "admin"` em `/admin` recebe 403**, servido pelo próprio `proxy.ts` como HTML pronto (`lib/acesso-negado.ts`), e cada tentativa vira um `admin_acesso_negado` em `user_events`. HTML pronto porque o status de um rewrite do proxy não é garantido fora do `next dev`. Sem sessão continua indo pro login. **O portão das páginas é o proxy, não o layout:** o `requireAdminPage` do `app/admin/layout.tsx` é segunda camada, e layout não roda de novo em navegação pelo cliente
 
 ### Estrutura de páginas

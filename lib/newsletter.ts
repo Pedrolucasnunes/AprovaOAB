@@ -1622,10 +1622,107 @@ export const EDICAO_22: NewsletterEdicao = {
   examLabel: "até a 1ª fase do 48º",
 }
 
+// Semana do resultado preliminar da 2ª fase do 47º e do edital do reaproveitamento
+// pro 48º, os dois em 12/11. Termômetro sem matéria: as letras do gabarito.
+//
+// SEM TRAVESSÃO no conteúdo (decisão do Pedro de 23/set/2026).
+//
+// Termômetro medido em 10/nov/2026 (scratchpad/letras23.cjs): `resposta_correta` das
+// 2.232 questões do acervo (28 provas, do 18º ao 47º, sem o 28º e o 46º). A 521, B 577,
+// C 573, D 561; qui-quadrado 3,5 com 3 graus de liberdade (p ≈ 0,3), daí "cabe no
+// acaso". Tamanho das alternativas: a certa é a mais longa sozinha em 532 (23,8%, com
+// 45 empates na mais longa) e a mais curta sozinha em 538 (24,1%).
+// Gabaritos oficiais do tipo 1 (a ordem das alternativas não muda entre os tipos; no
+// 42º os quatro tipos dão a mesma contagem): 42º preliminar (s.oab.org.br/arquivos/
+// 2024/12/73dee60d-...pdf) A20 B20 C21 D19, com a 43 anulada depois (era B); 43º
+// definitivo A20 B20 C19 D19 e duas anuladas; 46º definitivo (oab.fgv.br/arq/649/
+// 103500_oab261_gabarito_definitivo.pdf) A19 B22 C19 D20; 47º preliminar
+// (s.oab.org.br/arquivos/2026/09/9dceea61-...pdf) A18 B20 C20 D22, igual ao banco.
+// O banco não é perfeito: no 42º, 79 dos 80 gabaritos batem com o oficial, e a 25 do
+// tipo 1 (execução fiscal) está C no banco e D no oficial (scratchpad/confere42.cjs;
+// controle negativo contra o gabarito do tipo 2: 22 de 80). Uma questão em 80 não
+// move o agregado.
+//
+// Questão: 60 do caderno tipo 1 do 42º (prova de 1º/12/2024; s.oab.org.br/arquivos/
+// 2024/12/6588c7e0-...pdf), texto igual ao do banco, gabarito C. A única anulação da
+// prova foi a 43 (comunicado da FGV de 18/12/2024, s.oab.org.br/arquivos/2024/12/
+// c0236e10-...pdf). Na plataforma: 19 respostas de treino de 13 pessoas, nenhuma
+// abaixo de 3 s, 2 acertos (A 5, B 3, C 2, D 9). Simulado e diagnóstico sem resposta.
+//
+// Código Penal: o Planalto derrubou a conexão (curl 56), e o texto veio das
+// publicações originais. Arts. 18, 20, 22 e 23 na Lei 7.209/1984, que deu a redação
+// atual da Parte Geral (legis.senado.leg.br/norma/549085); art. 180 na Lei 9.426/1996
+// (www2.camara.leg.br/legin/fed/lei/1996/lei-9426-24-dezembro-1996-365299-
+// publicacaooriginal-1-pl.html). A obediência hierárquica restrita a relação de
+// direito público é doutrina, não texto de lei: ponto da revisão jurídica.
+//
+// Datas: edital do 47º (s.oab.org.br/arquivos/2026/05/3578986c-...pdf), padrão
+// definitivo e resultado preliminar da 2ª fase em 12/11/2026, recurso de 13 a 15/11 e
+// resultado final em 3/12. Edital do 48º (s.oab.org.br/arquivos/2026/09/
+// fb43fb37-...pdf): reaproveitamento nos itens 2.8.1 e 2.8.1.1 (edital complementar em
+// 12/11; o comunicado de 21/5 dizia 13/11), isenção definitiva em 2/12, taxa até 4/12,
+// locais da prova objetiva em 4/1/2027 e 2ª fase em 28/2/2027. Regras de nota: itens
+// 3.4.5.1 e 5.9.
+//
+// Curiosidade: binomial exata (frações) com p = 1/4. P(X ≥ 40 | n = 80) = 1,31e-6, ou
+// 1 em 762.337. Média de 50 chutes: 12,5 com p = 1/4 e 16,7 com p = 1/3.
+export const EDICAO_23: NewsletterEdicao = {
+  numero: 23,
+  subject: "☕ Café com OAB #23: a letra da sorte não existe",
+  preheader:
+    "Contei o gabarito das 2.232 questões do acervo: nenhuma letra sai mais que as outras, e a alternativa mais longa acerta tanto quanto um chute. O que muda a conta é eliminar.",
+  intro: [
+    "Quinta-feira (12/11) é dia de 2ª fase: sai o resultado preliminar da prova prático-profissional do 47º e, no mesmo dia, o edital do reaproveitamento pro 48º. 📌 Os detalhes estão na notícia.",
+    "No termômetro, a pergunta que todo mundo já se fez no meio da prova: <strong>existe letra que sai mais?</strong> Contei o gabarito das 2.232 questões do acervo e conferi nos gabaritos oficiais das provas mais recentes. Não existe, e a alternativa mais longa também não ajuda. 🎲",
+    "E a questão da semana é de Penal e mostra o que funciona no lugar do chute. Na plataforma, só 2 das 19 respostas acertaram, e 9 foram na alternativa mais longa. ⚖️",
+  ],
+  termometro:
+    "🟡 <strong>A letra da sorte não existe.</strong> Contei o gabarito das 2.232 questões do acervo, 28 provas do 18º ao 47º: a resposta é A em 23% delas, B em 26%, C em 26% e D em 25%, uma diferença que cabe no acaso. Nos gabaritos oficiais das quatro provas mais recentes que conferi (42º, 43º, 46º e 47º), nenhuma letra passou de 22 respostas em 80 nem ficou abaixo de 18, e a campeã muda de uma prova pra outra: no 46º foi a B, com 22; no 47º, a D, também com 22. 📏 <strong>A mais longa também não é a certa.</strong> Medi as quatro alternativas de cada questão: a mais longa é o gabarito em 23,8% das vezes, e a mais curta em 24,1%. Chutando no escuro, a conta é 25%. Quem aposta na C ou na alternativa mais completa está chutando do mesmo jeito. 🧮 <strong>O que muda a conta é eliminar:</strong> com uma alternativa descartada, o chute sobe pra 33%; com duas, pra 50%. A questão de hoje mostra como.",
+  questao: {
+    titulo: "🎯 A questão da semana: a mais longa era a errada",
+    fonte: "FGV · Exame de Ordem XLII/2024 · a prova de 1º de dezembro de 2024 · na plataforma, só 2 das 19 respostas acertaram",
+    enunciado:
+      "Alfredo, motorista da sociedade empresária Guardião Ltda., pessoa jurídica de direito privado que presta serviços de segurança, é subordinado ao gerente Marcos. No dia 10/3/2023, Marcos ordenou que Alfredo fizesse a escolta de um cliente. No trajeto de volta, Alfredo foi parado em uma blitz, ocasião em foi constatado que o veículo funcional que conduzia era proveniente de roubo. A despeito de não ter ciência do crime antecedente, até mesmo por não ser o responsável pelas compras da empregadora, Alfredo foi preso em flagrante por suposta prática do crime de receptação dolosa. Diante do exposto, assinale a opção que apresenta, corretamente, a tese de mérito que pode ser invocada em defesa de Alfredo.",
+    alternativas: [
+      { letra: "A", texto: "A de exclusão da ilicitude, por exercício regular do direito." },
+      { letra: "B", texto: "A de exclusão da ilicitude, por estrito cumprimento do dever legal." },
+      { letra: "C", texto: "A de exclusão da tipicidade, por ausência de elemento subjetivo do tipo." },
+      {
+        letra: "D",
+        texto:
+          "A de exclusão da culpabilidade por inexigibilidade de conduta diversa, consistente na obediência hierárquica.",
+      },
+    ],
+    gabarito: "C",
+    comentario:
+      "A FGV montou a questão pra testar a ordem em que se analisa um crime: primeiro, se existe fato típico; depois, se ele é ilícito; por último, se o agente é culpável. A receptação dolosa exige que o agente saiba de onde a coisa veio: o art. 180 pune quem “<em>conduzir</em>”, entre outras condutas, “<em>coisa que sabe ser produto de crime</em>”. O enunciado diz que Alfredo dirigia o carro da empresa sem “<em>ciência do crime antecedente</em>”. Sem esse conhecimento não há dolo, e o parágrafo único do art. 18 fecha a conta: salvo os casos expressos em lei, “<em>ninguém pode ser punido por fato previsto como crime, senão quando o pratica dolosamente</em>”. 🔍 Sem dolo, o fato é atípico, e a análise para no primeiro degrau. Resposta: <strong>C</strong>.",
+  },
+  pegadinha:
+    "A letra D é a mais longa e foi a mais marcada na plataforma: 9 das 19 respostas. 🎭 Ela usa o detalhe que a FGV plantou de propósito: Alfredo “<em>é subordinado ao gerente Marcos</em>”, e Marcos “<em>ordenou</em>” a escolta. Só que o art. 22 trata de quem comete o fato “<em>em estrita obediência a ordem, não manifestamente ilegal, de superior hierárquico</em>”, e a ordem de Marcos foi fazer uma escolta, não conduzir carro roubado. Além disso, a doutrina majoritária só aplica a obediência hierárquica a relações de direito público, e o enunciado avisa logo na primeira linha que a empregadora é “<em>pessoa jurídica de direito privado</em>”. As letras A e B erram por outro caminho: o estrito cumprimento de dever legal e o exercício regular de direito estão no art. 23, que começa com “<em>Não há crime quando o agente pratica o fato</em>”. As duas pressupõem um fato típico pra discutir. 🧠 <strong>Fixa assim, e é aqui que a eliminação entra:</strong> A e B falam de ilicitude, D fala de culpabilidade, e as três só fazem sentido se existir fato típico. Quando o enunciado tira o dolo, as três caem juntas e sobra a C, mesmo pra quem não lembra o nome de nenhuma excludente.",
+  noticia: {
+    titulo: "📰 Tá rolando: quinta tem resultado da 2ª fase e edital do reaproveitamento",
+    texto:
+      "📌 <strong>Quinta-feira (12/11)</strong> saem o padrão de respostas definitivo e o resultado preliminar da 2ª fase do 47º, com recurso de 13 a 15/11 e resultado final em 3/12 (cronograma do edital do 47º). No mesmo dia sai o edital complementar do reaproveitamento: quem não passar na 2ª fase do 47º pode “<em>reaproveitar o resultado da prova objetiva</em>” e fazer direto a 2ª fase do 48º, em 28/2, pagando a taxa de inscrição (item 2.8.1 do edital do 48º). 💳 Pro 48º, quem pediu isenção tem o resultado definitivo em 2/12, o prazo limite pra pagar a taxa é 4/12, e os locais da prova objetiva saem em 4/1. ⚖️ E o mesmo edital resolve a conversa do termômetro: a correção atribui “<em>nota zero</em>” à questão “<em>sem opção assinalada</em>” e também “<em>quando a alternativa assinalada for incorreta, segundo o gabarito oficial das provas</em>” (item 3.4.5.1). Errar e deixar em branco custam o mesmo, então nenhuma fica em branco. E questão anulada vale ponto pra “<em>todos os examinandos indistintamente, inclusive aos que não tenham interposto recurso</em>” (item 5.9): no 42º, foi o que aconteceu com a questão 43. Todas as datas estão em <a href=\"" +
+      APP_URL +
+      "/editais/48-exame-oab\" style=\"color:#c8a04a;font-weight:600;\">aprovaoab.app.br/editais/48-exame-oab</a>.",
+  },
+  curiosidade: {
+    titulo: "💡 Você sabia?",
+    texto:
+      "Chutar as 80 não aprova ninguém, nem com muita sorte. 🎲 Se cada chute fosse um sorteio entre as quatro letras, a chance de acertar 40 ou mais seria de <strong>1 em 762 mil</strong>. Mas o chute muda de figura quando vem depois do estudo. Quem tem certeza de 30 questões e deixa as outras 50 em branco termina com 30 pontos e reprova, porque branco vale zero. Chutando essas 50 no escuro, ganha em média 12,5 pontos a mais; eliminando uma alternativa em cada uma, quase 17. 🧮 É conta de probabilidade, não estratégia de estudo: ela só mostra por que, no dia, nenhuma questão fica sem marcação.",
+  },
+  dica:
+    "São <strong>61 dias</strong> até 10 de janeiro. 🧭 Três regras pro dia da prova, tiradas do edital e da conta de hoje. <strong>Nenhuma em branco:</strong> branco e erro valem zero do mesmo jeito. <strong>Antes de chutar, elimine:</strong> cada alternativa descartada sobe a chance de 25% pra 33% e depois pra 50%. <strong>Esqueça a letra e o tamanho:</strong> nenhum dos dois diz nada. E a eliminação mais forte é a da questão de hoje: descobrir em que degrau o enunciado mexeu, se na tipicidade, na ilicitude ou na culpabilidade, derruba de uma vez as alternativas dos outros degraus. 📌 No 48º, o boleto vence em 4/12. 🎯 Pra saber em quais matérias você ainda chuta, o <a href=\"" +
+    APP_URL +
+    "/dashboard\" style=\"color:#c8a04a;font-weight:600;\">diagnóstico</a> leva 10 minutos e é de graça. Boa semana. 🍀",
+  examDays: 61,
+  examLabel: "até a 1ª fase do 48º",
+}
+
 // ATENÇÃO: o cron de segunda recria o rascunho da CURRENT_EDICAO sem checar se ela
 // já foi enviada. Esquecer de mover este ponteiro gera, no Resend, um rascunho
 // idêntico ao da semana passada. Aconteceu em 03/ago/2026 com a #8, em
 // 21/set/2026 com a #15, em 28/set/2026 com a #16, em 05/out/2026 com a #17, em
 // 12/out/2026 com a #18, em 19/out/2026 com a #19, em 26/out/2026 com a #20 e em
 // 02/nov/2026 com a #21.
-export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_22
+export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_23

@@ -22,6 +22,7 @@
 // não sustentam dizer a alguém que ele é crítico numa disciplina.
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { getDiagnosticoConfig } from "@/lib/config"
+import { MIN_RESPOSTAS_RITMO } from "@/lib/metrics"
 import { fetchAllRows, fetchByIds } from "@/lib/supabase-paginate"
 
 export interface PlacarMateria {
@@ -207,4 +208,30 @@ export async function placarPorMateria(
 /** Taxa de acerto acumulada (0–100). `null` quando não há resposta válida. */
 export function taxaDoPlacar(p: PlacarMateria): number | null {
   return p.total > 0 ? parseFloat(((p.acertos / p.total) * 100).toFixed(2)) : null
+}
+
+/**
+ * Minutos por questão no ritmo do próprio usuário: mediana das respostas fora do
+ * diagnóstico que têm tempo gravado. **Função pura**, roda sobre as tentativas
+ * que o /api/dashboard já tem em memória.
+ *
+ * `null` abaixo de `MIN_RESPOSTAS_RITMO`, e aí a tela não mostra tempo.
+ *
+ * Mediana, não média: aba esquecida aberta gera resposta de dezenas de minutos e
+ * puxaria a média sozinha. Abaixo de `minTempoRespostaMs` fica fora, como no
+ * placar, porque é clique e não resposta. O diagnóstico fica fora porque é feito
+ * a frio, uma vez, e não diz como a pessoa estuda.
+ */
+export function minutosPorQuestao(
+  attempts: AttemptRow[],
+  minTempoRespostaMs: number,
+): number | null {
+  const tempos = attempts
+    .filter((a) => !a.is_diagnostic && a.time_spent_ms !== null && a.time_spent_ms >= minTempoRespostaMs)
+    .map((a) => a.time_spent_ms as number)
+    .sort((x, y) => x - y)
+  if (tempos.length < MIN_RESPOSTAS_RITMO) return null
+  const meio = Math.floor(tempos.length / 2)
+  const mediana = tempos.length % 2 ? tempos[meio] : (tempos[meio - 1] + tempos[meio]) / 2
+  return mediana / 60000
 }

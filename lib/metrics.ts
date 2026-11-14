@@ -28,6 +28,13 @@ export const MIN_TENTATIVAS_BANDA = 3
 // trocando um número enganoso por outro. 2 respostas não são uma taxa.
 export const MIN_RESPOSTAS_TAXA_GERAL = 10
 
+// Amostra mínima pra estimar o tempo do treino pelo ritmo do próprio usuário
+// (`minutosPorQuestao`, em lib/services/desempenho.ts). Abaixo disso o card
+// "Próxima ação" não mostra tempo nenhum. O "18 min" que estava lá era igual
+// para todo mundo, e medido em nov/2026 o ritmo individual de 10 questões vai
+// de ~11 a ~18 min.
+export const MIN_RESPOSTAS_RITMO = 10
+
 export type NivelTaxa = "critica" | "media" | "boa"
 
 export function classificarTaxa(taxa: number): NivelTaxa {

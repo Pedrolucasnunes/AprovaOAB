@@ -8,7 +8,7 @@ import { contarDiasNoTeto } from "@/lib/limite-diario"
 import { fetchAllRows } from "@/lib/supabase-paginate"
 import { classificarTaxa, TAXA_CRITICA, MIN_TENTATIVAS_BANDA, MIN_RESPOSTAS_TAXA_GERAL } from "@/lib/metrics"
 import { logError } from "@/lib/logger"
-import { carregarFontesPlacar, fundirPlacar, taxaDoPlacar } from "@/lib/services/desempenho"
+import { carregarFontesPlacar, fundirPlacar, minutosPorQuestao, taxaDoPlacar } from "@/lib/services/desempenho"
 import { proximoModuloPendente, subjectsMedidos } from "@/lib/services/diagnostico"
 import { supabaseAdmin } from "@/lib/supabase-admin"
 
@@ -383,9 +383,13 @@ export async function GET(req: NextRequest) {
   }
 
   const actionCards = {
+    // `subjectId` vai pro link do card, que abre o treino já filtrado na matéria
+    // do título. O tempo é o ritmo do próprio usuário, das tentativas em memória.
     proximaAcao: materiasRisco[0] ? {
       subject: materiasRisco[0].nome,
+      subjectId: materiasRisco[0].subject_id,
       horario: todaySlot?.start_time?.slice(0, 5) ?? null,
+      minutosPorQuestao: minutosPorQuestao(fontes.attempts, minTempoRespostaMs),
     } : null,
     proximoSimulado: proximoSimEvent ? {
       date:   proximoSimEvent.date,

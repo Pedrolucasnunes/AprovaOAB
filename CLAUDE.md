@@ -193,7 +193,7 @@ O diagnóstico é dividido em módulos definidos em `app_config.diagnostico` (se
 
 ### Métricas exibidas — fonte única
 
-`lib/metrics.ts` centraliza META_APROVACAO (50%), as bandas por matéria (crítica < 40, média 40–70, boa > 70), os pisos de amostra MIN_TENTATIVAS_BANDA (3 respostas pra uma matéria entrar nas contagens dos cards) e MIN_RESPOSTAS_TAXA_GERAL (10 respostas de treino pra exibir a taxa geral) e os helpers de cor/label. Toda tela que classifica ou colore uma taxa de acerto importa daqui — não redeclarar thresholds.
+`lib/metrics.ts` centraliza META_APROVACAO (50%), as bandas por matéria (crítica < 40, média 40–70, boa > 70), os pisos de amostra MIN_TENTATIVAS_BANDA (3 respostas pra uma matéria entrar nas contagens dos cards) e MIN_RESPOSTAS_TAXA_GERAL (10 respostas de treino pra exibir a taxa geral), MIN_RESPOSTAS_RITMO (10 respostas com tempo pra o card "Próxima ação" mostrar o tempo do treino no ritmo do próprio usuário, via `minutosPorQuestao` em `lib/services/desempenho.ts`; abaixo disso o card não mostra tempo, nunca um número fixo) e os helpers de cor/label. Toda tela que classifica ou colore uma taxa de acerto importa daqui — não redeclarar thresholds.
 
 **A fusão por matéria mora em `lib/services/desempenho.ts` (`placarPorMateria`)** — não repetir a agregação em rota nenhuma. Ela funde `question_attempts` (diagnóstico + treino) + `simulado_respostas`, aplica o filtro de baixa confiança e devolve **duas contagens de propósito**:
 

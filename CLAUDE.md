@@ -450,15 +450,16 @@ mudança não causou nada, só deu uma string nova pra contar. **Contagem de ele
 estrutural em página de SEO é medição barata que ninguém fazia** — `<header>`,
 `<footer>`, `<h1>` e `<main>` deveriam ser 1 em toda rota pública.
 
-**Conserto decidido: apagar os dois `loading.tsx`**, como já foi feito em
-`/questoes` e pelo mesmo motivo — as páginas são prerenderizadas, o esqueleto quase
-nunca chega a aparecer, e o preço dele é a casca inteira duplicada.
+**Resolvido em nov/2026: os dois `loading.tsx` foram apagados**, como já tinha sido
+feito em `/questoes` e pelo mesmo motivo. As páginas são prerenderizadas, o esqueleto
+quase nunca chegava a aparecer, e o preço dele era a casca inteira duplicada. A troca
+esperou de propósito a leitura de "Páginas" do Search Console (3–10/out/2026), porque
+mudava a contagem de links internos de ~30 páginas no meio da janela de medição
+(decisão do Pedro em 15/set/2026).
 
-**Só NÃO agora, e o porquê é a parte que importa:** remover isso muda a contagem de
-links internos de ~30 páginas, e a malha interna é exatamente o que a leitura de
-"Páginas" do Search Console (prevista pra 3–10/out/2026) existe pra observar.
-Consertar no meio da janela contamina a medição que se está esperando. **Vai no lote
-de depois da segunda leitura** (decisão do Pedro em 15/set/2026).
+**Rota pública de SEO não tem `loading.tsx`.** Quem quiser feedback de navegação ali
+precisa de um esqueleto que não monte o `SeoShell`, e conferir no HTML servido que
+`<header>` e `<footer>` continuam 1.
 
 ### `Reveal` — CSS puro, e por que ele não pode voltar pro JS
 

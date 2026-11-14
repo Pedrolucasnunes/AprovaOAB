@@ -125,7 +125,8 @@ interface DashboardData {
   desempenhoPorMateria: { subject_id: string; nome: string; total: number; acertos: number; taxa_acerto: number }[]
   evolucao: { date: string; nota: number }[]
   actionCards: {
-    proximaAcao:     { subject: string; horario: string | null } | null
+    // minutosPorQuestao é null sem amostra (MIN_RESPOSTAS_RITMO): o card esconde o tempo.
+    proximaAcao:     { subject: string; subjectId: string; horario: string | null; minutosPorQuestao: number | null } | null
     proximoSimulado: { date: string; time: string; numero: number } | null
     insightMateria:  { subject: string; taxa: number; diasSemTreino: number | null } | null
   }
@@ -145,6 +146,8 @@ interface DashboardData {
     questoesPorMateria: number
   } | null
   questoesHoje?: number
+  /** Teto diário do free, de `app_config.limites.freeDailyLimit`. Nunca escrever o número aqui. */
+  limiteDiario?: number
   plano?: "free" | "pro" | "aprovacao"
   subscriptionStatus?: "active" | "past_due" | "canceled"
   /**
@@ -312,7 +315,8 @@ export default function DashboardPage() {
 
       {/* ── Diagnóstico completo (cenário A) ── */}
       {isNewUser && data?.temPerfilOnboarding && data?.diagnosticoCompleto && (() => {
-        const limiteBatido = data.plano === "free" && (data.questoesHoje ?? 0) >= 10
+        const limiteBatido =
+          data.plano === "free" && data.limiteDiario != null && (data.questoesHoje ?? 0) >= data.limiteDiario
         const treinoHref = foco
           ? `/dashboard/treino?quantidade=5&materia=${foco.id}`
           : "/dashboard/treino?quantidade=5"
@@ -603,15 +607,17 @@ export default function DashboardPage() {
             <div>
               <h3 className="text-xl font-bold">Treino de {acão.subject}</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                10 questões adaptativas priorizando sua matéria mais crítica. Foco no que realmente vai te aprovar.
+                10 questões só de {acão.subject}, sua matéria mais crítica agora. Foco no que realmente vai te aprovar.
               </p>
             </div>
             <div className="flex items-center gap-5 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5" />
-                <span>18 min</span>
-                <span className="text-muted-foreground/50">Tempo estimado</span>
-              </span>
+              {acão.minutosPorQuestao != null && (
+                <span className="flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5" />
+                  <span>~{Math.max(1, Math.round(acão.minutosPorQuestao * 10))} min</span>
+                  <span className="text-muted-foreground/50">no seu ritmo</span>
+                </span>
+              )}
               <span className="flex items-center gap-1.5">
                 <ListChecks className="h-3.5 w-3.5" />
                 <span>10 questões</span>
@@ -620,7 +626,7 @@ export default function DashboardPage() {
             </div>
           </div>
           <Button size="lg" className="shrink-0 w-full sm:w-auto" asChild>
-            <Link href="/dashboard/treino">
+            <Link href={`/dashboard/treino?materia=${acão.subjectId}&origem=dashboard`}>
               Começar agora <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>

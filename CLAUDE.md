@@ -193,7 +193,7 @@ O diagnóstico é dividido em módulos definidos em `app_config.diagnostico` (se
 
 ### Métricas exibidas — fonte única
 
-`lib/metrics.ts` centraliza META_APROVACAO (50%), as bandas por matéria (crítica < 40, média 40–70, boa > 70), os pisos de amostra MIN_TENTATIVAS_BANDA (3 respostas pra uma matéria entrar nas contagens dos cards) e MIN_RESPOSTAS_TAXA_GERAL (10 respostas de treino pra exibir a taxa geral) e os helpers de cor/label. Toda tela que classifica ou colore uma taxa de acerto importa daqui — não redeclarar thresholds.
+`lib/metrics.ts` centraliza META_APROVACAO (50%), as bandas por matéria (crítica < 40, média 40–70, boa > 70), os pisos de amostra MIN_TENTATIVAS_BANDA (3 respostas pra uma matéria entrar nas contagens dos cards) e MIN_RESPOSTAS_TAXA_GERAL (10 respostas de treino pra exibir a taxa geral), MIN_RESPOSTAS_RITMO (10 respostas com tempo pra o card "Próxima ação" mostrar o tempo do treino no ritmo do próprio usuário, via `minutosPorQuestao` em `lib/services/desempenho.ts`; abaixo disso o card não mostra tempo, nunca um número fixo) e os helpers de cor/label. Toda tela que classifica ou colore uma taxa de acerto importa daqui — não redeclarar thresholds.
 
 **A fusão por matéria mora em `lib/services/desempenho.ts` (`placarPorMateria`)** — não repetir a agregação em rota nenhuma. Ela funde `question_attempts` (diagnóstico + treino) + `simulado_respostas`, aplica o filtro de baixa confiança e devolve **duas contagens de propósito**:
 
@@ -450,15 +450,16 @@ mudança não causou nada, só deu uma string nova pra contar. **Contagem de ele
 estrutural em página de SEO é medição barata que ninguém fazia** — `<header>`,
 `<footer>`, `<h1>` e `<main>` deveriam ser 1 em toda rota pública.
 
-**Conserto decidido: apagar os dois `loading.tsx`**, como já foi feito em
-`/questoes` e pelo mesmo motivo — as páginas são prerenderizadas, o esqueleto quase
-nunca chega a aparecer, e o preço dele é a casca inteira duplicada.
+**Resolvido em nov/2026: os dois `loading.tsx` foram apagados**, como já tinha sido
+feito em `/questoes` e pelo mesmo motivo. As páginas são prerenderizadas, o esqueleto
+quase nunca chegava a aparecer, e o preço dele era a casca inteira duplicada. A troca
+esperou de propósito a leitura de "Páginas" do Search Console (3–10/out/2026), porque
+mudava a contagem de links internos de ~30 páginas no meio da janela de medição
+(decisão do Pedro em 15/set/2026).
 
-**Só NÃO agora, e o porquê é a parte que importa:** remover isso muda a contagem de
-links internos de ~30 páginas, e a malha interna é exatamente o que a leitura de
-"Páginas" do Search Console (prevista pra 3–10/out/2026) existe pra observar.
-Consertar no meio da janela contamina a medição que se está esperando. **Vai no lote
-de depois da segunda leitura** (decisão do Pedro em 15/set/2026).
+**Rota pública de SEO não tem `loading.tsx`.** Quem quiser feedback de navegação ali
+precisa de um esqueleto que não monte o `SeoShell`, e conferir no HTML servido que
+`<header>` e `<footer>` continuam 1.
 
 ### `Reveal` — CSS puro, e por que ele não pode voltar pro JS
 

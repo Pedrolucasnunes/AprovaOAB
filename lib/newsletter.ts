@@ -1719,10 +1719,102 @@ export const EDICAO_23: NewsletterEdicao = {
   examLabel: "até a 1ª fase do 48º",
 }
 
+// Semana do edital complementar do reaproveitamento (12/11) e da janela de inscrição
+// dele (23 a 30/11). Termômetro sem matéria: o estagiário como personagem da prova.
+//
+// SEM TRAVESSÃO no conteúdo (decisão do Pedro de 23/set/2026).
+//
+// Termômetro medido em 16/nov/2026 (scratchpad/etica24.cjs e buscas no banco): busca
+// por "estagiári", depois ampliada para "estagi"/"estágio" porque o caderno do 46º usa
+// "estagiar" e a busca estreita não acharia. Lidas uma a uma, 16 questões têm o
+// estagiário ou o estágio como parte do que se pergunta, em 13 das 29 provas lidas (as
+// 28 do acervo, do 18º ao 47º sem o 28º e o 46º, mais o 46º no caderno oficial tipo 3,
+// s.oab.org.br/arquivos/2026/05/c58cbc52-...pdf, questão 2, gabarito definitivo C).
+// Ética, 12: 18º, 19º, 22º, 23º, 29º, 33º (duas), 35º (duas), 36º, 38º e 46º.
+// Trabalho, 4: 33º, 40º, 41º e 45º. Figurantes, fora da conta: 23º Empresarial, 35º
+// Civil, 42º Consumidor e 43º Ética (o estagiário só ajuda o chefe). Regras repetidas:
+// atos isolados do estagiário (23º e 35º), bacharel pode estagiar (29º e 46º) e
+// teletrabalho de estagiário (40º e 45º).
+// A busca sem tirar espaços dava ZERO estagiário no 46º: o PDF quebra a palavra. Com o
+// texto sem espaço nenhum foram 4 ocorrências (controle positivo: "advogad" 63 vezes).
+//
+// ERRATA NO BANCO, levada ao Pedro: a 71 do caderno tipo 1 do 45º (teletrabalho de
+// aprendizes e estagiários, id 4a1fdbb1...) está B no banco e A no gabarito definitivo
+// (s.oab.org.br/arquivos/2026/01/183549bb-...pdf; caderno .../2025/12/d092ea6d-...pdf).
+// As 3 respostas da plataforma marcaram A e contaram como erro. O e-mail não cita a
+// questão nem o número da plataforma dela.
+//
+// Questão: 5 do caderno tipo 1 do XXXV (prova de 3/7/2022; caderno s.oab.org.br/
+// arquivos/2022/07/c21110a4-...pdf), gabarito preliminar C (.../9d54ed95-...pdf).
+// Anuladas só a 50 e a 59 do tipo 1 (oab.org.br/noticia/59951). O caderno separa o
+// aposto com meia-risca; o e-mail usa o texto do banco, com vírgulas. Na plataforma: 11
+// respostas válidas de 8 pessoas (treino A 4, B 1, C 5; diagnóstico A 1), nenhuma
+// de simulado.
+//
+// Fontes da lei: Planalto deu timeout (curl 28). Estatuto (arts. 3º, 9º, 34 e 36) na
+// norma atualizada da Câmara (www2.camara.leg.br/legin/fed/lei/1994/lei-8906-4-julho-
+// 1994-349751-normaatualizada-pl.html); Regulamento Geral, art. 29, no PDF da OAB
+// (oab.org.br/Content/pdf/LegislacaoOab/RegulamentoGeral.pdf); CLT, art. 75-B, § 6º, na
+// publicação original da Lei 14.442/2022 na Câmara.
+//
+// Datas: notícia da OAB de 12/11 (oab.org.br/noticia/64787): recurso de 13 a 15/11,
+// resultado final com data provável de 3/12. Edital complementar do reaproveitamento
+// (s.oab.org.br/arquivos/2026/11/3c15fa78-...pdf), itens 1.1.1.1, 1.1.3, 1.1.4, 1.1.5,
+// 1.1.6, 1.1.8 e 1.2.1; nenhum item fala de quem recorreu. Edital do 48º: 2ª fase em
+// 28/2/2027, isenção definitiva em 2/12, taxa até 4/12 e locais em 4/1.
+export const EDICAO_24: NewsletterEdicao = {
+  numero: 24,
+  subject: "☕ Café com OAB #24: o estagiário já caiu em 13 provas",
+  preheader:
+    "Procurei o estagiário em 29 provas: 16 questões, em Ética e em Trabalho, e três regras que a FGV cobrou duas vezes. E o reaproveitamento da 1ª fase abre dia 23.",
+  intro: [
+    "Quinta passada (12/11) saiu o resultado preliminar da 2ª fase do 47º, e o final vem em 3/12. Pra quem não passou, o reaproveitamento da 1ª fase abre na segunda (23/11) e fecha antes do resultado final. 📌 Os detalhes estão na notícia.",
+    "No termômetro, um personagem que a FGV não larga: <strong>o estagiário</strong>. Procurei por ele em 29 provas e achei 16 questões, em Ética e em Trabalho, e três regras que a banca cobrou duas vezes. 🎓",
+    "E a questão da semana é dele, de uma das regras que voltaram: na plataforma, 6 das 11 respostas erraram. ⚖️",
+  ],
+  termometro:
+    "🟡 <strong>O estagiário é figurinha repetida.</strong> Procurei o estagiário em 29 provas, do 18º ao 47º: as 28 do acervo e o 46º, que li no caderno oficial (o 28º ficou de fora). Ele é parte da pergunta em <strong>16 questões de 13 provas</strong>: 12 de Ética, sobre o que ele pode fazer, quem pode estagiar e onde ele se inscreve, e 4 de Trabalho, sobre a Lei do Estágio e a CLT. A mais recente é do 46º, de maio. 🔁 <strong>E a FGV repete a regra, não só o personagem.</strong> O que o estagiário pode fazer sozinho caiu no 23º e de novo no 35º, que é a questão de hoje. Que bacharel pode estagiar caiu no 29º e no 46º. Que estagiário pode trabalhar em home office caiu no 40º e no 45º. 🎭 E ele ainda faz figuração: em Empresarial, Civil e até Consumidor, aparece no enunciado sem ser o assunto.",
+  questao: {
+    titulo: "🎯 A questão da semana: o que o estagiário faz sozinho",
+    fonte: "FGV · Exame de Ordem XXXV/2022 · a prova de 3 de julho de 2022 · na plataforma, 6 das 11 respostas erraram",
+    enunciado:
+      "João é estagiário de Direito. É vedado a João praticar isoladamente, isto é, sem atuar em conjunto com o advogado ou o defensor público que o supervisiona, o seguinte ato:",
+    alternativas: [
+      { letra: "A", texto: "assinar petições de juntada de documentos a processos judiciais." },
+      { letra: "B", texto: "obter junto aos escrivães e chefes de secretarias certidões de peças de processos em curso." },
+      { letra: "C", texto: "comparecer à prática de atos extrajudiciais, sem autorização ou substabelecimento do advogado." },
+      { letra: "D", texto: "retirar e devolver autos em cartório, assinando a respectiva carga." },
+    ],
+    gabarito: "C",
+    comentario:
+      "O Estatuto deixa o estagiário inscrito praticar atos de advocacia “<em>em conjunto com advogado e sob responsabilidade deste</em>” (art. 3º, § 2º), na forma do Regulamento Geral. E o art. 29 do Regulamento abre três exceções, atos que ele pode praticar “<em>isoladamente</em>”, “<em>sob a responsabilidade do advogado</em>”: “<em>retirar e devolver autos em cartório, assinando a respectiva carga</em>”, obter certidões “<em>junto aos escrivães e chefes de secretarias</em>” e “<em>assinar petições de juntada de documentos a processos judiciais ou administrativos</em>”. São as letras D, B e A, nessa ordem. O ato extrajudicial tem regra própria, no § 2º: o estagiário pode comparecer sozinho “<em>quando receber autorização ou substabelecimento do advogado</em>”. A letra C tira justamente essa condição. 🔍 É o único dos quatro que ele não pode praticar sozinho. Resposta: <strong>C</strong>.",
+  },
+  pegadinha:
+    "A letra A foi a mais marcada entre as erradas: 5 das 11 respostas. 🎭 Assinar petição soa como ato de advogado, mas a petição de juntada está na lista do estagiário, no inciso III do § 1º. A palavra que decide a questão é <strong>isoladamente</strong>: A, B e D descrevem atos que o estagiário pode praticar sem o advogado do lado, e a C descreve o ato extrajudicial sem a autorização que o § 2º exige. 🧠 <strong>Fixa assim:</strong> sozinho, três atos de cartório (carga de autos, certidão e petição de juntada); fora do processo, só com autorização ou substabelecimento; o resto, em conjunto com o advogado. E passar disso tem nome no Estatuto: é infração disciplinar “<em>praticar, o estagiário, ato excedente de sua habilitação</em>” (art. 34, XXIX), punida com censura (art. 36, I).",
+  noticia: {
+    titulo: "📰 Tá rolando: saiu o preliminar da 2ª fase, e o reaproveitamento abre dia 23",
+    texto:
+      "📌 <strong>2ª fase do 47º:</strong> a OAB publicou na quinta (12/11) o padrão de respostas definitivo e o resultado preliminar da prova prático-profissional. O prazo de recurso acabou no domingo (15/11), e o resultado final tem “<em>data provável de 3 de dezembro de 2026</em>”. 🔁 <strong>Reaproveitamento:</strong> no mesmo dia saiu o edital complementar. Podem usar os aprovados na 1ª fase do 47º que tenham sido “<em>reprovados, ausentes ou eliminados na 2ª fase</em>” (item 1.1.6), e eles fazem direto a 2ª fase do 48º, em 28/2/2027. A inscrição vai das 17h de 23/11 às 17h de 30/11, no site da FGV, com boleto de <strong>R$ 175,00</strong> (item 1.1.1.1). Nesse prazo dá pra atualizar a cidade e a área da prova (item 1.1.4), e quem está no CadÚnico pode pedir isenção (itens 1.1.8 e 1.2.1). ⚠️ <strong>Repare nas datas:</strong> a janela fecha em 30/11, antes do resultado final, então quem recorreu da nota precisa decidir antes de saber o resultado. E quem já tinha se inscrito no 48º pelo caminho normal também pode pedir o reaproveitamento, pagando a taxa dele (item 1.1.5). 💳 Pra todo mundo do 48º: resultado definitivo da isenção em 2/12, prazo limite pra pagar a taxa em 4/12 e locais da prova objetiva em 4/1. Todas as datas estão em <a href=\"" +
+      APP_URL +
+      "/editais/48-exame-oab\" style=\"color:#c8a04a;font-weight:600;\">aprovaoab.app.br/editais/48-exame-oab</a>.",
+  },
+  curiosidade: {
+    titulo: "💡 Você sabia?",
+    texto:
+      "Dá pra ser estagiário depois de formado. 🎓 O § 4º do art. 9º do Estatuto diz que o estágio profissional “<em>poderá ser cumprido por bacharel em Direito que queira se inscrever na Ordem</em>”, e essa é uma das regras que a FGV repetiu: no 29º, com o Júnior, e no 46º, com o Alfredo, formado e ainda sem aprovação no Exame. O caminho contrário também existe: a OAB lembra que o Exame pode ser feito pelos “<em>estudantes de Direito do último ano do curso de graduação ou dos dois últimos semestres</em>”. E o edital do reaproveitamento traz a regra pra quem for aprovado antes da formatura: o certificado sai pra quem comprovar a matrícula nos dois últimos semestres ou no último ano até 30 de junho de 2027 (item 1.1.3). 😉",
+  },
+  dica:
+    "São <strong>54 dias</strong> até 10 de janeiro. 🧭 A ficha do estagiário cabe num post-it e já respondeu 16 questões. <strong>Em Ética:</strong> sozinho, só os três atos de cartório do art. 29 do Regulamento Geral, e o extrajudicial com autorização ou substabelecimento; o estágio dura dois anos e pode ser cumprido por bacharel (art. 9º, §§ 1º e 4º); a inscrição é feita no Conselho Seccional do curso (§ 2º); e quem exerce atividade incompatível pode frequentar o estágio da faculdade, mas não se inscreve na OAB (§ 3º). <strong>Em Trabalho:</strong> estagiário pode fazer home office, e a CLT diz isso com todas as letras: “<em>Fica permitida a adoção do regime de teletrabalho ou trabalho remoto para estagiários e aprendizes</em>” (art. 75-B, § 6º, desde 2022). 📌 No 48º, o boleto vence em 4/12. 🎯 Pra saber onde você está nas outras matérias, o <a href=\"" +
+    APP_URL +
+    "/dashboard\" style=\"color:#c8a04a;font-weight:600;\">diagnóstico</a> leva 10 minutos e é de graça. Boa semana. 🍀",
+  examDays: 54,
+  examLabel: "até a 1ª fase do 48º",
+}
+
 // ATENÇÃO: o cron de segunda recria o rascunho da CURRENT_EDICAO sem checar se ela
 // já foi enviada. Esquecer de mover este ponteiro gera, no Resend, um rascunho
 // idêntico ao da semana passada. Aconteceu em 03/ago/2026 com a #8, em
 // 21/set/2026 com a #15, em 28/set/2026 com a #16, em 05/out/2026 com a #17, em
-// 12/out/2026 com a #18, em 19/out/2026 com a #19, em 26/out/2026 com a #20 e em
-// 02/nov/2026 com a #21.
-export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_23
+// 12/out/2026 com a #18, em 19/out/2026 com a #19, em 26/out/2026 com a #20, em
+// 02/nov/2026 com a #21 e em 09/nov/2026 com a #22.
+export const CURRENT_EDICAO: NewsletterEdicao = EDICAO_24
